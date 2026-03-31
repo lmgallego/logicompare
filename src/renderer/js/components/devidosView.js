@@ -26,11 +26,6 @@ export function initDevidosView() {
     if (l) l.value = ''
     if (a) a.value = ''
     if (al) al.value = ''
-    if (recaCheck) recaCheck.checked = false
-    if (recaLabel) {
-      recaLabel.style.borderColor = 'rgba(196,197,217,0.25)'
-      recaLabel.style.background  = 'rgba(196,197,217,0.06)'
-    }
     cardsEl.innerHTML = ''
     resultsEl.classList.add('hidden')
     m3Row.classList.add('hidden')

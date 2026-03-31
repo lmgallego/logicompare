@@ -10,7 +10,8 @@
     "electron:wait": "wait-on http://localhost:5173 -t 30000 && cross-env NODE_ENV=development electron .",
     "build": "vite build && electron-builder",
     "postinstall": "electron-rebuild -f -w better-sqlite3",
-    "seed:gls": "electron . --seed"
+    "seed:gls": "electron . --seed",
+    "seed:logistica": "electron . --seed-logistica"
   },
   "keywords": [
     "electron",

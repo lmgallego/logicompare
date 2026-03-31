@@ -18,10 +18,11 @@ function runMigrations(db) {
     );
 
     CREATE TABLE IF NOT EXISTS zonas_agencia (
-      id          INTEGER PRIMARY KEY AUTOINCREMENT,
-      agencia_id  INTEGER NOT NULL,
-      nombre_zona TEXT NOT NULL,
+      id           INTEGER PRIMARY KEY AUTOINCREMENT,
+      agencia_id   INTEGER NOT NULL,
+      nombre_zona  TEXT NOT NULL,
       kg_adicional REAL NOT NULL DEFAULT 0,
+      solo_debidos INTEGER NOT NULL DEFAULT 0,
       FOREIGN KEY (agencia_id) REFERENCES agencias(id) ON DELETE CASCADE
     );
 
@@ -71,6 +72,12 @@ function runMigrations(db) {
       FOREIGN KEY (agencia_id) REFERENCES agencias(id)
     );
   `)
+
+  // Add solo_debidos column to zonas_agencia if not exists
+  const zonaCols = db.prepare("PRAGMA table_info(zonas_agencia)").all().map(c => c.name)
+  if (!zonaCols.includes('solo_debidos')) {
+    db.prepare('ALTER TABLE zonas_agencia ADD COLUMN solo_debidos INTEGER NOT NULL DEFAULT 0').run()
+  }
 
   // Add peso column if not exists (migration for existing DBs)
   const cols = db.prepare("PRAGMA table_info(cotizaciones)").all().map(c => c.name)

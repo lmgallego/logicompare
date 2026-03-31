@@ -1,6 +1,7 @@
 const { getActive } = require('../repositories/agencyRepository')
 const { getZoneForCp } = require('../repositories/zoneRepository')
 const { getRateForWeight, getRateForWeight15 } = require('../repositories/rateRepository')
+const { getDb } = require('../database/connection')
 
 /**
  * Calcula los metros cúbicos a partir de las dimensiones en cm.
@@ -26,18 +27,18 @@ function calcularPeso(metrosCubicos, baremo) {
  * @returns {{ precioBase: number|null, error: string|null }}
  */
 function calcularTarifaBase(agenciaId, zona, peso) {
-  if (peso <= 15) {
-    const tarifa = getRateForWeight(agenciaId, zona.id, peso)
-    if (!tarifa) return { precioBase: null, error: 'Sin tarifa para este peso' }
-    return { precioBase: tarifa.precio_base, error: null }
-  }
+  // Try direct rate lookup first
+  const tarifa = getRateForWeight(agenciaId, zona.id, peso)
+  if (tarifa) return { precioBase: tarifa.precio_base, error: null }
 
-  // Peso > 15 kg: base del tramo 15 kg + exceso × kg_adicional
-  const tarifa15 = getRateForWeight15(agenciaId, zona.id)
-  if (!tarifa15) return { precioBase: null, error: 'Sin tarifa base para >15 kg' }
+  // Peso exceeds all defined tariff bands → get the highest band's tariff
+  const tarifaMax = getDb()
+    .prepare('SELECT * FROM tarifas_agencia WHERE agencia_id=? AND zona_id=? ORDER BY kilos_hasta DESC LIMIT 1')
+    .get(agenciaId, zona.id)
+  if (!tarifaMax) return { precioBase: null, error: 'Sin tarifa para este peso' }
 
-  const kgsExtra = Math.ceil(peso - 15)
-  const precioBase = tarifa15.precio_base + kgsExtra * zona.kg_adicional
+  const kgsExtra = Math.ceil(peso - tarifaMax.kilos_hasta)
+  const precioBase = tarifaMax.precio_base + kgsExtra * zona.kg_adicional
   return { precioBase: Math.round(precioBase * 100) / 100, error: null }
 }
 
@@ -64,6 +65,33 @@ function aplicarRecargos(precioBase, agencia) {
  * @param {{ largoCm, anchoCm, altoCm, cpPrefix }} params
  * @returns {Array}
  */
+// CPs de Cataluña (para lógica horaria de Logística)
+const CP_CATALUNYA = new Set(['08', '17', '25', '43'])
+
+/**
+ * Para la agencia Logística, los CPs catalanes tienen dos zonas horarias:
+ * - Matí-Tarda  → antes de las 11:00
+ * - Tarda-Matí  → entre 11:00 y 19:00
+ * La zona registrada en zonas_provincias para Cataluña es siempre 'Matí-Tarda'.
+ * Aquí la intercambiamos según la hora del sistema.
+ */
+function resolveZonaLogistica(agenciaId, zonaBase) {
+  if (!zonaBase) return zonaBase
+  const hora = new Date().getHours()
+  const esMatutino = hora < 11  // <11h → Matí-Tarda
+  const esTarde    = hora >= 11 && hora < 19 // 11-19h → Tarda-Matí
+
+  if (zonaBase.nombre_zona === 'Matí-Tarda' && !esMatutino && esTarde) {
+    // Cambiar a Tarda-Matí
+    const db = require('../database/connection').getDb()
+    const zona = db.prepare(
+      "SELECT * FROM zonas_agencia WHERE agencia_id=? AND nombre_zona='Tarda-Matí'"
+    ).get(agenciaId)
+    return zona || zonaBase
+  }
+  return zonaBase
+}
+
 function calcularTarifas({ largoCm, anchoCm, altoCm, cpPrefix }) {
   const metrosCubicos = calcularMetrosCubicos(largoCm, anchoCm, altoCm)
   const agencias = getActive()
@@ -72,7 +100,18 @@ function calcularTarifas({ largoCm, anchoCm, altoCm, cpPrefix }) {
   for (const agencia of agencias) {
     const peso = calcularPeso(metrosCubicos, agencia.baremo)
 
-    const zona = getZoneForCp(agencia.id, cpPrefix)
+    let zona = getZoneForCp(agencia.id, cpPrefix)
+
+    // Lógica horaria Logística para Cataluña
+    if (zona && CP_CATALUNYA.has(cpPrefix) && agencia.nombre === 'Logística') {
+      zona = resolveZonaLogistica(agencia.id, zona)
+    }
+
+    // Excluir zonas solo_debidos de Pagados/Cargar Portes
+    if (zona && zona.solo_debidos) {
+      continue
+    }
+
     if (!zona) {
       resultados.push({
         agencia, zona: null, metrosCubicos, peso,

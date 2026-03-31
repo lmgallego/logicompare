@@ -48,6 +48,12 @@ app.whenReady().then(() => {
     return
   }
 
+  if (process.argv.includes('--seed-logistica')) {
+    require('./database/seedLogistica')
+    app.quit()
+    return
+  }
+
   require('./ipcHandlers/quoteHandler')
   require('./ipcHandlers/agencyHandler')
   require('./ipcHandlers/provinceHandler')
