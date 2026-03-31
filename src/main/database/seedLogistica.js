@@ -3,16 +3,17 @@ const { getDb } = require('./connection')
 const db = getDb()
 
 const insertAll = db.transaction(() => {
+  // Delete existing Logística data so we can re-seed with correct values
   const existing = db.prepare("SELECT id FROM agencias WHERE nombre = 'Logística'").get()
   if (existing) {
-    console.log('[seed] Logística ya existe, omitiendo...')
-    return
+    db.prepare('DELETE FROM agencias WHERE id = ?').run(existing.id)
+    console.log('[seed] Logística existente eliminada para re-seed limpio.')
   }
 
-  // Baremo 333: 1 m³ = 333 kg (valor editable desde UI)
+  // Baremo 200: 1 m³ = 200 kg (valor editable desde UI)
   const agencia = db.prepare(
     `INSERT INTO agencias (nombre, ambito, baremo, recargo_combustible, recargo_seguro, logo_path, activa)
-     VALUES ('Logística', 'Nacional', 333, 0, 0, NULL, 1)`
+     VALUES ('Logística', 'Nacional', 200, 0, 0, NULL, 1)`
   ).run()
   const agId = agencia.lastInsertRowid
   console.log('[seed] Agencia Logística creada. ID:', agId)
