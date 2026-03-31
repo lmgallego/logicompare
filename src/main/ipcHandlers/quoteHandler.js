@@ -44,6 +44,11 @@ ipcMain.handle('get-agencies-simple', () => {
   return getDb().prepare('SELECT id, nombre FROM agencias ORDER BY nombre').all()
 })
 
+ipcMain.handle('delete-quote-by-id', (event, { id }) => {
+  const result = getDb().prepare('DELETE FROM cotizaciones WHERE id = ?').run(id)
+  return { deleted: result.changes }
+})
+
 ipcMain.handle('delete-history', (event, { desde, hasta } = {}) => {
   let sql = 'DELETE FROM cotizaciones'
   const params = []

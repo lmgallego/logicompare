@@ -37,11 +37,12 @@
     <aside id="sidebar" class="metallic-gradient w-56 shrink-0 flex flex-col p-3 z-40 overflow-y-auto" style="border-right: 1px solid rgba(228,233,237,0.3);">
       <!-- Navigation -->
       <nav class="flex-1 space-y-0.5">
-        <a class="nav-item active" data-page="new-quote">
-          <span class="material-symbols-outlined text-xl" style="font-variation-settings:'FILL' 1;">calculate</span>
-          <span class="nav-label">Nueva Cotización</span>
+        <div class="nav-group-label px-3 pt-2 pb-0.5" style="font-size:9px; font-weight:900; letter-spacing:0.08em; text-transform:uppercase; opacity:0.4;">Cotizaciones</div>
+        <a class="nav-item active" data-page="new-quote" style="padding-left:1.5rem;">
+          <span class="material-symbols-outlined text-xl" style="font-variation-settings:'FILL' 1;">payments</span>
+          <span class="nav-label">Pagados / Cargar Portes</span>
         </a>
-        <a class="nav-item" data-page="debidos" style="padding-left:2rem;">
+        <a class="nav-item" data-page="debidos" style="padding-left:1.5rem;">
           <span class="material-symbols-outlined text-xl">scale</span>
           <span class="nav-label">Debidos</span>
         </a>
@@ -203,10 +204,11 @@
                 <label class="label-stencil text-[10px]">Alto (cm)</label>
                 <input type="number" id="deb-alto" class="input-field w-24 text-sm" placeholder="0" min="0" step="0.1" />
               </div>
-              <div class="flex flex-col gap-1">
-                <label class="label-stencil text-[10px]">CP (2 dígitos)</label>
-                <input type="text" id="deb-cp" class="input-field w-20 text-sm" placeholder="28" maxlength="2" />
-              </div>
+              <!-- RECA checkbox -->
+              <label class="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg" style="border:2px solid rgba(196,197,217,0.25); background:rgba(196,197,217,0.06);" id="reca-label">
+                <input type="checkbox" id="deb-reca" class="w-4 h-4 accent-primary cursor-pointer" />
+                <span class="text-sm font-black uppercase tracking-wider" style="letter-spacing:0.08em;">RECA</span>
+              </label>
               <button type="submit" id="btn-debidos-calc" class="btn-primary px-5 py-2 text-sm font-bold flex items-center gap-2">
                 <span class="material-symbols-outlined" style="font-size:16px;">scale</span>
                 Calcular pesos
@@ -232,7 +234,7 @@
           <!-- Empty state -->
           <div id="debidos-empty" class="flex flex-col items-center justify-center py-16 text-on-surface-variant" style="opacity:0.4;">
             <span class="material-symbols-outlined text-5xl mb-3">scale</span>
-            <p class="text-sm">Introduce las medidas y el CP para ver los pesos</p>
+            <p class="text-sm">Introduce las medidas para ver los pesos por agencia</p>
           </div>
         </div>
       </div>
@@ -295,11 +297,12 @@
                   <th class="label-stencil text-left px-4 py-3" style="font-size:9px;">Agencia</th>
                   <th class="label-stencil text-right px-4 py-3" style="font-size:9px;">Precio Final</th>
                   <th class="label-stencil text-right px-4 py-3" style="font-size:9px;">P. Redondeado</th>
+                  <th class="px-3 py-3" style="width:36px;"></th>
                 </tr>
               </thead>
               <tbody id="history-table-body">
                 <tr>
-                  <td colspan="8" class="text-center py-12 text-on-surface-variant text-xs" style="opacity:0.5;">
+                  <td colspan="9" class="text-center py-12 text-on-surface-variant text-xs" style="opacity:0.5;">
                     Cargando historial...
                   </td>
                 </tr>

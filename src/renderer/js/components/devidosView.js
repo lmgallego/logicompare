@@ -8,12 +8,26 @@ export function initDevidosView() {
   const emptyEl   = document.getElementById('debidos-empty')
   const m3Row     = document.getElementById('debidos-m3-row')
   const m3Value   = document.getElementById('debidos-m3-value')
+  const recaCheck = document.getElementById('deb-reca')
+  const recaLabel = document.getElementById('reca-label')
+
+  // Highlight RECA label when checked
+  recaCheck?.addEventListener('change', () => {
+    if (recaLabel) {
+      recaLabel.style.borderColor = recaCheck.checked ? '#0040e0' : 'rgba(196,197,217,0.25)'
+      recaLabel.style.background  = recaCheck.checked ? 'rgba(0,64,224,0.08)' : 'rgba(196,197,217,0.06)'
+    }
+  })
 
   function clearAll() {
     document.getElementById('deb-largo').value = ''
     document.getElementById('deb-ancho').value = ''
     document.getElementById('deb-alto').value  = ''
-    document.getElementById('deb-cp').value    = ''
+    if (recaCheck) recaCheck.checked = false
+    if (recaLabel) {
+      recaLabel.style.borderColor = 'rgba(196,197,217,0.25)'
+      recaLabel.style.background  = 'rgba(196,197,217,0.06)'
+    }
     cardsEl.innerHTML = ''
     resultsEl.classList.add('hidden')
     m3Row.classList.add('hidden')
@@ -32,7 +46,7 @@ export function initDevidosView() {
     const largoCm = parseFloat(document.getElementById('deb-largo').value) || 0
     const anchoCm = parseFloat(document.getElementById('deb-ancho').value) || 0
     const altoCm  = parseFloat(document.getElementById('deb-alto').value)  || 0
-    const cpPrefix = document.getElementById('deb-cp').value.trim()
+    const isReca  = recaCheck?.checked ?? false
 
     if (!largoCm || !anchoCm || !altoCm) {
       alert('Introduce las tres medidas.')
@@ -50,8 +64,9 @@ export function initDevidosView() {
     btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;animation:spin 1s linear infinite;">progress_activity</span> Calculando...'
 
     try {
-      const resultados = await window.api.invoke('calcular-tarifas', { largoCm, anchoCm, altoCm, cpPrefix })
-      renderCards(resultados, cardsEl)
+      // Use CP '00' as dummy — only weight/baremo matters in Debidos, no pricing
+      const resultados = await window.api.invoke('calcular-tarifas', { largoCm, anchoCm, altoCm, cpPrefix: '00' })
+      renderCards(resultados, cardsEl, isReca)
       resultsEl.classList.remove('hidden')
       emptyEl.classList.add('hidden')
     } catch (err) {
@@ -63,11 +78,23 @@ export function initDevidosView() {
   })
 }
 
-function renderCards(resultados, container) {
+function renderCards(resultados, container, isReca = false) {
   container.innerHTML = ''
 
+  // RECA mode: show only DHL. Normal mode: hide DHL.
+  const filtered = resultados.filter(r => {
+    const isDhl = r.agencia.nombre?.toLowerCase().includes('dhl')
+    return isReca ? isDhl : !isDhl
+  })
+
+  if (!filtered.length) {
+    container.innerHTML = '<div class="col-span-full text-center py-8 text-on-surface-variant text-sm" style="opacity:0.5;">'
+      + (isReca ? 'No hay agencia DHL configurada.' : 'No hay resultados.') + '</div>'
+    return
+  }
+
   // Sort: valid first by peso ascending, then errors
-  const sorted = [...resultados].sort((a, b) => {
+  const sorted = [...filtered].sort((a, b) => {
     if (a.peso == null && b.peso == null) return 0
     if (a.peso == null) return 1
     if (b.peso == null) return -1
