@@ -9,6 +9,8 @@ export function initFormHandler() {
   const cpInput = document.getElementById('input-cp')
   const cpInfo = document.getElementById('cp-info')
 
+  if (!form || !cpInput) return
+
   cpInput.addEventListener('input', async () => {
     const val = cpInput.value.trim()
     if (val.length === 2 && window.api) {

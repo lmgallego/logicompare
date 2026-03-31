@@ -20,9 +20,12 @@ export function initDevidosView() {
   })
 
   function clearAll() {
-    document.getElementById('deb-largo').value = ''
-    document.getElementById('deb-ancho').value = ''
-    document.getElementById('deb-alto').value  = ''
+    const l = document.getElementById('deb-largo')
+    const a = document.getElementById('deb-ancho')
+    const al = document.getElementById('deb-alto')
+    if (l) l.value = ''
+    if (a) a.value = ''
+    if (al) al.value = ''
     if (recaCheck) recaCheck.checked = false
     if (recaLabel) {
       recaLabel.style.borderColor = 'rgba(196,197,217,0.25)'
@@ -32,7 +35,7 @@ export function initDevidosView() {
     resultsEl.classList.add('hidden')
     m3Row.classList.add('hidden')
     emptyEl.classList.remove('hidden')
-    document.getElementById('deb-largo').focus()
+    document.getElementById('deb-largo')?.focus()
   }
 
   btnClear?.addEventListener('click', clearAll)

@@ -30,7 +30,7 @@ async function initApp() {
   initFormHandler()
   initDevidosView()
   initAgencyModal()
-  await initHistoryControls()
+  initHistoryControls()  // fire-and-forget — populates agency dropdown async
 
   document.getElementById('btn-refresh-history')?.addEventListener('click', () => {
     const desde = document.getElementById('history-desde')?.value || null
