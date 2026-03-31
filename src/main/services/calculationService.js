@@ -50,11 +50,11 @@ function aplicarRecargos(precioBase, agencia) {
   const desglose = [{ nombre: 'Tarifa base', valor: precioBase }]
 
   const combustible = Math.round(precioBase * (agencia.recargo_combustible / 100) * 100) / 100
-  desglose.push({ nombre: `Recargo combustible (${agencia.recargo_combustible}%)`, valor: combustible })
+  if (combustible > 0) desglose.push({ nombre: `Recargo combustible (${agencia.recargo_combustible}%)`, valor: combustible })
 
   let seguro = Math.round(precioBase * (agencia.recargo_seguro / 100) * 100) / 100
-  if (seguro < 0.90) seguro = 0.90
-  desglose.push({ nombre: `Recargo seguro (${agencia.recargo_seguro}%, mín. 0,90€)`, valor: seguro })
+  if (agencia.recargo_seguro > 0 && seguro < 0.90) seguro = 0.90
+  if (seguro > 0) desglose.push({ nombre: `Recargo seguro (${agencia.recargo_seguro}%, mín. 0,90€)`, valor: seguro })
 
   const precioFinal = Math.round((precioBase + combustible + seguro) * 100) / 100
   return { precioFinal, desglose }
