@@ -1,0 +1,53 @@
+codigo,provincia,ambito
+01,Alava,Nacional
+02,Albacete,Nacional
+03,Alicante,Nacional
+04,Almeria,Nacional
+05,Avila,Nacional
+06,Badajoz,Nacional
+07,Baleares,Baleares
+08,Barcelona,Regional
+09,Burgos,Nacional
+10,Caceres,Nacional
+11,Cadiz,Nacional
+12,Castellon,Nacional
+13,Ciudad Real,Nacional
+14,Cordoba,Nacional
+15,La Coruna,Nacional
+16,Cuenca,Nacional
+17,Girona,Regional
+18,Granada,Nacional
+19,Guadalajara,Nacional
+20,Guipuzcoa,Nacional
+21,Huelva,Nacional
+22,Huesca,Nacional
+23,Jaen,Nacional
+24,Leon,Nacional
+25,Lleida,Regional
+26,La Rioja,Nacional
+27,Lugo,Nacional
+28,Madrid,Nacional
+29,Malaga,Nacional
+30,Murcia,Nacional
+31,Navarra,Nacional
+32,Orense,Nacional
+33,Asturias,Nacional
+34,Palencia,Nacional
+35,Las Palmas,Canarias
+36,Pontevedra,Nacional
+37,Salamanca,Nacional
+38,Santa Cruz de Tenerife,Canarias
+39,Cantabria,Nacional
+40,Segovia,Nacional
+41,Sevilla,Nacional
+42,Soria,Nacional
+43,Tarragona,Regional
+44,Teruel,Nacional
+45,Toledo,Nacional
+46,Valencia,Nacional
+47,Valladolid,Nacional
+48,Vizcaya,Nacional
+49,Zamora,Nacional
+50,Zaragoza,Nacional
+51,Ceuta,Nacional
+52,Melilla,Nacional

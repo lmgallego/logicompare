@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LogiCompare | Industrial Precision Engine</title>
+  <link rel="stylesheet" href="./css/main.css" />
+</head>
+<body class="bg-background font-body text-on-surface antialiased flex flex-col h-screen overflow-hidden">
+
+  <!-- ══════════════════════════ TOP HEADER ══════════════════════════ -->
+  <header id="app-header" class="glass-nav draggable flex items-center justify-between px-5 h-10 shrink-0 z-50" style="border-bottom: 1px solid rgba(228,233,237,0.4);">
+    <div class="flex items-center gap-3 no-drag">
+      <div class="w-6 h-6 bg-primary rounded flex items-center justify-center text-white">
+        <span class="material-symbols-outlined text-xs" style="font-variation-settings:'FILL' 1; font-size:14px;">package_2</span>
+      </div>
+      <span class="text-base font-bold tracking-tight text-on-surface">LogiCompare</span>
+    </div>
+    <!-- Window controls (custom, hidden when OS titlebar is used) -->
+    <div class="flex items-center gap-1 no-drag" id="window-controls">
+      <button class="w-7 h-7 flex items-center justify-center rounded hover:bg-surface-container-high transition-colors" id="btn-minimize" title="Minimizar">
+        <span class="material-symbols-outlined" style="font-size:16px;">remove</span>
+      </button>
+      <button class="w-7 h-7 flex items-center justify-center rounded hover:bg-surface-container-high transition-colors" id="btn-maximize" title="Maximizar">
+        <span class="material-symbols-outlined" style="font-size:16px;">crop_square</span>
+      </button>
+      <button class="w-7 h-7 flex items-center justify-center rounded hover:bg-red-100 hover:text-red-600 transition-colors" id="btn-close" title="Cerrar">
+        <span class="material-symbols-outlined" style="font-size:16px;">close</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- ══════════════════════════ MAIN LAYOUT ══════════════════════════ -->
+  <div class="flex flex-1 overflow-hidden">
+
+    <!-- ── SIDEBAR ── -->
+    <aside id="sidebar" class="metallic-gradient w-56 shrink-0 flex flex-col p-3 z-40 overflow-y-auto" style="border-right: 1px solid rgba(228,233,237,0.3);">
+      <!-- Navigation -->
+      <nav class="flex-1 space-y-0.5">
+        <a class="nav-item active" data-page="new-quote">
+          <span class="material-symbols-outlined text-xl" style="font-variation-settings:'FILL' 1;">calculate</span>
+          <span class="nav-label">Nueva Cotización</span>
+        </a>
+        <a class="nav-item" data-page="debidos" style="padding-left:2rem;">
+          <span class="material-symbols-outlined text-xl">scale</span>
+          <span class="nav-label">Debidos</span>
+        </a>
+        <a class="nav-item" data-page="history">
+          <span class="material-symbols-outlined text-xl">history</span>
+          <span class="nav-label">Historial</span>
+        </a>
+        <a class="nav-item" data-page="address-book">
+          <span class="material-symbols-outlined text-xl">contact_page</span>
+          <span class="nav-label">Direcciones</span>
+        </a>
+        <a class="nav-item" data-page="analytics">
+          <span class="material-symbols-outlined text-xl">analytics</span>
+          <span class="nav-label">Analíticas</span>
+        </a>
+        <a class="nav-item" data-page="database">
+          <span class="material-symbols-outlined text-xl">database</span>
+          <span class="nav-label">Base de Datos</span>
+        </a>
+        <a class="nav-item" data-page="support">
+          <span class="material-symbols-outlined text-xl">help</span>
+          <span class="nav-label">Soporte</span>
+        </a>
+      </nav>
+
+      <!-- Footer Logout -->
+      <div class="pt-3 mt-3" style="border-top: 1px solid rgba(196,197,217,0.15);">
+        <a class="nav-item" id="btn-logout">
+          <span class="material-symbols-outlined text-xl">logout</span>
+          <span class="nav-label">Salir</span>
+        </a>
+      </div>
+    </aside>
+
+    <!-- ── CONTENT AREA ── -->
+    <main class="flex-1 overflow-hidden bg-surface flex flex-col">
+
+      <!-- ════ PAGE: NEW QUOTE ════ -->
+      <div id="page-new-quote" class="page active flex-1 overflow-y-auto p-6">
+        <div class="max-w-7xl mx-auto grid grid-cols-12 gap-6">
+
+          <!-- LEFT PANEL: Input Form -->
+          <section class="col-span-12 lg:col-span-4 space-y-4">
+            <div class="bg-surface-container-lowest rounded-xl p-6" style="box-shadow: 0px 4px 20px rgba(23,28,31,0.06); border: 1px solid rgba(196,197,217,0.12);">
+              <div class="flex items-center gap-2 mb-5">
+                <span class="material-symbols-outlined text-primary" style="font-size:20px;">edit_square</span>
+                <h2 class="text-base font-bold tracking-tight">Entrada de Datos del Envío</h2>
+              </div>
+              <form id="quote-form" class="space-y-4">
+                <div class="grid grid-cols-2 gap-3">
+                  <div class="space-y-1.5">
+                    <label class="label-stencil block">Largo (cm)</label>
+                    <input id="input-largo" class="input-field" type="number" min="1" step="0.1" placeholder="0" required />
+                  </div>
+                  <div class="space-y-1.5">
+                    <label class="label-stencil block">Ancho (cm)</label>
+                    <input id="input-ancho" class="input-field" type="number" min="1" step="0.1" placeholder="0" required />
+                  </div>
+                </div>
+                <div class="space-y-1.5">
+                  <label class="label-stencil block">Alto (cm)</label>
+                  <input id="input-alto" class="input-field" type="number" min="1" step="0.1" placeholder="0" required />
+                </div>
+                <div class="space-y-1.5">
+                  <label class="label-stencil block">CP (2 primeros dígitos)</label>
+                  <input id="input-cp" class="input-field" type="text" maxlength="2" placeholder="28" pattern="\d{2}" required />
+                </div>
+                <div id="cp-info" class="hidden text-xs text-on-surface-variant px-1"></div>
+                <button class="btn-primary mt-2" type="submit" id="btn-calculate">
+                  <span class="material-symbols-outlined" style="font-size:16px;">calculate</span>
+                  Calcular y Comparar Precios
+                </button>
+              </form>
+            </div>
+
+          </section>
+
+          <!-- RIGHT PANEL: Results -->
+          <section class="col-span-12 lg:col-span-8 space-y-4">
+            <!-- Header results -->
+            <div class="flex items-center justify-between px-1">
+              <div class="flex items-center gap-3">
+                <h2 class="text-lg font-bold tracking-tight">Comparativa de Agencias y Resultados</h2>
+                <span id="quotes-badge" class="hidden bg-primary/10 text-primary text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter"></span>
+              </div>
+              <div class="flex gap-1.5">
+                <button class="p-2 bg-surface-container-highest rounded text-on-surface-variant hover:bg-surface-container-high transition-colors" id="btn-sort-price" title="Ordenar por precio">
+                  <span class="material-symbols-outlined" style="font-size:16px;">sort</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Metros cúbicos calculados -->
+            <div id="metros-cubicos-row" class="hidden flex items-center gap-2 px-1">
+              <span class="material-symbols-outlined text-on-surface-variant" style="font-size:15px;">straighten</span>
+              <span class="label-stencil">Volumen calculado:</span>
+              <span id="resultado-metros-cubicos" class="text-sm font-bold text-primary">—</span>
+            </div>
+
+            <!-- Empty state -->
+            <div id="results-empty" class="flex flex-col items-center justify-center py-20 text-center">
+              <span class="material-symbols-outlined text-5xl text-on-surface-variant mb-3" style="opacity:0.3;">package_2</span>
+              <p class="text-sm font-medium text-on-surface-variant" style="opacity:0.6;">Introduce los datos del envío y pulsa<br/><strong>Calcular y Comparar Precios</strong></p>
+            </div>
+
+            <!-- Loading state -->
+            <div id="results-loading" class="hidden flex flex-col items-center justify-center py-20">
+              <span class="material-symbols-outlined text-4xl text-primary animate-spin mb-3">progress_activity</span>
+              <p class="text-sm text-on-surface-variant" style="opacity:0.7;">Calculando tarifas...</p>
+            </div>
+
+            <!-- Results list -->
+            <div id="results-list" class="hidden space-y-3"></div>
+
+            <!-- Stats row -->
+            <div id="results-stats" class="hidden grid grid-cols-3 gap-4 mt-2">
+              <div class="stat-card-primary">
+                <p class="label-stencil text-primary mb-1" style="font-size:9px;">Mejor Precio</p>
+                <p class="text-xl font-black text-on-primary-fixed" id="stat-best-price">—</p>
+                <p class="text-[10px] text-on-primary-fixed font-medium" id="stat-best-agency" style="opacity:0.65;">—</p>
+              </div>
+              <div class="stat-card-neutral">
+                <p class="label-stencil mb-1" style="font-size:9px;">Precio Promedio</p>
+                <p class="text-xl font-black text-on-surface" id="stat-avg-price">—</p>
+                <p class="text-[10px] text-on-surface-variant font-medium">Cálculo sectorial</p>
+              </div>
+              <div class="stat-card-neutral">
+                <p class="label-stencil mb-1" style="font-size:9px;">Agencias con cobertura</p>
+                <p class="text-xl font-black text-on-surface" id="stat-agencies-count">—</p>
+                <p class="text-[10px] text-on-surface-variant font-medium">Resultado del cálculo</p>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <!-- ════ PAGE: DEBIDOS ════ -->
+      <div id="page-debidos" class="page flex-1 overflow-y-auto p-6">
+        <div class="max-w-4xl mx-auto space-y-6">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-xl font-bold tracking-tight">Debidos</h2>
+              <p class="text-xs text-on-surface-variant mt-0.5" style="opacity:0.6;">Peso volumétrico por agencia según baremo &nbsp;·&nbsp; <kbd class="px-1 py-0.5 rounded text-[10px] font-bold" style="background:rgba(196,197,217,0.25);">Ctrl+N</kbd> para limpiar</p>
+            </div>
+          </div>
+
+          <!-- Form -->
+          <div class="bg-surface-container-lowest rounded-xl p-5" style="border:1px solid rgba(196,197,217,0.12);">
+            <form id="debidos-form" class="flex flex-wrap items-end gap-3">
+              <div class="flex flex-col gap-1">
+                <label class="label-stencil text-[10px]">Largo (cm)</label>
+                <input type="number" id="deb-largo" class="input-field w-24 text-sm" placeholder="0" min="0" step="0.1" />
+              </div>
+              <div class="flex flex-col gap-1">
+                <label class="label-stencil text-[10px]">Ancho (cm)</label>
+                <input type="number" id="deb-ancho" class="input-field w-24 text-sm" placeholder="0" min="0" step="0.1" />
+              </div>
+              <div class="flex flex-col gap-1">
+                <label class="label-stencil text-[10px]">Alto (cm)</label>
+                <input type="number" id="deb-alto" class="input-field w-24 text-sm" placeholder="0" min="0" step="0.1" />
+              </div>
+              <div class="flex flex-col gap-1">
+                <label class="label-stencil text-[10px]">CP (2 dígitos)</label>
+                <input type="text" id="deb-cp" class="input-field w-20 text-sm" placeholder="28" maxlength="2" />
+              </div>
+              <button type="submit" id="btn-debidos-calc" class="btn-primary px-5 py-2 text-sm font-bold flex items-center gap-2">
+                <span class="material-symbols-outlined" style="font-size:16px;">scale</span>
+                Calcular pesos
+              </button>
+              <button type="button" id="btn-debidos-clear" class="btn-secondary px-4 py-2 text-sm font-bold flex items-center gap-2">
+                <span class="material-symbols-outlined" style="font-size:16px;">restart_alt</span>
+                Limpiar
+              </button>
+            </form>
+          </div>
+
+          <!-- m³ result -->
+          <div id="debidos-m3-row" class="hidden flex items-center gap-3">
+            <span class="label-stencil text-[10px]">Volumen calculado:</span>
+            <span id="debidos-m3-value" class="text-2xl font-black text-primary"></span>
+          </div>
+
+          <!-- Results grid -->
+          <div id="debidos-results" class="hidden">
+            <div id="debidos-cards" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+          </div>
+
+          <!-- Empty state -->
+          <div id="debidos-empty" class="flex flex-col items-center justify-center py-16 text-on-surface-variant" style="opacity:0.4;">
+            <span class="material-symbols-outlined text-5xl mb-3">scale</span>
+            <p class="text-sm">Introduce las medidas y el CP para ver los pesos</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════ PAGE: HISTORY ════ -->
+      <div id="page-history" class="page flex-1 overflow-y-auto p-6">
+        <div class="max-w-5xl mx-auto space-y-4">
+          <!-- Header row -->
+          <div class="flex items-center justify-between">
+            <h2 class="text-xl font-bold tracking-tight">Historial de Cotizaciones</h2>
+            <button id="btn-refresh-history" class="flex items-center gap-1.5 px-3 py-2 bg-surface-container-high rounded-lg text-xs font-bold uppercase tracking-wider text-on-surface hover:bg-primary hover:text-white transition-all">
+              <span class="material-symbols-outlined" style="font-size:15px;">refresh</span>
+              Actualizar
+            </button>
+          </div>
+
+          <!-- Filters + actions toolbar -->
+          <div class="bg-surface-container-lowest rounded-xl px-4 py-3 flex flex-wrap items-center gap-3" style="border: 1px solid rgba(196,197,217,0.12);">
+            <span class="label-stencil text-[10px] shrink-0">Filtrar:</span>
+            <div class="flex items-center gap-2 flex-wrap">
+              <input type="date" id="history-desde" class="input-field py-1 px-2 text-xs" style="height:32px; width:140px;" />
+              <span class="text-xs text-on-surface-variant opacity-50">→</span>
+              <input type="date" id="history-hasta" class="input-field py-1 px-2 text-xs" style="height:32px; width:140px;" />
+              <select id="history-agencia" class="input-field py-1 px-2 text-xs" style="height:32px; min-width:130px;">
+                <option value="">Todas las agencias</option>
+              </select>
+              <button id="btn-history-filter" class="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wider transition-all" style="height:28px; background:rgba(0,64,224,0.1); color:#0040e0; border:1px solid rgba(0,64,224,0.2);">
+                <span class="material-symbols-outlined" style="font-size:13px;">search</span>Filtrar
+              </button>
+              <button id="btn-history-reset" class="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold uppercase tracking-wider transition-all" style="height:28px; background:rgba(196,197,217,0.15); color:inherit; border:1px solid rgba(196,197,217,0.25);">
+                <span class="material-symbols-outlined" style="font-size:13px;">clear_all</span>Todo
+              </button>
+            </div>
+            <div class="flex items-center gap-2 ml-auto flex-wrap">
+              <button id="btn-export-excel" class="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider transition-all" style="height:32px; background:rgba(21,128,61,0.1); color:#15803d; border:1px solid rgba(21,128,61,0.25);">
+                <span class="material-symbols-outlined" style="font-size:14px;">table_view</span>
+                Excel
+              </button>
+              <button id="btn-export-pdf" class="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider transition-all" style="height:32px; background:rgba(186,26,26,0.08); color:#ba1a1a; border:1px solid rgba(186,26,26,0.2);">
+                <span class="material-symbols-outlined" style="font-size:14px;">picture_as_pdf</span>
+                PDF
+              </button>
+              <button id="btn-delete-history" class="flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider transition-all" style="height:32px; background:rgba(186,26,26,0.06); color:#ba1a1a; border:1px solid rgba(186,26,26,0.15);">
+                <span class="material-symbols-outlined" style="font-size:14px;">delete_sweep</span>
+                Borrar rango
+              </button>
+            </div>
+          </div>
+
+          <!-- Table -->
+          <div class="bg-surface-container-lowest rounded-xl overflow-hidden" style="box-shadow: 0px 4px 20px rgba(23,28,31,0.06); border: 1px solid rgba(196,197,217,0.12);">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="bg-surface-container-low">
+                  <th class="label-stencil text-left px-4 py-3" style="font-size:9px;">Fecha</th>
+                  <th class="label-stencil text-left px-4 py-3" style="font-size:9px;">Medidas (cm)</th>
+                  <th class="label-stencil text-left px-4 py-3" style="font-size:9px;">CP</th>
+                  <th class="label-stencil text-left px-4 py-3" style="font-size:9px;">m³</th>
+                  <th class="label-stencil text-left px-4 py-3" style="font-size:9px;">Peso</th>
+                  <th class="label-stencil text-left px-4 py-3" style="font-size:9px;">Agencia</th>
+                  <th class="label-stencil text-right px-4 py-3" style="font-size:9px;">Precio Final</th>
+                  <th class="label-stencil text-right px-4 py-3" style="font-size:9px;">P. Redondeado</th>
+                </tr>
+              </thead>
+              <tbody id="history-table-body">
+                <tr>
+                  <td colspan="8" class="text-center py-12 text-on-surface-variant text-xs" style="opacity:0.5;">
+                    Cargando historial...
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════ PAGE: ADDRESS BOOK ════ -->
+      <div id="page-address-book" class="page flex-1 overflow-y-auto p-6">
+        <div class="max-w-4xl mx-auto flex flex-col items-center justify-center h-full text-center">
+          <span class="material-symbols-outlined text-6xl text-on-surface-variant mb-4" style="opacity:0.25;">contact_page</span>
+          <h2 class="text-xl font-bold mb-2">Libreta de Direcciones</h2>
+          <p class="text-sm text-on-surface-variant" style="opacity:0.6;">Próximamente — Guarda destinatarios frecuentes para agilizar el cálculo.</p>
+        </div>
+      </div>
+
+      <!-- ════ PAGE: ANALYTICS ════ -->
+      <div id="page-analytics" class="page flex-1 overflow-y-auto p-6">
+        <div class="max-w-4xl mx-auto flex flex-col items-center justify-center h-full text-center">
+          <span class="material-symbols-outlined text-6xl text-on-surface-variant mb-4" style="opacity:0.25;">analytics</span>
+          <h2 class="text-xl font-bold mb-2">Analíticas</h2>
+          <p class="text-sm text-on-surface-variant" style="opacity:0.6;">Próximamente — Análisis histórico de costes y tendencias por agencia.</p>
+        </div>
+      </div>
+
+      <!-- ════ PAGE: DATABASE MAINTENANCE ════ -->
+      <div id="page-database" class="page flex-1 overflow-y-auto p-6">
+        <div class="max-w-5xl mx-auto space-y-6">
+          <div class="flex items-center justify-between">
+            <h2 class="text-xl font-bold tracking-tight">Mantenimiento de Base de Datos</h2>
+          </div>
+
+          <!-- Agencies list (btn-new-agency injected dynamically by databaseView.js) -->
+          <div id="agencies-list" class="space-y-3">
+            <div class="text-center py-8 text-on-surface-variant text-xs" style="opacity:0.5;">Cargando agencias...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════ PAGE: SUPPORT ════ -->
+      <div id="page-support" class="page flex-1 overflow-y-auto p-6">
+        <div class="max-w-4xl mx-auto flex flex-col items-center justify-center h-full text-center">
+          <span class="material-symbols-outlined text-6xl text-on-surface-variant mb-4" style="opacity:0.25;">help</span>
+          <h2 class="text-xl font-bold mb-2">Soporte</h2>
+          <p class="text-sm text-on-surface-variant" style="opacity:0.6;">LogiCompare v1.0.0 — Motor de comparación de tarifas logísticas.</p>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- ══════════════════════════ STATUS BAR ══════════════════════════ -->
+  <footer class="shrink-0 h-6 bg-surface-container-high flex items-center px-4 justify-between z-50" style="border-top: 1px solid rgba(196,197,217,0.2);">
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-1.5">
+        <span class="pip pip-green"></span>
+        <span class="label-stencil" style="font-size:9px; opacity:0.6;">Engine Online</span>
+      </div>
+      <span class="h-3 w-px bg-outline-variant" style="opacity:0.5;"></span>
+      <span class="label-stencil" style="font-size:9px; opacity:0.6;" id="app-version">V. 1.0.0 (Industrial)</span>
+    </div>
+    <div class="flex items-center gap-4 label-stencil" style="font-size:9px; opacity:0.6;">
+      <span id="status-db">DB: Conectando...</span>
+    </div>
+  </footer>
+
+  <!-- ══════════════════════════ MODAL: EXPORT TYPE ══════════════════════════ -->
+  <div id="modal-export" class="modal-overlay hidden">
+    <div class="modal-box" style="max-width:360px;">
+      <div class="flex items-center justify-between mb-5">
+        <h3 class="text-base font-bold" id="modal-export-title">Exportar historial</h3>
+        <button class="w-7 h-7 flex items-center justify-center rounded hover:bg-surface-container-high transition-colors" id="btn-close-export-modal">
+          <span class="material-symbols-outlined" style="font-size:16px;">close</span>
+        </button>
+      </div>
+      <p class="text-xs text-on-surface-variant mb-4" style="opacity:0.7;">Elige el tipo de exportación:</p>
+      <div class="space-y-3">
+        <button id="btn-export-completa" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all hover:bg-primary hover:text-white hover:border-primary text-left" style="border-color:rgba(196,197,217,0.25);">
+          <span class="material-symbols-outlined" style="font-size:20px;">table_chart</span>
+          <div>
+            <p class="text-sm font-bold">Exportación completa</p>
+            <p class="text-xs opacity-70">Fecha, Medidas, CP, m³, Peso, Agencia, Precio Final, Precio Redondeado</p>
+          </div>
+        </button>
+        <button id="btn-export-simplificada" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl border transition-all hover:bg-primary hover:text-white hover:border-primary text-left" style="border-color:rgba(196,197,217,0.25);">
+          <span class="material-symbols-outlined" style="font-size:20px;">receipt</span>
+          <div>
+            <p class="text-sm font-bold">Exportación simplificada</p>
+            <p class="text-xs opacity-70">Solo Fecha, Precio Final y Precio Redondeado</p>
+          </div>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════ MODAL: AGENCY FORM ══════════════════════════ -->
+  <div id="modal-agency" class="modal-overlay hidden">
+    <div class="modal-box">
+      <div class="flex items-center justify-between mb-5">
+        <h3 class="text-base font-bold" id="modal-agency-title">Nueva Agencia</h3>
+        <button class="w-7 h-7 flex items-center justify-center rounded hover:bg-surface-container-high transition-colors" id="btn-close-modal">
+          <span class="material-symbols-outlined" style="font-size:16px;">close</span>
+        </button>
+      </div>
+      <form id="agency-form" class="space-y-4">
+        <input type="hidden" id="agency-id" />
+        <div class="space-y-1.5">
+          <label class="label-stencil block">Nombre de la Agencia</label>
+          <input id="agency-nombre" class="input-field" type="text" placeholder="Ej: GLS Express" required />
+        </div>
+        <div class="grid grid-cols-3 gap-3">
+          <div class="space-y-1.5">
+            <label class="label-stencil block">Baremo</label>
+            <input id="agency-baremo" class="input-field" type="number" min="1" step="1" placeholder="1" required />
+          </div>
+          <div class="space-y-1.5">
+            <label class="label-stencil block">Rec. Combustible (%)</label>
+            <input id="agency-recargo-combustible" class="input-field" type="number" min="0" step="0.01" placeholder="0.00" />
+          </div>
+          <div class="space-y-1.5">
+            <label class="label-stencil block">Rec. Seguro (%)</label>
+            <input id="agency-recargo-seguro" class="input-field" type="number" min="0" step="0.01" placeholder="0.00" />
+          </div>
+        </div>
+        <div class="space-y-1.5">
+          <label class="label-stencil block">Logo</label>
+          <div class="flex items-center gap-3">
+            <div id="logo-preview" class="w-12 h-12 bg-surface-container rounded-lg flex items-center justify-center">
+              <span class="material-symbols-outlined text-on-surface-variant" style="font-size:20px; opacity:0.4;">image</span>
+            </div>
+            <button type="button" id="btn-select-logo" class="btn-secondary px-4 py-2 text-xs">
+              Seleccionar imagen
+            </button>
+            <input type="hidden" id="agency-logo-path" />
+          </div>
+        </div>
+        <div class="flex items-center gap-3 pt-1">
+          <input type="checkbox" id="agency-activa" checked class="w-4 h-4 accent-primary rounded" />
+          <label for="agency-activa" class="text-sm font-medium cursor-pointer">Agencia activa</label>
+        </div>
+        <div class="flex gap-3 pt-2">
+          <button type="button" id="btn-cancel-agency" class="flex-1 btn-secondary py-2.5">Cancelar</button>
+          <button type="submit" class="flex-1 btn-primary" style="padding: 0.625rem;">Guardar Agencia</button>
+        </div>
+      </form>
+
+      <!-- Tarifas por zona (solo visible al editar) -->
+      <div id="agency-tarifas-section" class="hidden mt-5 pt-5" style="border-top: 1px solid rgba(196,197,217,0.25);">
+        <div class="flex items-center justify-between mb-3">
+          <h4 class="text-sm font-bold">Tarifas por zona</h4>
+          <span class="text-[10px] text-on-surface-variant opacity-60">€ sin recargos · kg adicional para &gt;15 kg</span>
+        </div>
+        <div id="agency-tarifas-content" class="space-y-4 text-xs"></div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>

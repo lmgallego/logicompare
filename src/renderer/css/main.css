@@ -1,0 +1,131 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: 'Roboto', sans-serif;
+    background-color: #f6fafe;
+    color: #171c1f;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: #f0f4f8; }
+  ::-webkit-scrollbar-thumb { background: #c4c5d9; border-radius: 10px; }
+  ::-webkit-scrollbar-thumb:hover { background: #747688; }
+  input[type=number]::-webkit-inner-spin-button,
+  input[type=number]::-webkit-outer-spin-button { opacity: 1; }
+}
+
+@layer components {
+  .metallic-gradient {
+    background: linear-gradient(180deg, #f6fafe 0%, #eaeef2 100%);
+  }
+  .glass-nav {
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  .nav-item {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 cursor-pointer;
+    color: #171c1f;
+    opacity: 0.55;
+  }
+  .nav-item:hover {
+    background-color: #f0f4f8;
+    opacity: 1;
+  }
+  .nav-item.active {
+    background-color: #ffffff;
+    color: #0040e0;
+    opacity: 1;
+    box-shadow: 0px 2px 8px rgba(23, 28, 31, 0.08);
+  }
+  .nav-item .nav-label {
+    @apply text-[11px] font-bold tracking-wide uppercase;
+  }
+  .input-field {
+    @apply w-full bg-surface-container-low border-0 rounded px-3 py-2.5 text-sm text-on-surface transition-all duration-200;
+    border-bottom: 2px solid transparent;
+    outline: none;
+  }
+  .input-field:focus {
+    background-color: #ffffff;
+    border-bottom-color: #0040e0;
+  }
+  .input-field::placeholder { color: #747688; opacity: 0.7; }
+
+  .btn-primary {
+    @apply w-full bg-primary text-white py-3.5 rounded-lg font-bold text-xs tracking-widest uppercase transition-all duration-200 flex items-center justify-center gap-2;
+    box-shadow: 0 4px 16px rgba(0, 64, 224, 0.2);
+  }
+  .btn-primary:hover { filter: brightness(1.08); }
+  .btn-primary:active { transform: scale(0.98); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; filter: none; }
+
+  .btn-secondary {
+    @apply bg-surface-container-high text-on-surface font-bold text-[10px] uppercase tracking-wider py-2 rounded-lg transition-all duration-200;
+  }
+  .btn-secondary:hover { background-color: #0040e0; color: #ffffff; }
+
+  .carrier-card {
+    @apply bg-surface-container-lowest rounded-xl p-6 border transition-all duration-300 cursor-pointer;
+    border-color: rgba(196, 197, 217, 0.15);
+    box-shadow: 0px 4px 20px rgba(23, 28, 31, 0.06);
+  }
+  .carrier-card:hover {
+    border-color: rgba(0, 64, 224, 0.3);
+    box-shadow: 0px 8px 32px rgba(0, 64, 224, 0.08);
+  }
+
+  .stat-card-primary {
+    @apply p-4 rounded-xl;
+    background-color: rgba(46, 91, 255, 0.08);
+    border: 1px solid rgba(0, 64, 224, 0.12);
+  }
+  .stat-card-neutral {
+    @apply p-4 rounded-xl bg-surface-container-highest;
+  }
+
+  .page { display: none; }
+  .page.active { display: flex; flex-direction: column; height: 100%; }
+
+  .label-stencil {
+    @apply text-[10px] font-bold tracking-widest uppercase;
+    color: #434656;
+  }
+
+  .price-display {
+    @apply font-black text-primary leading-none;
+    font-size: 1.875rem;
+  }
+
+  .pip {
+    @apply inline-block w-1.5 h-1.5 rounded-full;
+  }
+  .pip-green { background-color: #22c55e; box-shadow: 0 0 5px rgba(34,197,94,0.5); }
+  .pip-red { background-color: #ef4444; }
+  .pip-yellow { background-color: #eab308; }
+
+  .modal-overlay {
+    @apply fixed inset-0 z-50 flex items-center justify-center;
+    background: rgba(23, 28, 31, 0.4);
+    backdrop-filter: blur(4px);
+  }
+  .modal-box {
+    @apply bg-surface-container-lowest rounded-xl p-6 w-full max-w-lg;
+    box-shadow: 0px 8px 32px rgba(23, 28, 31, 0.16);
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+}
+
+@layer utilities {
+  .draggable { -webkit-app-region: drag; }
+  .no-drag { -webkit-app-region: no-drag; }
+}

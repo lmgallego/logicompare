@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "skills": {
+    "html": {
+      "source": "mindrally/skills",
+      "sourceType": "github",
+      "computedHash": "4226da4aa3b024a1229a37ce6863b429b8cdfbde5aa13769910beb830ac7fd3f"
+    },
+    "tailwind-design-system": {
+      "source": "wshobson/agents",
+      "sourceType": "github",
+      "computedHash": "f54f39ce967af3a4bba1f662c3600f0253467508d5fbbc7c545c67e102da2253"
+    },
+    "tailwindcss-advanced-layouts": {
+      "source": "josiahsiegel/claude-plugin-marketplace",
+      "sourceType": "github",
+      "computedHash": "bf3eb96bcdcceb54cf2c0ba01daa18275c169627f37f5a861490c78e8055a5ce"
+    }
+  }
+}
