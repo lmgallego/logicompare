@@ -54,6 +54,12 @@ app.whenReady().then(() => {
     return
   }
 
+  if (process.argv.includes('--seed-dhl')) {
+    require('./database/seedDhl')
+    app.quit()
+    return
+  }
+
   require('./ipcHandlers/quoteHandler')
   require('./ipcHandlers/agencyHandler')
   require('./ipcHandlers/provinceHandler')

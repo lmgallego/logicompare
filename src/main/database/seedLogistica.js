@@ -3,12 +3,15 @@ const { getDb } = require('./connection')
 const db = getDb()
 
 const insertAll = db.transaction(() => {
-  // Delete existing Logística data so we can re-seed with correct values
-  const existing = db.prepare("SELECT id FROM agencias WHERE nombre = 'Logística'").get()
-  if (existing) {
-    db.prepare('DELETE FROM agencias WHERE id = ?').run(existing.id)
-    console.log('[seed] Logística existente eliminada para re-seed limpio.')
+  // Delete Logistica entries: identified by baremo=200 and not being GLS Express
+  const existingAll = db.prepare(
+    "SELECT id, nombre FROM agencias WHERE baremo = 200 AND nombre != 'GLS Express'"
+  ).all()
+  for (const row of existingAll) {
+    db.prepare('DELETE FROM agencias WHERE id = ?').run(row.id)
+    console.log(`[seed] Eliminada agencia ID ${row.id} ("${row.nombre}").`)
   }
+  console.log(`[seed] Limpieza completada. ${existingAll.length} entrada(s) eliminada(s).`)
 
   // Baremo 200: 1 m³ = 200 kg (valor editable desde UI)
   const agencia = db.prepare(
