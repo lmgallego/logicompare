@@ -204,7 +204,7 @@ async function renderTarifasEditor(agenciaId, zonas) {
 
   try {
     const allTarifas = await window.api.invoke('get-tarifas-by-agency', agenciaId)
-    const LABELS = { 0: '0–1 kg', 1: '1–3 kg', 3: '3–5 kg', 5: '5–10 kg', 10: '10–15 kg' }
+    const makeLabel = (t) => `${t.kilos_desde}–${t.kilos_hasta} kg`
 
     container.innerHTML = ''
 
@@ -213,7 +213,7 @@ async function renderTarifasEditor(agenciaId, zonas) {
 
       // Summary line (always visible)
       const summary = tarifas.map(t =>
-        `${LABELS[t.kilos_desde] || `${t.kilos_desde}–${t.kilos_hasta}kg`}: ${t.precio_base.toFixed(2)}€`
+        `${makeLabel(t)}: ${t.precio_base.toFixed(2)}€`
       ).join(' · ')
 
       const block = document.createElement('div')
@@ -241,7 +241,7 @@ async function renderTarifasEditor(agenciaId, zonas) {
       const kgRow = document.createElement('div')
       kgRow.className = 'flex items-center justify-between mb-2'
       kgRow.innerHTML = `
-        <span class="text-[11px] text-on-surface-variant opacity-70">Precio por kg adicional &gt;15 kg</span>
+        <span class="text-[11px] text-on-surface-variant opacity-70">Precio por kg adicional &gt;${tarifas.length ? tarifas[tarifas.length - 1].kilos_hasta : '?'} kg</span>
         <div class="flex items-center gap-1.5">
           <input type="number" step="0.01" min="0"
             value="${zona.kg_adicional}"
@@ -257,7 +257,7 @@ async function renderTarifasEditor(agenciaId, zonas) {
         const row = document.createElement('div')
         row.className = 'flex items-center justify-between'
         row.innerHTML = `
-          <span class="text-xs text-on-surface-variant opacity-70">${LABELS[t.kilos_desde] || `${t.kilos_desde}–${t.kilos_hasta} kg`}</span>
+          <span class="text-xs text-on-surface-variant opacity-70">${makeLabel(t)}</span>
           <div class="flex items-center gap-1.5">
             <input type="number" step="0.01" min="0"
               value="${t.precio_base}"
