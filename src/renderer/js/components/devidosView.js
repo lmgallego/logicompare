@@ -64,8 +64,7 @@ export function initDevidosView() {
     btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;animation:spin 1s linear infinite;">progress_activity</span> Calculando...'
 
     try {
-      // Use CP '00' as dummy — only weight/baremo matters in Debidos, no pricing
-      const resultados = await window.api.invoke('calcular-tarifas', { largoCm, anchoCm, altoCm, cpPrefix: '00' })
+      const resultados = await window.api.invoke('calcular-pesos-debidos', { largoCm, anchoCm, altoCm })
       renderCards(resultados, cardsEl, isReca)
       resultsEl.classList.remove('hidden')
       emptyEl.classList.add('hidden')

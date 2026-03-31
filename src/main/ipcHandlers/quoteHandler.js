@@ -1,5 +1,5 @@
 const { ipcMain, dialog } = require('electron')
-const { calcularTarifas } = require('../services/calculationService')
+const { calcularTarifas, calcularPesosDebidos } = require('../services/calculationService')
 const { getDb } = require('../database/connection')
 const fs = require('fs')
 const path = require('path')
@@ -7,6 +7,10 @@ const zlib = require('zlib')
 
 ipcMain.handle('calcular-tarifas', (event, datos) => {
   return calcularTarifas(datos)
+})
+
+ipcMain.handle('calcular-pesos-debidos', (event, datos) => {
+  return calcularPesosDebidos(datos)
 })
 
 function redondear5(precio) {

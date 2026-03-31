@@ -110,4 +110,23 @@ function calcularTarifas({ largoCm, anchoCm, altoCm, cpPrefix }) {
   return resultados
 }
 
-module.exports = { calcularTarifas, calcularMetrosCubicos, calcularPeso }
+/**
+ * Calcula únicamente el peso por baremo de cada agencia activa.
+ * No requiere CP ni zona. Usado en pantalla Debidos.
+ * @param {{ largoCm, anchoCm, altoCm }} params
+ * @returns {Array<{ agencia, metrosCubicos, peso }>}
+ */
+function calcularPesosDebidos({ largoCm, anchoCm, altoCm }) {
+  const metrosCubicos = calcularMetrosCubicos(largoCm, anchoCm, altoCm)
+  const agencias = getActive()
+  return agencias.map(agencia => ({
+    agencia,
+    metrosCubicos,
+    peso: calcularPeso(metrosCubicos, agencia.baremo),
+    error: null,
+    zona: null,
+    precioFinal: null,
+  }))
+}
+
+module.exports = { calcularTarifas, calcularMetrosCubicos, calcularPeso, calcularPesosDebidos }
