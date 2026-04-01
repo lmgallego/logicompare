@@ -148,16 +148,7 @@ function renderCarrierCards(resultados, container, sortedAsc) {
       ? `<img src="file://${r.agencia.logo_path}" class="w-full h-full object-contain mix-blend-multiply" alt="${r.agencia.nombre}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" /><span class="material-symbols-outlined text-on-surface-variant hidden items-center justify-center" style="font-size:24px; opacity:0.4;">local_shipping</span>`
       : `<span class="material-symbols-outlined text-on-surface-variant flex items-center justify-center w-full h-full" style="font-size:24px; opacity:0.4;">local_shipping</span>`
 
-    const desgloseHtml = r.desglose && r.desglose.length > 1
-      ? `<div class="mt-3 pt-3 space-y-1 text-xs text-on-surface-variant" style="border-top: 1px solid rgba(196,197,217,0.2);">
-          ${r.desglose.map(d => `
-            <div class="flex justify-between">
-              <span style="opacity:0.7;">${d.nombre}</span>
-              <span class="font-medium">${formatPrice(d.valor)}</span>
-            </div>
-          `).join('')}
-        </div>`
-      : ''
+    const desgloseHtml = ''
 
     const card = document.createElement('div')
     card.className = `carrier-card ${isBest ? 'best-carrier' : ''}`
