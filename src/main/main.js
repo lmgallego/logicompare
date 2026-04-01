@@ -66,6 +66,12 @@ app.whenReady().then(() => {
     return
   }
 
+  if (process.argv.includes('--seed-transhaer')) {
+    require('./database/seedTranshaer')
+    app.quit()
+    return
+  }
+
   require('./ipcHandlers/quoteHandler')
   require('./ipcHandlers/agencyHandler')
   require('./ipcHandlers/provinceHandler')

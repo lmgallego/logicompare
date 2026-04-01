@@ -11,9 +11,20 @@ function getZoneForCp(agenciaId, cpPrefix) {
     .prepare(`
       SELECT za.* FROM zonas_agencia za
       INNER JOIN zonas_provincias zp ON zp.zona_id = za.id
-      WHERE zp.agencia_id = ? AND zp.cp_prefix = ?
+      WHERE zp.agencia_id = ? AND zp.cp_prefix = ? AND za.multiple_zones = 0
     `)
     .get(agenciaId, cpPrefix)
+}
+
+function getZonesForCp(agenciaId, cpPrefix) {
+  return getDb()
+    .prepare(`
+      SELECT za.* FROM zonas_agencia za
+      INNER JOIN zonas_provincias zp ON zp.zona_id = za.id
+      WHERE zp.agencia_id = ? AND zp.cp_prefix = ? AND za.multiple_zones = 1
+      ORDER BY za.nombre_zona
+    `)
+    .all(agenciaId, cpPrefix)
 }
 
 function createZone(agenciaId, nombreZona, kgAdicional = 0) {
@@ -39,4 +50,4 @@ function removeZone(zonaId) {
   return getDb().prepare('DELETE FROM zonas_agencia WHERE id = ?').run(zonaId)
 }
 
-module.exports = { getZonesByAgency, getZoneForCp, createZone, updateZoneKgAdicional, assignCpToZone, removeZone }
+module.exports = { getZonesByAgency, getZoneForCp, getZonesForCp, createZone, updateZoneKgAdicional, assignCpToZone, removeZone }

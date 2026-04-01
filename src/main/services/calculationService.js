@@ -1,5 +1,5 @@
 const { getActive } = require('../repositories/agencyRepository')
-const { getZoneForCp } = require('../repositories/zoneRepository')
+const { getZoneForCp, getZonesForCp } = require('../repositories/zoneRepository')
 const { getRateForWeight, getRateForWeight15 } = require('../repositories/rateRepository')
 const { getDb } = require('../database/connection')
 
@@ -38,6 +38,38 @@ function calcularTarifaBase(agenciaId, zona, peso) {
   if (!tarifaMax) return { precioBase: null, error: 'Sin tarifa para este peso' }
 
   const kgsExtra = Math.ceil(peso - tarifaMax.kilos_hasta)
+
+  // Check for banded kg_adicional table (Transhaer-style)
+  const bandas = getDb()
+    .prepare('SELECT * FROM tarifas_kg_adicional WHERE zona_id=? ORDER BY kg_desde')
+    .all(zona.id)
+
+  if (bandas.length > 0) {
+    // Price = tarifa_max + sum of each band's contribution
+    let precioExtra = 0
+    let pesoRestante = kgsExtra
+    let pesoActual = tarifaMax.kilos_hasta
+
+    for (const banda of bandas) {
+      if (pesoRestante <= 0) break
+      const bandaHasta = banda.kg_hasta !== null ? banda.kg_hasta : Infinity
+      const bandaTamanio = bandaHasta - banda.kg_desde
+      const kgsEnBanda = Math.min(pesoRestante, bandaTamanio)
+      precioExtra += kgsEnBanda * banda.precio_kg
+      pesoRestante -= kgsEnBanda
+    }
+
+    // If still weight remaining beyond last band, use last band's rate
+    if (pesoRestante > 0) {
+      const ultimaBanda = bandas[bandas.length - 1]
+      precioExtra += pesoRestante * ultimaBanda.precio_kg
+    }
+
+    const precioBase = tarifaMax.precio_base + precioExtra
+    return { precioBase: Math.round(precioBase * 100) / 100, error: null }
+  }
+
+  // Fallback: use zona.kg_adicional (simple single rate)
   const precioBase = tarifaMax.precio_base + kgsExtra * zona.kg_adicional
   return { precioBase: Math.round(precioBase * 100) / 100, error: null }
 }
@@ -109,6 +141,21 @@ function calcularTarifas({ largoCm, anchoCm, altoCm, cpPrefix }) {
 
     // Excluir zonas solo_debidos de Pagados/Cargar Portes
     if (zona && zona.solo_debidos) {
+      continue
+    }
+
+    // Handle multiple_zones (e.g. Transhaer Baleares sub-islands on CP 07)
+    const multiZonas = getZonesForCp(agencia.id, cpPrefix)
+    if (multiZonas.length > 0) {
+      for (const mZona of multiZonas) {
+        const { precioBase, error } = calcularTarifaBase(agencia.id, mZona, peso)
+        if (error) {
+          resultados.push({ agencia, zona: mZona, metrosCubicos, peso, precioBase: null, precioFinal: null, desglose: [], error })
+          continue
+        }
+        const { precioFinal, desglose } = aplicarRecargos(precioBase, agencia)
+        resultados.push({ agencia, zona: mZona, metrosCubicos, peso, precioBase, precioFinal, desglose, error: null })
+      }
       continue
     }
 

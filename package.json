@@ -13,7 +13,8 @@
     "seed:gls": "electron . --seed",
     "seed:logistica": "electron . --seed-logistica",
     "seed:dhl": "electron . --seed-dhl",
-    "seed:seur": "electron . --seed-seur"
+    "seed:seur": "electron . --seed-seur",
+    "seed:transhaer": "electron . --seed-transhaer"
   },
   "keywords": [
     "electron",

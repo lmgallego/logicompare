@@ -18,11 +18,12 @@ function runMigrations(db) {
     );
 
     CREATE TABLE IF NOT EXISTS zonas_agencia (
-      id           INTEGER PRIMARY KEY AUTOINCREMENT,
-      agencia_id   INTEGER NOT NULL,
-      nombre_zona  TEXT NOT NULL,
-      kg_adicional REAL NOT NULL DEFAULT 0,
-      solo_debidos INTEGER NOT NULL DEFAULT 0,
+      id             INTEGER PRIMARY KEY AUTOINCREMENT,
+      agencia_id     INTEGER NOT NULL,
+      nombre_zona    TEXT NOT NULL,
+      kg_adicional   REAL NOT NULL DEFAULT 0,
+      solo_debidos   INTEGER NOT NULL DEFAULT 0,
+      multiple_zones INTEGER NOT NULL DEFAULT 0,
       FOREIGN KEY (agencia_id) REFERENCES agencias(id) ON DELETE CASCADE
     );
 
@@ -30,7 +31,7 @@ function runMigrations(db) {
       agencia_id INTEGER NOT NULL,
       zona_id    INTEGER NOT NULL,
       cp_prefix  TEXT NOT NULL,
-      PRIMARY KEY (agencia_id, cp_prefix),
+      PRIMARY KEY (agencia_id, zona_id, cp_prefix),
       FOREIGN KEY (agencia_id) REFERENCES agencias(id) ON DELETE CASCADE,
       FOREIGN KEY (zona_id)    REFERENCES zonas_agencia(id) ON DELETE CASCADE
     );
@@ -44,6 +45,15 @@ function runMigrations(db) {
       precio_base REAL NOT NULL,
       FOREIGN KEY (agencia_id) REFERENCES agencias(id) ON DELETE CASCADE,
       FOREIGN KEY (zona_id)    REFERENCES zonas_agencia(id) ON DELETE CASCADE
+    );
+
+    CREATE TABLE IF NOT EXISTS tarifas_kg_adicional (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      zona_id    INTEGER NOT NULL,
+      kg_desde   REAL NOT NULL,
+      kg_hasta   REAL,
+      precio_kg  REAL NOT NULL,
+      FOREIGN KEY (zona_id) REFERENCES zonas_agencia(id) ON DELETE CASCADE
     );
 
     CREATE TABLE IF NOT EXISTS recargos_agencia (
@@ -78,6 +88,21 @@ function runMigrations(db) {
   if (!zonaCols.includes('solo_debidos')) {
     db.prepare('ALTER TABLE zonas_agencia ADD COLUMN solo_debidos INTEGER NOT NULL DEFAULT 0').run()
   }
+  if (!zonaCols.includes('multiple_zones')) {
+    db.prepare('ALTER TABLE zonas_agencia ADD COLUMN multiple_zones INTEGER NOT NULL DEFAULT 0').run()
+  }
+
+  // Create tarifas_kg_adicional if not exists (migration for existing DBs)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS tarifas_kg_adicional (
+      id         INTEGER PRIMARY KEY AUTOINCREMENT,
+      zona_id    INTEGER NOT NULL,
+      kg_desde   REAL NOT NULL,
+      kg_hasta   REAL,
+      precio_kg  REAL NOT NULL,
+      FOREIGN KEY (zona_id) REFERENCES zonas_agencia(id) ON DELETE CASCADE
+    )
+  `)
 
   // Add peso column if not exists (migration for existing DBs)
   const cols = db.prepare("PRAGMA table_info(cotizaciones)").all().map(c => c.name)

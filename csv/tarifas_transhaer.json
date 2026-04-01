@@ -1,0 +1,339 @@
+{
+  "servicio": "TRANSHAER",
+  "moneda": "EUR",
+  "criterioZonificacion": "Se ignoran los códigos ESxx impresos en la tabla y se usan únicamente los nombres de destino. El codigoPostal se toma de CodigosPostalesGLS.csv como prefijo provincial.",
+  "zonas": [
+    {
+      "zona": 1,
+      "destinos": [
+        { "destino": "Tarragona", "provincia": "Tarragona", "codigoPostal": "43" }
+      ]
+    },
+    {
+      "zona": 2,
+      "destinos": [
+        { "destino": "Girona", "provincia": "Girona", "codigoPostal": "17" },
+        { "destino": "Barcelona", "provincia": "Barcelona", "codigoPostal": "08" }
+      ]
+    },
+    {
+      "zona": 3,
+      "destinos": [
+        { "destino": "Valencia", "provincia": "Valencia", "codigoPostal": "46" },
+        { "destino": "Zaragoza", "provincia": "Zaragoza", "codigoPostal": "50" }
+      ]
+    },
+    {
+      "zona": 4,
+      "destinos": [
+        { "destino": "Alicante", "provincia": "Alicante", "codigoPostal": "03" },
+        { "destino": "Castellón", "provincia": "Castellon", "codigoPostal": "12" },
+        { "destino": "Madrid", "provincia": "Madrid", "codigoPostal": "28" },
+        { "destino": "Lleida", "provincia": "Lleida", "codigoPostal": "25" }
+      ]
+    },
+    {
+      "zona": 5,
+      "destinos": [
+        { "destino": "Guadalajara", "provincia": "Guadalajara", "codigoPostal": "19" },
+        { "destino": "Murcia", "provincia": "Murcia", "codigoPostal": "30" },
+        { "destino": "Toledo", "provincia": "Toledo", "codigoPostal": "45" },
+        { "destino": "Burgos", "provincia": "Burgos", "codigoPostal": "09" },
+        { "destino": "Ciudad Real", "provincia": "Ciudad Real", "codigoPostal": "13" },
+        { "destino": "San Sebastián", "provincia": "Guipuzcoa", "codigoPostal": "20" },
+        { "destino": "Huesca", "provincia": "Huesca", "codigoPostal": "22" },
+        { "destino": "Pamplona", "provincia": "Navarra", "codigoPostal": "31" },
+        { "destino": "Segovia", "provincia": "Segovia", "codigoPostal": "40" },
+        { "destino": "Soria", "provincia": "Soria", "codigoPostal": "42" },
+        { "destino": "Teruel", "provincia": "Teruel", "codigoPostal": "44" }
+      ]
+    },
+    {
+      "zona": 6,
+      "destinos": [
+        { "destino": "Vitoria", "provincia": "Alava", "codigoPostal": "01" },
+        { "destino": "Ávila", "provincia": "Avila", "codigoPostal": "05" },
+        { "destino": "Córdoba", "provincia": "Cordoba", "codigoPostal": "14" },
+        { "destino": "Jaén", "provincia": "Jaen", "codigoPostal": "23" },
+        { "destino": "León", "provincia": "Leon", "codigoPostal": "24" },
+        { "destino": "Oviedo", "provincia": "Asturias", "codigoPostal": "33" },
+        { "destino": "Palencia", "provincia": "Palencia", "codigoPostal": "34" },
+        { "destino": "Salamanca", "provincia": "Salamanca", "codigoPostal": "37" }
+      ]
+    },
+    {
+      "zona": 7,
+      "destinos": [
+        { "destino": "Albacete", "provincia": "Albacete", "codigoPostal": "02" },
+        { "destino": "Almería", "provincia": "Almeria", "codigoPostal": "04" },
+        { "destino": "Cuenca", "provincia": "Cuenca", "codigoPostal": "16" },
+        { "destino": "Granada", "provincia": "Granada", "codigoPostal": "18" },
+        { "destino": "Jaén", "provincia": "Jaen", "codigoPostal": "23" },
+        { "destino": "León", "provincia": "Leon", "codigoPostal": "24" },
+        { "destino": "Logroño", "provincia": "La Rioja", "codigoPostal": "26" },
+        { "destino": "Oviedo", "provincia": "Asturias", "codigoPostal": "33" },
+        { "destino": "Santander", "provincia": "Cantabria", "codigoPostal": "39" },
+        { "destino": "Salamanca", "provincia": "Salamanca", "codigoPostal": "37" }
+      ]
+    },
+    {
+      "zona": 8,
+      "destinos": [
+        { "destino": "Badajoz", "provincia": "Badajoz", "codigoPostal": "06" },
+        { "destino": "Cáceres", "provincia": "Caceres", "codigoPostal": "10" },
+        { "destino": "Cádiz", "provincia": "Cadiz", "codigoPostal": "11" },
+        { "destino": "Coruña", "provincia": "La Coruna", "codigoPostal": "15" },
+        { "destino": "Huelva", "provincia": "Huelva", "codigoPostal": "21" },
+        { "destino": "Lugo", "provincia": "Lugo", "codigoPostal": "27" },
+        { "destino": "Orense", "provincia": "Orense", "codigoPostal": "32" },
+        { "destino": "Pontevedra", "provincia": "Pontevedra", "codigoPostal": "36" },
+        { "destino": "Sevilla", "provincia": "Sevilla", "codigoPostal": "41" },
+        { "destino": "Málaga", "provincia": "Malaga", "codigoPostal": "29" }
+      ]
+    }
+  ],
+  "baleares": [
+    {
+      "destino": "Palma",
+      "provincia": "Baleares",
+      "codigoPostal": "07",
+      "hasta25": 16.52,
+      "hasta50": 21.71,
+      "hasta75": 28.37,
+      "hasta100": 33.08,
+      "kgAdicional": {
+        "100_200": 0.283,
+        "200_300": 0.274,
+        "300_400": 0.244,
+        "400_500": 0.237,
+        "500_750": 0.231,
+        "750_1000": 0.224,
+        "1000_1500": 0.218,
+        "1500_2000": 0.213,
+        "2000_2500": 0.204,
+        "2500_3000": 0.196,
+        "masDe3000": 0.196
+      }
+    },
+    {
+      "destino": "Ibiza",
+      "provincia": "Baleares",
+      "codigoPostal": "07",
+      "hasta25": 18.31,
+      "hasta50": 24.06,
+      "hasta75": 31.43,
+      "hasta100": 36.65,
+      "kgAdicional": {
+        "100_200": 0.318,
+        "200_300": 0.308,
+        "300_400": 0.274,
+        "400_500": 0.267,
+        "500_750": 0.26,
+        "750_1000": 0.252,
+        "1000_1500": 0.245,
+        "1500_2000": 0.24,
+        "2000_2500": 0.23,
+        "2500_3000": 0.221,
+        "masDe3000": 0.221
+      }
+    },
+    {
+      "destino": "Menorca",
+      "provincia": "Baleares",
+      "codigoPostal": "07",
+      "hasta25": 18.31,
+      "hasta50": 24.06,
+      "hasta75": 31.43,
+      "hasta100": 36.65,
+      "kgAdicional": {
+        "100_200": 0.318,
+        "200_300": 0.308,
+        "300_400": 0.274,
+        "400_500": 0.267,
+        "500_750": 0.26,
+        "750_1000": 0.252,
+        "1000_1500": 0.245,
+        "1500_2000": 0.24,
+        "2000_2500": 0.23,
+        "2500_3000": 0.221,
+        "masDe3000": 0.221
+      }
+    },
+    {
+      "destino": "Formentera",
+      "provincia": "Baleares",
+      "codigoPostal": "07",
+      "hasta25": 38.31,
+      "hasta50": 50.35,
+      "hasta75": 65.78,
+      "hasta100": 76.7,
+      "kgAdicional": {
+        "100_200": 0.661,
+        "200_300": 0.641,
+        "300_400": 0.57,
+        "400_500": 0.555,
+        "500_750": 0.54,
+        "750_1000": 0.523,
+        "1000_1500": 0.509,
+        "1500_2000": 0.498,
+        "2000_2500": 0.478,
+        "2500_3000": 0.459,
+        "masDe3000": 0.459
+      }
+    }
+  ],
+  "tarifas": {
+    "1": {
+      "hasta25": 7.25,
+      "hasta50": 10.92,
+      "hasta75": 11.79,
+      "hasta100": 15.57,
+      "kgAdicional": {
+        "100_200": 0.121,
+        "200_300": 0.111,
+        "300_400": 0.106,
+        "400_500": 0.101,
+        "500_750": 0.096,
+        "750_1000": 0.091,
+        "1000_1500": 0.086,
+        "1500_2000": 0.08,
+        "2000_2500": 0.075,
+        "2500_3000": 0.073,
+        "masDe3000": 0.069
+      }
+    },
+    "2": {
+      "hasta25": 8.83,
+      "hasta50": 13.03,
+      "hasta75": 14.07,
+      "hasta100": 17.19,
+      "kgAdicional": {
+        "100_200": 0.142,
+        "200_300": 0.133,
+        "300_400": 0.126,
+        "400_500": 0.122,
+        "500_750": 0.119,
+        "750_1000": 0.116,
+        "1000_1500": 0.108,
+        "1500_2000": 0.105,
+        "2000_2500": 0.102,
+        "2500_3000": 0.098,
+        "masDe3000": 0.094
+      }
+    },
+    "3": {
+      "hasta25": 9.27,
+      "hasta50": 13.92,
+      "hasta75": 15.03,
+      "hasta100": 18.37,
+      "kgAdicional": {
+        "100_200": 0.149,
+        "200_300": 0.14,
+        "300_400": 0.134,
+        "400_500": 0.129,
+        "500_750": 0.127,
+        "750_1000": 0.123,
+        "1000_1500": 0.118,
+        "1500_2000": 0.114,
+        "2000_2500": 0.11,
+        "2500_3000": 0.106,
+        "masDe3000": 0.102
+      }
+    },
+    "4": {
+      "hasta25": 9.72,
+      "hasta50": 14.81,
+      "hasta75": 16.0,
+      "hasta100": 19.55,
+      "kgAdicional": {
+        "100_200": 0.158,
+        "200_300": 0.152,
+        "300_400": 0.146,
+        "400_500": 0.144,
+        "500_750": 0.141,
+        "750_1000": 0.137,
+        "1000_1500": 0.133,
+        "1500_2000": 0.13,
+        "2000_2500": 0.127,
+        "2500_3000": 0.122,
+        "masDe3000": 0.117
+      }
+    },
+    "5": {
+      "hasta25": 10.06,
+      "hasta50": 15.49,
+      "hasta75": 16.81,
+      "hasta100": 20.54,
+      "kgAdicional": {
+        "100_200": 0.168,
+        "200_300": 0.161,
+        "300_400": 0.155,
+        "400_500": 0.151,
+        "500_750": 0.148,
+        "750_1000": 0.142,
+        "1000_1500": 0.14,
+        "1500_2000": 0.137,
+        "2000_2500": 0.134,
+        "2500_3000": 0.129,
+        "masDe3000": 0.124
+      }
+    },
+    "6": {
+      "hasta25": 11.12,
+      "hasta50": 17.49,
+      "hasta75": 19.13,
+      "hasta100": 23.38,
+      "kgAdicional": {
+        "100_200": 0.194,
+        "200_300": 0.186,
+        "300_400": 0.179,
+        "400_500": 0.175,
+        "500_750": 0.171,
+        "750_1000": 0.164,
+        "1000_1500": 0.158,
+        "1500_2000": 0.155,
+        "2000_2500": 0.152,
+        "2500_3000": 0.146,
+        "masDe3000": 0.14
+      }
+    },
+    "7": {
+      "hasta25": 12.77,
+      "hasta50": 20.28,
+      "hasta75": 22.26,
+      "hasta100": 27.83,
+      "kgAdicional": {
+        "100_200": 0.233,
+        "200_300": 0.223,
+        "300_400": 0.215,
+        "400_500": 0.197,
+        "500_750": 0.191,
+        "750_1000": 0.186,
+        "1000_1500": 0.181,
+        "1500_2000": 0.178,
+        "2000_2500": 0.174,
+        "2500_3000": 0.171,
+        "masDe3000": 0.164
+      }
+    },
+    "8": {
+      "hasta25": 17.69,
+      "hasta50": 22.58,
+      "hasta75": 27.56,
+      "hasta100": 31.28,
+      "kgAdicional": {
+        "100_200": 0.263,
+        "200_300": 0.249,
+        "300_400": 0.243,
+        "400_500": 0.239,
+        "500_750": 0.235,
+        "750_1000": 0.226,
+        "1000_1500": 0.217,
+        "1500_2000": 0.212,
+        "2000_2500": 0.208,
+        "2500_3000": 0.2,
+        "masDe3000": 0.192
+      }
+    }
+  }
+}
