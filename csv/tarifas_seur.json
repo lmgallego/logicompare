@@ -1,0 +1,76 @@
+{
+  "servicio": "SEUR",
+  "moneda": "EUR",
+  "tarifas": [
+    {
+      "tramo": "Hasta 3 kg",
+      "medioPeninsular": 6.58,
+      "portugal": 10.52,
+      "baleares": 10.56,
+      "largoPeninsular": 7.03
+    },
+    {
+      "tramo": "Hasta 5 kg",
+      "medioPeninsular": 7.01,
+      "portugal": 11.69,
+      "baleares": 11.74,
+      "largoPeninsular": 7.83
+    },
+    {
+      "tramo": "Hasta 10 kg",
+      "medioPeninsular": 8.70,
+      "portugal": 15.44,
+      "baleares": 15.46,
+      "largoPeninsular": 10.34
+    },
+    {
+      "tramo": "Hasta 15 kg",
+      "medioPeninsular": 9.71,
+      "portugal": 18.01,
+      "baleares": 17.40,
+      "largoPeninsular": 12.07
+    },
+    {
+      "tramo": "Hasta 20 kg",
+      "medioPeninsular": 11.46,
+      "portugal": 21.73,
+      "baleares": 20.89,
+      "largoPeninsular": 14.52
+    },
+    {
+      "tramo": "Hasta 25 kg",
+      "medioPeninsular": 12.97,
+      "portugal": 25.23,
+      "baleares": 24.29,
+      "largoPeninsular": 16.88
+    },
+    {
+      "tramo": "Hasta 30 kg",
+      "medioPeninsular": 14.68,
+      "portugal": 28.75,
+      "baleares": 27.69,
+      "largoPeninsular": 19.22
+    },
+    {
+      "tramo": "Hasta 40 kg",
+      "medioPeninsular": 17.90,
+      "portugal": 35.79,
+      "baleares": 34.51,
+      "largoPeninsular": 23.94
+    },
+    {
+      "tramo": "Hasta 50 kg",
+      "medioPeninsular": 21.09,
+      "portugal": 42.87,
+      "baleares": 41.28,
+      "largoPeninsular": 28.69
+    },
+    {
+      "tramo": "Kg adicional",
+      "medioPeninsular": 0.45,
+      "portugal": 0.92,
+      "baleares": 0.86,
+      "largoPeninsular": 0.59
+    }
+  ]
+}

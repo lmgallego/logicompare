@@ -60,6 +60,12 @@ app.whenReady().then(() => {
     return
   }
 
+  if (process.argv.includes('--seed-seur')) {
+    require('./database/seedSeur')
+    app.quit()
+    return
+  }
+
   require('./ipcHandlers/quoteHandler')
   require('./ipcHandlers/agencyHandler')
   require('./ipcHandlers/provinceHandler')

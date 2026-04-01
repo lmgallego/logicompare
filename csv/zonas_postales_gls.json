@@ -1,0 +1,257 @@
+{
+  "fuente": {
+    "archivoBase": "CodigosPostalesGLS.csv",
+    "reglasManuales": [
+      {
+        "grupo": "Portugal",
+        "provincia": "Portugal",
+        "codigo": "00",
+        "zona": "MEDIO PENINSULAR"
+      }
+    ]
+  },
+  "zonas": [
+    {
+      "zona": "MEDIO PENINSULAR",
+      "codigosUnicos": ["00", "01", "02", "03", "07", "08", "09", "12", "13", "16", "17", "19", "20", "22", "25", "26", "28", "30", "31", "34", "39", "40", "42", "43", "44", "45", "46", "48", "50"],
+      "grupos": [
+        {
+          "grupo": "Aragón",
+          "provincias": [
+            { "provincia": "Huesca", "codigo": "22" },
+            { "provincia": "Teruel", "codigo": "44" },
+            { "provincia": "Zaragoza", "codigo": "50" }
+          ]
+        },
+        {
+          "grupo": "Baleares",
+          "provincias": [
+            { "provincia": "Baleares", "codigo": "07" }
+          ]
+        },
+        {
+          "grupo": "Burgos",
+          "provincias": [
+            { "provincia": "Burgos", "codigo": "09" }
+          ]
+        },
+        {
+          "grupo": "Cantabria",
+          "provincias": [
+            { "provincia": "Cantabria", "codigo": "39" }
+          ]
+        },
+        {
+          "grupo": "Castilla La Mancha",
+          "provincias": [
+            { "provincia": "Albacete", "codigo": "02" },
+            { "provincia": "Ciudad Real", "codigo": "13" },
+            { "provincia": "Cuenca", "codigo": "16" },
+            { "provincia": "Guadalajara", "codigo": "19" },
+            { "provincia": "Toledo", "codigo": "45" }
+          ]
+        },
+        {
+          "grupo": "Cataluña",
+          "provincias": [
+            { "provincia": "Barcelona", "codigo": "08" },
+            { "provincia": "Girona", "codigo": "17" },
+            { "provincia": "Lleida", "codigo": "25" },
+            { "provincia": "Tarragona", "codigo": "43" }
+          ]
+        },
+        {
+          "grupo": "Comunidad Valenciana",
+          "provincias": [
+            { "provincia": "Alicante", "codigo": "03" },
+            { "provincia": "Castellon", "codigo": "12" },
+            { "provincia": "Valencia", "codigo": "46" }
+          ]
+        },
+        {
+          "grupo": "La Rioja",
+          "provincias": [
+            { "provincia": "La Rioja", "codigo": "26" }
+          ]
+        },
+        {
+          "grupo": "Madrid",
+          "provincias": [
+            { "provincia": "Madrid", "codigo": "28" }
+          ]
+        },
+        {
+          "grupo": "Murcia",
+          "provincias": [
+            { "provincia": "Murcia", "codigo": "30" }
+          ]
+        },
+        {
+          "grupo": "Navarra",
+          "provincias": [
+            { "provincia": "Navarra", "codigo": "31" }
+          ]
+        },
+        {
+          "grupo": "País Vasco",
+          "provincias": [
+            { "provincia": "Alava", "codigo": "01" },
+            { "provincia": "Guipuzcoa", "codigo": "20" },
+            { "provincia": "Vizcaya", "codigo": "48" }
+          ]
+        },
+        {
+          "grupo": "Palencia",
+          "provincias": [
+            { "provincia": "Palencia", "codigo": "34" }
+          ]
+        },
+        {
+          "grupo": "Portugal",
+          "provincias": [
+            { "provincia": "Portugal", "codigo": "00" }
+          ]
+        },
+        {
+          "grupo": "Segovia",
+          "provincias": [
+            { "provincia": "Segovia", "codigo": "40" }
+          ]
+        },
+        {
+          "grupo": "Soria",
+          "provincias": [
+            { "provincia": "Soria", "codigo": "42" }
+          ]
+        }
+      ]
+    },
+    {
+      "zona": "LARGO PENINSULAR",
+      "codigosUnicos": ["04", "05", "06", "10", "11", "14", "15", "18", "21", "23", "24", "27", "29", "32", "33", "36", "37", "41", "47", "49"],
+      "grupos": [
+        {
+          "grupo": "Andalucía",
+          "provincias": [
+            { "provincia": "Almeria", "codigo": "04" },
+            { "provincia": "Cadiz", "codigo": "11" },
+            { "provincia": "Cordoba", "codigo": "14" },
+            { "provincia": "Granada", "codigo": "18" },
+            { "provincia": "Huelva", "codigo": "21" },
+            { "provincia": "Jaen", "codigo": "23" },
+            { "provincia": "Malaga", "codigo": "29" },
+            { "provincia": "Sevilla", "codigo": "41" }
+          ]
+        },
+        {
+          "grupo": "Asturias",
+          "provincias": [
+            { "provincia": "Asturias", "codigo": "33" }
+          ]
+        },
+        {
+          "grupo": "Ávila",
+          "provincias": [
+            { "provincia": "Avila", "codigo": "05" }
+          ]
+        },
+        {
+          "grupo": "Extremadura",
+          "provincias": [
+            { "provincia": "Badajoz", "codigo": "06" },
+            { "provincia": "Caceres", "codigo": "10" }
+          ]
+        },
+        {
+          "grupo": "Galicia",
+          "provincias": [
+            { "provincia": "La Coruna", "codigo": "15" },
+            { "provincia": "Lugo", "codigo": "27" },
+            { "provincia": "Orense", "codigo": "32" },
+            { "provincia": "Pontevedra", "codigo": "36" }
+          ]
+        },
+        {
+          "grupo": "León",
+          "provincias": [
+            { "provincia": "Leon", "codigo": "24" }
+          ]
+        },
+        {
+          "grupo": "Salamanca",
+          "provincias": [
+            { "provincia": "Salamanca", "codigo": "37" }
+          ]
+        },
+        {
+          "grupo": "Valladolid",
+          "provincias": [
+            { "provincia": "Valladolid", "codigo": "47" }
+          ]
+        },
+        {
+          "grupo": "Zamora",
+          "provincias": [
+            { "provincia": "Zamora", "codigo": "49" }
+          ]
+        }
+      ]
+    }
+  ],
+  "relaciones": [
+    { "zona": "MEDIO PENINSULAR", "grupo": "Aragón", "provincia": "Huesca", "codigo": "22" },
+    { "zona": "MEDIO PENINSULAR", "grupo": "Aragón", "provincia": "Teruel", "codigo": "44" },
+    { "zona": "MEDIO PENINSULAR", "grupo": "Aragón", "provincia": "Zaragoza", "codigo": "50" },
+    { "zona": "MEDIO PENINSULAR", "grupo": "Baleares", "provincia": "Baleares", "codigo": "07" },
+    { "zona": "MEDIO PENINSULAR", "grupo": "Burgos", "provincia": "Burgos", "codigo": "09" },
+    { "zona": "MEDIO PENINSULAR", "grupo": "Cantabria", "provincia": "Cantabria", "codigo": "39" },
+    { "zona": "MEDIO PENINSULAR", "grupo": "Castilla La Mancha", "provincia": "Albacete", "codigo": "02" },
+    { "zona": "MEDIO PENINSULAR", "grupo": "Castilla La Mancha", "provincia": "Ciudad Real", "codigo": "13" },
+    { "zona": "MEDIO PENINSULAR", "grupo": "Castilla La Mancha", "provincia": "Cuenca", "codigo": "16" },
+    { "zona": "MEDIO PENINSULAR", "grupo": "Castilla La Mancha", "provincia": "Guadalajara", "codigo": "19" },
+    { "zona": "MEDIO PENINSULAR", "grupo": "Castilla La Mancha", "provincia": "Toledo", "codigo": "45" },
+    { "zona": "MEDIO PENINSULAR", "grupo": "Cataluña", "provincia": "Barcelona", "codigo": "08" },
+    { "zona": "MEDIO PENINSULAR", "grupo": "Cataluña", "provincia": "Girona", "codigo": "17" },
+    { "zona": "MEDIO PENINSULAR", "grupo": "Cataluña", "provincia": "Lleida", "codigo": "25" },
+    { "zona": "MEDIO PENINSULAR", "grupo": "Cataluña", "provincia": "Tarragona", "codigo": "43" },
+    { "zona": "MEDIO PENINSULAR", "grupo": "Comunidad Valenciana", "provincia": "Alicante", "codigo": "03" },
+    { "zona": "MEDIO PENINSULAR", "grupo": "Comunidad Valenciana", "provincia": "Castellon", "codigo": "12" },
+    { "zona": "MEDIO PENINSULAR", "grupo": "Comunidad Valenciana", "provincia": "Valencia", "codigo": "46" },
+    { "zona": "MEDIO PENINSULAR", "grupo": "La Rioja", "provincia": "La Rioja", "codigo": "26" },
+    { "zona": "MEDIO PENINSULAR", "grupo": "Madrid", "provincia": "Madrid", "codigo": "28" },
+    { "zona": "MEDIO PENINSULAR", "grupo": "Murcia", "provincia": "Murcia", "codigo": "30" },
+    { "zona": "MEDIO PENINSULAR", "grupo": "Navarra", "provincia": "Navarra", "codigo": "31" },
+    { "zona": "MEDIO PENINSULAR", "grupo": "País Vasco", "provincia": "Alava", "codigo": "01" },
+    { "zona": "MEDIO PENINSULAR", "grupo": "País Vasco", "provincia": "Guipuzcoa", "codigo": "20" },
+    { "zona": "MEDIO PENINSULAR", "grupo": "País Vasco", "provincia": "Vizcaya", "codigo": "48" },
+    { "zona": "MEDIO PENINSULAR", "grupo": "Palencia", "provincia": "Palencia", "codigo": "34" },
+    { "zona": "MEDIO PENINSULAR", "grupo": "Portugal", "provincia": "Portugal", "codigo": "00" },
+    { "zona": "MEDIO PENINSULAR", "grupo": "Segovia", "provincia": "Segovia", "codigo": "40" },
+    { "zona": "MEDIO PENINSULAR", "grupo": "Soria", "provincia": "Soria", "codigo": "42" },
+    { "zona": "LARGO PENINSULAR", "grupo": "Andalucía", "provincia": "Almeria", "codigo": "04" },
+    { "zona": "LARGO PENINSULAR", "grupo": "Andalucía", "provincia": "Cadiz", "codigo": "11" },
+    { "zona": "LARGO PENINSULAR", "grupo": "Andalucía", "provincia": "Cordoba", "codigo": "14" },
+    { "zona": "LARGO PENINSULAR", "grupo": "Andalucía", "provincia": "Granada", "codigo": "18" },
+    { "zona": "LARGO PENINSULAR", "grupo": "Andalucía", "provincia": "Huelva", "codigo": "21" },
+    { "zona": "LARGO PENINSULAR", "grupo": "Andalucía", "provincia": "Jaen", "codigo": "23" },
+    { "zona": "LARGO PENINSULAR", "grupo": "Andalucía", "provincia": "Malaga", "codigo": "29" },
+    { "zona": "LARGO PENINSULAR", "grupo": "Andalucía", "provincia": "Sevilla", "codigo": "41" },
+    { "zona": "LARGO PENINSULAR", "grupo": "Asturias", "provincia": "Asturias", "codigo": "33" },
+    { "zona": "LARGO PENINSULAR", "grupo": "Ávila", "provincia": "Avila", "codigo": "05" },
+    { "zona": "LARGO PENINSULAR", "grupo": "Extremadura", "provincia": "Badajoz", "codigo": "06" },
+    { "zona": "LARGO PENINSULAR", "grupo": "Extremadura", "provincia": "Caceres", "codigo": "10" },
+    { "zona": "LARGO PENINSULAR", "grupo": "Galicia", "provincia": "La Coruna", "codigo": "15" },
+    { "zona": "LARGO PENINSULAR", "grupo": "Galicia", "provincia": "Lugo", "codigo": "27" },
+    { "zona": "LARGO PENINSULAR", "grupo": "Galicia", "provincia": "Orense", "codigo": "32" },
+    { "zona": "LARGO PENINSULAR", "grupo": "Galicia", "provincia": "Pontevedra", "codigo": "36" },
+    { "zona": "LARGO PENINSULAR", "grupo": "León", "provincia": "Leon", "codigo": "24" },
+    { "zona": "LARGO PENINSULAR", "grupo": "Salamanca", "provincia": "Salamanca", "codigo": "37" },
+    { "zona": "LARGO PENINSULAR", "grupo": "Valladolid", "provincia": "Valladolid", "codigo": "47" },
+    { "zona": "LARGO PENINSULAR", "grupo": "Zamora", "provincia": "Zamora", "codigo": "49" }
+  ],
+  "resumen": {
+    "medioPeninsular": 29,
+    "largoPeninsular": 20,
+    "totalRelaciones": 49
+  }
+}

@@ -12,7 +12,8 @@
     "postinstall": "electron-rebuild -f -w better-sqlite3",
     "seed:gls": "electron . --seed",
     "seed:logistica": "electron . --seed-logistica",
-    "seed:dhl": "electron . --seed-dhl"
+    "seed:dhl": "electron . --seed-dhl",
+    "seed:seur": "electron . --seed-seur"
   },
   "keywords": [
     "electron",
