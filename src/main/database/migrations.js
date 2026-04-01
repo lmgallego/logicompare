@@ -104,6 +104,27 @@ function runMigrations(db) {
     )
   `)
 
+  // Migrate zonas_provincias PK from (agencia_id, cp_prefix) to (agencia_id, zona_id, cp_prefix)
+  // SQLite doesn't support ALTER TABLE for PK changes — we rename+recreate
+  const zpInfo = db.prepare("PRAGMA table_info(zonas_provincias)").all()
+  const zpPkCols = zpInfo.filter(c => c.pk > 0).map(c => c.name)
+  const needsPkMigration = !zpPkCols.includes('zona_id')
+  if (needsPkMigration) {
+    db.prepare('ALTER TABLE zonas_provincias RENAME TO zonas_provincias_old').run()
+    db.exec(`
+      CREATE TABLE zonas_provincias (
+        agencia_id INTEGER NOT NULL,
+        zona_id    INTEGER NOT NULL,
+        cp_prefix  TEXT NOT NULL,
+        PRIMARY KEY (agencia_id, zona_id, cp_prefix),
+        FOREIGN KEY (agencia_id) REFERENCES agencias(id) ON DELETE CASCADE,
+        FOREIGN KEY (zona_id)    REFERENCES zonas_agencia(id) ON DELETE CASCADE
+      )
+    `)
+    db.prepare('INSERT INTO zonas_provincias SELECT agencia_id, zona_id, cp_prefix FROM zonas_provincias_old').run()
+    db.prepare('DROP TABLE zonas_provincias_old').run()
+  }
+
   // Add peso column if not exists (migration for existing DBs)
   const cols = db.prepare("PRAGMA table_info(cotizaciones)").all().map(c => c.name)
   if (!cols.includes('peso')) {

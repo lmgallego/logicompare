@@ -1,6 +1,7 @@
 const { getDb } = require('./connection')
 
 const db = getDb()
+db.pragma('foreign_keys = OFF')
 
 // ── Datos de tarifas por zona ──────────────────────────────────────────────
 // Tarifas base: [kilos_desde, kilos_hasta, precio]
@@ -61,7 +62,7 @@ function seedAgencia(nombre, baremo) {
     'INSERT INTO zonas_agencia (agencia_id, nombre_zona, kg_adicional, solo_debidos, multiple_zones) VALUES (?, ?, ?, ?, ?)'
   )
   const insertCp = db.prepare(
-    'INSERT OR REPLACE INTO zonas_provincias (agencia_id, zona_id, cp_prefix) VALUES (?, ?, ?)'
+    'INSERT INTO zonas_provincias (agencia_id, zona_id, cp_prefix) VALUES (?, ?, ?)'
   )
 
   const ag = db.prepare(
@@ -105,9 +106,17 @@ function seedAgencia(nombre, baremo) {
 }
 
 const insertAll = db.transaction(() => {
-  // Delete existing Transhaer entries
+  // Delete existing Transhaer entries — manual cascade order
   const existing = db.prepare("SELECT id, nombre FROM agencias WHERE nombre LIKE 'Transhaer%'").all()
   for (const row of existing) {
+    const zonaIds = db.prepare('SELECT id FROM zonas_agencia WHERE agencia_id = ?').all(row.id).map(z => z.id)
+    for (const zId of zonaIds) {
+      db.prepare('DELETE FROM tarifas_kg_adicional WHERE zona_id = ?').run(zId)
+    }
+    db.prepare('DELETE FROM tarifas_agencia WHERE agencia_id = ?').run(row.id)
+    db.prepare('DELETE FROM zonas_provincias WHERE agencia_id = ?').run(row.id)
+    db.prepare('DELETE FROM zonas_agencia WHERE agencia_id = ?').run(row.id)
+    db.prepare('DELETE FROM recargos_agencia WHERE agencia_id = ?').run(row.id)
     db.prepare('DELETE FROM agencias WHERE id = ?').run(row.id)
     console.log(`[seed] Eliminada agencia ID ${row.id} ("${row.nombre}").`)
   }
