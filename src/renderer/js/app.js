@@ -5,7 +5,7 @@ import { loadAgencies, initAgencyModal } from './components/databaseView.js'
 import { initDevidosView } from './components/devidosView.js'
 import { loadAnalytics } from './components/analyticsView.js'
 
-const PAGES = ['new-quote', 'debidos', 'history', 'address-book', 'analytics', 'database', 'support']
+const PAGES = ['new-quote', 'debidos', 'history', 'analytics', 'database', 'support']
 let currentPage = 'new-quote'
 
 function showPage(pageId) {
