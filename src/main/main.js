@@ -52,6 +52,7 @@ function createSplashWindow(onDone) {
     movable: true,
     center: true,
     alwaysOnTop: true,
+    show: false,
     backgroundColor: '#0a0a0a',
     webPreferences: {
       contextIsolation: true,
@@ -62,11 +63,14 @@ function createSplashWindow(onDone) {
 
   splash.loadFile(path.join(__dirname, 'splash.html'))
 
-  // Main process controls timing — no IPC needed
-  setTimeout(() => {
-    onDone()
-    if (!splash.isDestroyed()) splash.close()
-  }, SPLASH_DURATION_MS)
+  // Start timer only after page is fully loaded so animation is visible
+  splash.webContents.once('did-finish-load', () => {
+    splash.show()
+    setTimeout(() => {
+      onDone()
+      if (!splash.isDestroyed()) splash.close()
+    }, SPLASH_DURATION_MS)
+  })
 }
 
 function createWindow() {
