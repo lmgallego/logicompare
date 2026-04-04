@@ -70,6 +70,95 @@ ipcMain.handle('delete-history', (event, { desde, hasta } = {}) => {
   return { deleted: result.changes }
 })
 
+// ── Analytics ─────────────────────────────────────────────────────────────────
+ipcMain.handle('get-analytics', () => {
+  const db = getDb()
+
+  // Total quotes and revenue
+  const totals = db.prepare(`
+    SELECT COUNT(*) as total, COALESCE(SUM(precio_final),0) as ingresos
+    FROM cotizaciones
+  `).get()
+
+  // By agency: count + revenue
+  const porAgencia = db.prepare(`
+    SELECT a.nombre, COUNT(*) as total, COALESCE(SUM(c.precio_final),0) as ingresos,
+           COALESCE(AVG(c.precio_final),0) as precio_medio
+    FROM cotizaciones c
+    LEFT JOIN agencias a ON a.id = c.agencia_id
+    GROUP BY c.agencia_id
+    ORDER BY total DESC
+    LIMIT 10
+  `).all()
+
+  // Quotes per day (last 30 days)
+  const porDia = db.prepare(`
+    SELECT date(fecha) as dia, COUNT(*) as total, COALESCE(SUM(precio_final),0) as ingresos
+    FROM cotizaciones
+    WHERE fecha >= date('now','-30 days')
+    GROUP BY dia
+    ORDER BY dia ASC
+  `).all()
+
+  // Quotes per month (last 12 months)
+  const porMes = db.prepare(`
+    SELECT strftime('%Y-%m', fecha) as mes, COUNT(*) as total, COALESCE(SUM(precio_final),0) as ingresos
+    FROM cotizaciones
+    WHERE fecha >= date('now','-12 months')
+    GROUP BY mes
+    ORDER BY mes ASC
+  `).all()
+
+  // Top CPs by volume
+  const topCps = db.prepare(`
+    SELECT cp_prefix, COUNT(*) as total, COALESCE(SUM(precio_final),0) as ingresos
+    FROM cotizaciones
+    GROUP BY cp_prefix
+    ORDER BY total DESC
+    LIMIT 10
+  `).all()
+
+  // Weight distribution buckets
+  const pesoBuckets = db.prepare(`
+    SELECT
+      CASE
+        WHEN peso < 50   THEN '< 50 kg'
+        WHEN peso < 100  THEN '50–100 kg'
+        WHEN peso < 250  THEN '100–250 kg'
+        WHEN peso < 500  THEN '250–500 kg'
+        WHEN peso < 1000 THEN '500–1000 kg'
+        ELSE '> 1000 kg'
+      END as rango,
+      COUNT(*) as total
+    FROM cotizaciones
+    WHERE peso > 0
+    GROUP BY rango
+    ORDER BY MIN(peso) ASC
+  `).all()
+
+  // Average price per agency
+  const precioMedioAgencia = db.prepare(`
+    SELECT a.nombre, COALESCE(AVG(c.precio_final),0) as precio_medio, COUNT(*) as total
+    FROM cotizaciones c
+    LEFT JOIN agencias a ON a.id = c.agencia_id
+    WHERE c.precio_final IS NOT NULL
+    GROUP BY c.agencia_id
+    ORDER BY precio_medio ASC
+  `).all()
+
+  // This month vs last month
+  const comparativa = db.prepare(`
+    SELECT
+      SUM(CASE WHEN strftime('%Y-%m', fecha) = strftime('%Y-%m','now') THEN 1 ELSE 0 END) as mes_actual_n,
+      SUM(CASE WHEN strftime('%Y-%m', fecha) = strftime('%Y-%m','now','-1 month') THEN 1 ELSE 0 END) as mes_anterior_n,
+      SUM(CASE WHEN strftime('%Y-%m', fecha) = strftime('%Y-%m','now') THEN precio_final ELSE 0 END) as mes_actual_ingresos,
+      SUM(CASE WHEN strftime('%Y-%m', fecha) = strftime('%Y-%m','now','-1 month') THEN precio_final ELSE 0 END) as mes_anterior_ingresos
+    FROM cotizaciones
+  `).get()
+
+  return { totals, porAgencia, porDia, porMes, topCps, pesoBuckets, precioMedioAgencia, comparativa }
+})
+
 // ── XLSX export via save dialog ──────────────────────────────────────────────
 ipcMain.handle('export-xlsx', async (event, { filename, files }) => {
   const { filePath } = await dialog.showSaveDialog({

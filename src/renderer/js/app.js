@@ -3,6 +3,7 @@ import { initFormHandler } from './components/formHandler.js'
 import { loadHistory, initHistoryControls } from './components/historyView.js'
 import { loadAgencies, initAgencyModal } from './components/databaseView.js'
 import { initDevidosView } from './components/devidosView.js'
+import { loadAnalytics } from './components/analyticsView.js'
 
 const PAGES = ['new-quote', 'debidos', 'history', 'address-book', 'analytics', 'database', 'support']
 let currentPage = 'new-quote'
@@ -23,6 +24,7 @@ function showPage(pageId) {
     loadHistory(desde, hasta, agenciaId)
   }
   if (pageId === 'database') loadAgencies()
+  if (pageId === 'analytics') loadAnalytics()
 }
 
 async function initApp() {
