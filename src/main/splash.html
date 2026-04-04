@@ -11,7 +11,7 @@
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: #0a0a0a;
+      background: #ffffff;
       -webkit-app-region: drag;
       user-select: none;
     }
@@ -20,36 +20,10 @@
       position: fixed;
       inset: 0;
       background:
-        radial-gradient(ellipse 80% 60% at 50% 50%, rgba(220, 30, 30, 0.08) 0%, transparent 70%),
-        #0a0a0a;
+        radial-gradient(ellipse 80% 60% at 50% 50%, rgba(220, 30, 30, 0.06) 0%, transparent 70%),
+        #ffffff;
     }
 
-    /* Subtle animated noise texture */
-    .bg::before {
-      content: '';
-      position: fixed;
-      inset: -50%;
-      width: 200%;
-      height: 200%;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
-      opacity: 0.4;
-      pointer-events: none;
-    }
-
-    /* Scanlines */
-    .bg::after {
-      content: '';
-      position: fixed;
-      inset: 0;
-      background: repeating-linear-gradient(
-        0deg,
-        transparent,
-        transparent 2px,
-        rgba(0, 0, 0, 0.03) 2px,
-        rgba(0, 0, 0, 0.03) 4px
-      );
-      pointer-events: none;
-    }
 
     .scene {
       position: relative;
@@ -110,13 +84,13 @@
       width: 280px;
       height: auto;
       display: block;
-      filter: drop-shadow(0 0 40px rgba(220, 30, 30, 0.35)) drop-shadow(0 0 80px rgba(220, 30, 30, 0.15));
+      filter: drop-shadow(0 4px 16px rgba(220, 30, 30, 0.18));
       animation: logoPulse 2.5s ease-in-out 1.4s infinite alternate;
     }
 
     @keyframes logoPulse {
-      from { filter: drop-shadow(0 0 40px rgba(220, 30, 30, 0.35)) drop-shadow(0 0 80px rgba(220, 30, 30, 0.15)); }
-      to   { filter: drop-shadow(0 0 55px rgba(220, 30, 30, 0.55)) drop-shadow(0 0 100px rgba(220, 30, 30, 0.25)); }
+      from { filter: drop-shadow(0 4px 16px rgba(220, 30, 30, 0.18)); }
+      to   { filter: drop-shadow(0 6px 28px rgba(220, 30, 30, 0.32)); }
     }
 
     /* Divider */
@@ -140,7 +114,7 @@
       font-weight: 400;
       letter-spacing: 0.35em;
       text-transform: uppercase;
-      color: rgba(255, 255, 255, 0.3);
+      color: rgba(0, 0, 0, 0.35);
       opacity: 0;
       animation: fadeUp 0.5s ease 1.4s forwards;
     }
@@ -167,7 +141,7 @@
     .loader-track {
       width: 160px;
       height: 2px;
-      background: rgba(255,255,255,0.08);
+      background: rgba(0,0,0,0.08);
       border-radius: 2px;
       overflow: hidden;
     }
@@ -192,7 +166,7 @@
       font-size: 9px;
       letter-spacing: 0.25em;
       text-transform: uppercase;
-      color: rgba(255, 255, 255, 0.2);
+      color: rgba(0, 0, 0, 0.25);
     }
 
     /* Fade-out overlay — triggered by JS */
@@ -230,7 +204,7 @@
     <div class="loader-text">Iniciando...</div>
   </div>
 
-  <div class="fade-out" id="fadeOut"></div>
+  <div class="fade-out" id="fadeOut" style="background:#ffffff;"></div>
 
   <script>
     // Fade out at end of animation (purely cosmetic — main.js controls window close timing)
