@@ -40,6 +40,8 @@ function createMainWindow() {
   return win
 }
 
+const SPLASH_DURATION_MS = 3800
+
 function createSplashWindow(onDone) {
   const splash = new BrowserWindow({
     width: 520,
@@ -52,37 +54,23 @@ function createSplashWindow(onDone) {
     alwaysOnTop: true,
     backgroundColor: '#0a0a0a',
     webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
+      contextIsolation: true,
+      nodeIntegration: false,
       webSecurity: false,
     },
   })
 
   splash.loadFile(path.join(__dirname, 'splash.html'))
 
-  // Expose splashDone to the splash page via preload-free nodeIntegration
-  splash.webContents.on('did-finish-load', () => {
-    splash.webContents.executeJavaScript(`
-      window.splashDone = function() {
-        const { ipcRenderer } = require('electron');
-        ipcRenderer.send('splash-done');
-      };
-    `)
-  })
-
-  ipcMain.once('splash-done', () => {
+  // Main process controls timing — no IPC needed
+  setTimeout(() => {
     onDone()
-    splash.close()
-  })
+    if (!splash.isDestroyed()) splash.close()
+  }, SPLASH_DURATION_MS)
 }
 
 function createWindow() {
-  const showSplash = !isDev || process.argv.includes('--splash')
-  if (!showSplash) {
-    createMainWindow()
-    return
-  }
-
+  // Always show splash (skip only on seed commands which return early)
   createSplashWindow(() => {
     createMainWindow()
   })

@@ -217,7 +217,7 @@
 
   <div class="scene">
     <div class="logo-wrap">
-      <img src="elmer.png" alt="Elmer" />
+      <img src="assets/elmer.png" alt="Elmer" />
     </div>
     <div class="divider"></div>
     <div class="tagline">Logicompare · Gestión de Tarifas</div>
@@ -233,13 +233,10 @@
   <div class="fade-out" id="fadeOut"></div>
 
   <script>
-    // After animation completes, notify main process to show main window
+    // Fade out at end of animation (purely cosmetic — main.js controls window close timing)
     setTimeout(() => {
       document.getElementById('fadeOut').classList.add('active')
-      setTimeout(() => {
-        if (window.splashDone) window.splashDone()
-      }, 420)
-    }, 3600)
+    }, 3400)
   </script>
 </body>
 </html>
