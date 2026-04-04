@@ -51,6 +51,10 @@
           <span class="material-symbols-outlined text-xl">history</span>
           <span class="nav-label">Historial</span>
         </a>
+        <a class="nav-item" data-page="agencias">
+          <span class="material-symbols-outlined text-xl">local_shipping</span>
+          <span class="nav-label">Agencias</span>
+        </a>
         <a class="nav-item" data-page="analytics">
           <span class="material-symbols-outlined text-xl">analytics</span>
           <span class="nav-label">Analíticas</span>
@@ -305,6 +309,27 @@
                 </tr>
               </tbody>
             </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ════ PAGE: AGENCIAS ════ -->
+      <div id="page-agencias" class="page flex-1 overflow-y-auto p-6">
+        <div class="max-w-5xl mx-auto space-y-6">
+          <div>
+            <h2 class="text-xl font-bold tracking-tight">Comparativa de Agencias</h2>
+            <p class="text-xs text-on-surface-variant mt-0.5" style="opacity:0.55;">Selecciona una o varias agencias para comparar sus tarifas por tramo de peso</p>
+          </div>
+          <!-- Agency chips -->
+          <div id="agencias-selector-list" class="flex flex-wrap gap-2">
+            <div class="text-xs text-on-surface-variant" style="opacity:0.4;">Cargando agencias...</div>
+          </div>
+          <!-- Comparison table -->
+          <div id="agencias-comparison-table">
+            <div class="flex flex-col items-center justify-center py-16 text-on-surface-variant text-center">
+              <span class="material-symbols-outlined text-5xl mb-3" style="opacity:0.2;">table_chart</span>
+              <p class="text-sm" style="opacity:0.5;">Selecciona una o más agencias para comparar sus tarifas</p>
+            </div>
           </div>
         </div>
       </div>
