@@ -3,6 +3,11 @@ import { formatPrice, formatDate, formatDimensions, formatVolume } from '../util
 let currentRows = []
 let pendingExportFormat = null  // 'excel' | 'pdf'
 
+function normalizeAgencia(nombre) {
+  if (!nombre) return 'Sin agencia'
+  return nombre.replace(/\s*\((Palet|Bulto|Palets|Bultos)\)\s*$/i, '').trim()
+}
+
 function redondear5(precio) {
   if (precio == null) return null
   return Math.ceil(precio * 20) / 20
@@ -178,7 +183,7 @@ function buildXLSX(simplificada) {
   const groups = []
   const groupMap = {}
   currentRows.forEach(r => {
-    const key = r.agencia_nombre || 'Sin agencia'
+    const key = normalizeAgencia(r.agencia_nombre)
     if (!groupMap[key]) {
       groupMap[key] = []
       groups.push(key)
@@ -273,7 +278,7 @@ function buildPDF(simplificada) {
   const groups = []
   const groupMap = {}
   currentRows.forEach(r => {
-    const key = r.agencia_nombre || 'Sin agencia'
+    const key = normalizeAgencia(r.agencia_nombre)
     if (!groupMap[key]) { groupMap[key] = []; groups.push(key) }
     groupMap[key].push(r)
   })
