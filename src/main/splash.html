@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cargando...</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #0a0a0a;
+      -webkit-app-region: drag;
+      user-select: none;
+    }
+
+    .bg {
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% 50%, rgba(220, 30, 30, 0.08) 0%, transparent 70%),
+        #0a0a0a;
+    }
+
+    /* Subtle animated noise texture */
+    .bg::before {
+      content: '';
+      position: fixed;
+      inset: -50%;
+      width: 200%;
+      height: 200%;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+      opacity: 0.4;
+      pointer-events: none;
+    }
+
+    /* Scanlines */
+    .bg::after {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 0, 0, 0.03) 2px,
+        rgba(0, 0, 0, 0.03) 4px
+      );
+      pointer-events: none;
+    }
+
+    .scene {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+    }
+
+    /* Red line top — sweeps in */
+    .line-top {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 0%;
+      height: 3px;
+      background: linear-gradient(90deg, #cc0000, #ff2222, #cc0000);
+      animation: lineTop 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.3s forwards;
+    }
+
+    /* Red line bottom */
+    .line-bottom {
+      position: absolute;
+      bottom: 0;
+      right: 0;
+      width: 0%;
+      height: 3px;
+      background: linear-gradient(270deg, #cc0000, #ff2222, #cc0000);
+      animation: lineBottom 0.6s cubic-bezier(0.4, 0, 0.2, 1) 0.3s forwards;
+    }
+
+    @keyframes lineTop {
+      to { width: 100%; }
+    }
+    @keyframes lineBottom {
+      to { width: 100%; }
+    }
+
+    /* Logo container */
+    .logo-wrap {
+      position: relative;
+      opacity: 0;
+      transform: scale(0.85) translateY(12px);
+      animation: logoIn 0.7s cubic-bezier(0.16, 1, 0.3, 1) 0.6s forwards;
+    }
+
+    @keyframes logoIn {
+      to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+    }
+
+    .logo-wrap img {
+      width: 280px;
+      height: auto;
+      display: block;
+      filter: drop-shadow(0 0 40px rgba(220, 30, 30, 0.35)) drop-shadow(0 0 80px rgba(220, 30, 30, 0.15));
+      animation: logoPulse 2.5s ease-in-out 1.4s infinite alternate;
+    }
+
+    @keyframes logoPulse {
+      from { filter: drop-shadow(0 0 40px rgba(220, 30, 30, 0.35)) drop-shadow(0 0 80px rgba(220, 30, 30, 0.15)); }
+      to   { filter: drop-shadow(0 0 55px rgba(220, 30, 30, 0.55)) drop-shadow(0 0 100px rgba(220, 30, 30, 0.25)); }
+    }
+
+    /* Divider */
+    .divider {
+      width: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(220,30,30,0.6), transparent);
+      margin-top: 28px;
+      animation: dividerIn 0.5s ease 1.2s forwards;
+    }
+
+    @keyframes dividerIn {
+      to { width: 220px; }
+    }
+
+    /* Tagline */
+    .tagline {
+      margin-top: 18px;
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      font-size: 10px;
+      font-weight: 400;
+      letter-spacing: 0.35em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.3);
+      opacity: 0;
+      animation: fadeUp 0.5s ease 1.4s forwards;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Loading bar */
+    .loader-wrap {
+      position: absolute;
+      bottom: 36px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      opacity: 0;
+      animation: fadeUp 0.4s ease 1.6s forwards;
+    }
+
+    .loader-track {
+      width: 160px;
+      height: 2px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .loader-bar {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #cc0000, #ff4444);
+      border-radius: 2px;
+      animation: loadBar 1.8s cubic-bezier(0.4, 0, 0.2, 1) 1.8s forwards;
+    }
+
+    @keyframes loadBar {
+      0%   { width: 0%; }
+      60%  { width: 75%; }
+      85%  { width: 90%; }
+      100% { width: 100%; }
+    }
+
+    .loader-text {
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      font-size: 9px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Fade-out overlay — triggered by JS */
+    .fade-out {
+      position: fixed;
+      inset: 0;
+      background: #0a0a0a;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.4s ease;
+    }
+    .fade-out.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+  </style>
+</head>
+<body>
+  <div class="bg"></div>
+  <div class="line-top"></div>
+  <div class="line-bottom"></div>
+
+  <div class="scene">
+    <div class="logo-wrap">
+      <img src="elmer.png" alt="Elmer" />
+    </div>
+    <div class="divider"></div>
+    <div class="tagline">Logicompare · Gestión de Tarifas</div>
+  </div>
+
+  <div class="loader-wrap">
+    <div class="loader-track">
+      <div class="loader-bar"></div>
+    </div>
+    <div class="loader-text">Iniciando...</div>
+  </div>
+
+  <div class="fade-out" id="fadeOut"></div>
+
+  <script>
+    // After animation completes, notify main process to show main window
+    setTimeout(() => {
+      document.getElementById('fadeOut').classList.add('active')
+      setTimeout(() => {
+        if (window.splashDone) window.splashDone()
+      }, 420)
+    }, 3600)
+  </script>
+</body>
+</html>

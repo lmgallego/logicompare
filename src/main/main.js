@@ -3,7 +3,7 @@ const path = require('path')
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged
 
-function createWindow() {
+function createMainWindow() {
   const win = new BrowserWindow({
     width: 1280,
     height: 800,
@@ -35,6 +35,56 @@ function createWindow() {
 
   win.once('ready-to-show', () => {
     win.show()
+  })
+
+  return win
+}
+
+function createSplashWindow(onDone) {
+  const splash = new BrowserWindow({
+    width: 520,
+    height: 320,
+    frame: false,
+    transparent: false,
+    resizable: false,
+    movable: true,
+    center: true,
+    alwaysOnTop: true,
+    backgroundColor: '#0a0a0a',
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false,
+      webSecurity: false,
+    },
+  })
+
+  splash.loadFile(path.join(__dirname, 'splash.html'))
+
+  // Expose splashDone to the splash page via preload-free nodeIntegration
+  splash.webContents.on('did-finish-load', () => {
+    splash.webContents.executeJavaScript(`
+      window.splashDone = function() {
+        const { ipcRenderer } = require('electron');
+        ipcRenderer.send('splash-done');
+      };
+    `)
+  })
+
+  ipcMain.once('splash-done', () => {
+    onDone()
+    splash.close()
+  })
+}
+
+function createWindow() {
+  const showSplash = !isDev || process.argv.includes('--splash')
+  if (!showSplash) {
+    createMainWindow()
+    return
+  }
+
+  createSplashWindow(() => {
+    createMainWindow()
   })
 }
 

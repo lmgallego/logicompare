@@ -15,7 +15,8 @@
     "seed:dhl": "electron . --seed-dhl",
     "seed:seur": "electron . --seed-seur",
     "seed:transhaer": "electron . --seed-transhaer",
-    "seed:transabadell": "electron . --seed-transabadell"
+    "seed:transabadell": "electron . --seed-transabadell",
+    "preview:splash": "cross-env NODE_ENV=development electron . --splash"
   },
   "keywords": [
     "electron",
