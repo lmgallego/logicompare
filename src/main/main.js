@@ -42,7 +42,7 @@ function createMainWindow() {
 
 const SPLASH_DURATION_MS = 3800
 
-function createSplashWindow(onDone) {
+function createSplashWindow() {
   const splash = new BrowserWindow({
     width: 520,
     height: 320,
@@ -62,21 +62,20 @@ function createSplashWindow(onDone) {
   })
 
   splash.loadFile(path.join(__dirname, 'splash.html'))
-
-  // Start timer only after page is fully loaded so animation is visible
-  splash.webContents.once('did-finish-load', () => {
-    splash.show()
-    setTimeout(() => {
-      onDone()
-      if (!splash.isDestroyed()) splash.close()
-    }, SPLASH_DURATION_MS)
-  })
+  return splash
 }
 
 function createWindow() {
-  // Always show splash (skip only on seed commands which return early)
-  createSplashWindow(() => {
-    createMainWindow()
+  const splash = createSplashWindow()
+
+  splash.webContents.once('did-finish-load', () => {
+    splash.show()
+    setTimeout(() => {
+      const main = createMainWindow()
+      main.once('ready-to-show', () => {
+        if (!splash.isDestroyed()) splash.close()
+      })
+    }, SPLASH_DURATION_MS)
   })
 }
 
