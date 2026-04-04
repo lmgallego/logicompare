@@ -1,0 +1,101 @@
+{
+  "servicio": "TRANSABADELL",
+  "criterioZonificacion": "Zonas interpretadas desde la imagen. Los codigos postales se asignan usando el prefijo provincial de CodigosPostalesGLS.csv.",
+  "zonas": [
+    {
+      "zona": 1,
+      "destinos": [
+        { "destino": "Tarragona", "provincia": "Tarragona", "codigoPostal": "43" }
+      ]
+    },
+    {
+      "zona": 2,
+      "destinos": [
+        { "destino": "Barcelona", "provincia": "Barcelona", "codigoPostal": "08" }
+      ]
+    },
+    {
+      "zona": 3,
+      "destinos": [
+        { "destino": "Alicante", "provincia": "Alicante", "codigoPostal": "03" },
+        { "destino": "Lleida", "provincia": "Lleida", "codigoPostal": "25" },
+        { "destino": "Huesca", "provincia": "Huesca", "codigoPostal": "22" },
+        { "destino": "Castellón", "provincia": "Castellon", "codigoPostal": "12" },
+        { "destino": "Girona", "provincia": "Girona", "codigoPostal": "17" }
+      ]
+    },
+    {
+      "zona": 4,
+      "destinos": [
+        { "destino": "Valencia", "provincia": "Valencia", "codigoPostal": "46" },
+        { "destino": "Zaragoza", "provincia": "Zaragoza", "codigoPostal": "50" }
+      ]
+    },
+    {
+      "zona": 5,
+      "destinos": [
+        { "destino": "Madrid", "provincia": "Madrid", "codigoPostal": "28" }
+      ]
+    },
+    {
+      "zona": 6,
+      "destinos": [
+        { "destino": "Álava", "provincia": "Alava", "codigoPostal": "01" },
+        { "destino": "Albacete", "provincia": "Albacete", "codigoPostal": "02" },
+        { "destino": "Guipúzcoa", "provincia": "Guipuzcoa", "codigoPostal": "20" },
+        { "destino": "Navarra", "provincia": "Navarra", "codigoPostal": "31" },
+        { "destino": "Murcia", "provincia": "Murcia", "codigoPostal": "30" },
+        { "destino": "Vizcaya", "provincia": "Vizcaya", "codigoPostal": "48" },
+        { "destino": "Logroño", "provincia": "La Rioja", "codigoPostal": "26" }
+      ]
+    },
+    {
+      "zona": 7,
+      "destinos": [
+        { "destino": "Soria", "provincia": "Soria", "codigoPostal": "42" },
+        { "destino": "Guadalajara", "provincia": "Guadalajara", "codigoPostal": "19" },
+        { "destino": "Teruel", "provincia": "Teruel", "codigoPostal": "44" }
+      ]
+    },
+    {
+      "zona": 8,
+      "destinos": [
+        { "destino": "Almería", "provincia": "Almeria", "codigoPostal": "04" },
+        { "destino": "Burgos", "provincia": "Burgos", "codigoPostal": "09" },
+        { "destino": "Granada", "provincia": "Granada", "codigoPostal": "18" },
+        { "destino": "Cantabria", "provincia": "Cantabria", "codigoPostal": "39" },
+        { "destino": "Jaén", "provincia": "Jaen", "codigoPostal": "23" },
+        { "destino": "Málaga", "provincia": "Malaga", "codigoPostal": "29" },
+        { "destino": "Segovia", "provincia": "Segovia", "codigoPostal": "40" },
+        { "destino": "Valladolid", "provincia": "Valladolid", "codigoPostal": "47" },
+        { "destino": "Córdoba", "provincia": "Cordoba", "codigoPostal": "14" },
+        { "destino": "Ciudad Real", "provincia": "Ciudad Real", "codigoPostal": "13" },
+        { "destino": "Sevilla", "provincia": "Sevilla", "codigoPostal": "41" },
+        { "destino": "Toledo", "provincia": "Toledo", "codigoPostal": "45" }
+      ]
+    },
+    {
+      "zona": 9,
+      "destinos": [
+        { "destino": "Asturias", "provincia": "Asturias", "codigoPostal": "33" },
+        { "destino": "Cuenca", "provincia": "Cuenca", "codigoPostal": "16" },
+        { "destino": "Coruña", "provincia": "La Coruna", "codigoPostal": "15" },
+        { "destino": "Lugo", "provincia": "Lugo", "codigoPostal": "27" },
+        { "destino": "León", "provincia": "Leon", "codigoPostal": "24" },
+        { "destino": "Pontevedra", "provincia": "Pontevedra", "codigoPostal": "36" }
+      ]
+    },
+    {
+      "zona": 10,
+      "destinos": [
+        { "destino": "Ávila", "provincia": "Avila", "codigoPostal": "05" },
+        { "destino": "Badajoz", "provincia": "Badajoz", "codigoPostal": "06" },
+        { "destino": "Baleares", "provincia": "Baleares", "codigoPostal": "07" },
+        { "destino": "Palencia", "provincia": "Palencia", "codigoPostal": "34" },
+        { "destino": "Salamanca", "provincia": "Salamanca", "codigoPostal": "37" },
+        { "destino": "Zamora", "provincia": "Zamora", "codigoPostal": "49" },
+        { "destino": "Cáceres", "provincia": "Caceres", "codigoPostal": "10" }
+      ]
+    }
+  ]
+}

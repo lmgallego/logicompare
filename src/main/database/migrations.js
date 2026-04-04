@@ -37,12 +37,13 @@ function runMigrations(db) {
     );
 
     CREATE TABLE IF NOT EXISTS tarifas_agencia (
-      id          INTEGER PRIMARY KEY AUTOINCREMENT,
-      agencia_id  INTEGER NOT NULL,
-      zona_id     INTEGER NOT NULL,
-      kilos_desde REAL NOT NULL,
-      kilos_hasta REAL NOT NULL,
-      precio_base REAL NOT NULL,
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      agencia_id      INTEGER NOT NULL,
+      zona_id         INTEGER NOT NULL,
+      kilos_desde     REAL NOT NULL,
+      kilos_hasta     REAL NOT NULL,
+      precio_base     REAL NOT NULL,
+      es_por_tonelada INTEGER NOT NULL DEFAULT 0,
       FOREIGN KEY (agencia_id) REFERENCES agencias(id) ON DELETE CASCADE,
       FOREIGN KEY (zona_id)    REFERENCES zonas_agencia(id) ON DELETE CASCADE
     );
@@ -90,6 +91,12 @@ function runMigrations(db) {
   }
   if (!zonaCols.includes('multiple_zones')) {
     db.prepare('ALTER TABLE zonas_agencia ADD COLUMN multiple_zones INTEGER NOT NULL DEFAULT 0').run()
+  }
+
+  // Add es_por_tonelada column to tarifas_agencia if not exists
+  const tarifaCols = db.prepare("PRAGMA table_info(tarifas_agencia)").all().map(c => c.name)
+  if (!tarifaCols.includes('es_por_tonelada')) {
+    db.prepare('ALTER TABLE tarifas_agencia ADD COLUMN es_por_tonelada INTEGER NOT NULL DEFAULT 0').run()
   }
 
   // Create tarifas_kg_adicional if not exists (migration for existing DBs)

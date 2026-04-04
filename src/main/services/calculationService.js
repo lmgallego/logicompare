@@ -26,10 +26,23 @@ function calcularPeso(metrosCubicos, baremo) {
  * Si peso > 15: tarifa_15kg + ceil(peso - 15) × zona.kg_adicional
  * @returns {{ precioBase: number|null, error: string|null }}
  */
+function aplicarPrecioTarifa(tarifa, peso) {
+  if (tarifa.es_por_tonelada) {
+    return Math.round(tarifa.precio_base * (peso / 1000) * 100) / 100
+  }
+  return tarifa.precio_base
+}
+
 function calcularTarifaBase(agenciaId, zona, peso) {
   // Try direct rate lookup first
   const tarifa = getRateForWeight(agenciaId, zona.id, peso)
-  if (tarifa) return { precioBase: tarifa.precio_base, error: null }
+  if (tarifa) return { precioBase: aplicarPrecioTarifa(tarifa, peso), error: null }
+
+  // No exact match — find first available band with kilos_hasta >= peso (skip gaps)
+  const tarifaSuperior = getDb()
+    .prepare('SELECT * FROM tarifas_agencia WHERE agencia_id=? AND zona_id=? AND kilos_hasta >= ? ORDER BY kilos_hasta ASC LIMIT 1')
+    .get(agenciaId, zona.id, peso)
+  if (tarifaSuperior) return { precioBase: aplicarPrecioTarifa(tarifaSuperior, peso), error: null }
 
   // Peso exceeds all defined tariff bands → get the highest band's tariff
   const tarifaMax = getDb()
@@ -45,10 +58,8 @@ function calcularTarifaBase(agenciaId, zona, peso) {
     .all(zona.id)
 
   if (bandas.length > 0) {
-    // Price = tarifa_max + sum of each band's contribution
     let precioExtra = 0
     let pesoRestante = kgsExtra
-    let pesoActual = tarifaMax.kilos_hasta
 
     for (const banda of bandas) {
       if (pesoRestante <= 0) break
@@ -59,18 +70,17 @@ function calcularTarifaBase(agenciaId, zona, peso) {
       pesoRestante -= kgsEnBanda
     }
 
-    // If still weight remaining beyond last band, use last band's rate
     if (pesoRestante > 0) {
       const ultimaBanda = bandas[bandas.length - 1]
       precioExtra += pesoRestante * ultimaBanda.precio_kg
     }
 
-    const precioBase = tarifaMax.precio_base + precioExtra
+    const precioBase = aplicarPrecioTarifa(tarifaMax, peso) + precioExtra
     return { precioBase: Math.round(precioBase * 100) / 100, error: null }
   }
 
   // Fallback: use zona.kg_adicional (simple single rate)
-  const precioBase = tarifaMax.precio_base + kgsExtra * zona.kg_adicional
+  const precioBase = aplicarPrecioTarifa(tarifaMax, peso) + kgsExtra * zona.kg_adicional
   return { precioBase: Math.round(precioBase * 100) / 100, error: null }
 }
 
