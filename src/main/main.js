@@ -1,5 +1,6 @@
-const { app, BrowserWindow, ipcMain } = require('electron')
+const { app, BrowserWindow, ipcMain, dialog } = require('electron')
 const path = require('path')
+const fs = require('fs')
 
 const isDev = process.env.NODE_ENV === 'development' || !app.isPackaged
 
@@ -79,7 +80,59 @@ function createWindow() {
   })
 }
 
-app.whenReady().then(() => {
+async function checkFirstRun() {
+  const { getDb } = require('./database/connection')
+  const db = getDb()
+  const { app: electronApp } = require('electron')
+
+  const agencyCount = db.prepare('SELECT COUNT(*) as n FROM agencias').get().n
+  if (agencyCount > 0) return  // already has data, skip
+
+  const { response } = await dialog.showMessageBox({
+    type: 'question',
+    title: 'LogiCompare — Primer arranque',
+    message: '¿Quieres importar una base de datos existente?',
+    detail: 'Si ya tienes una copia de LogiCompare en otro ordenador puedes importar su base de datos para mantener agencias y tarifas.\n\nSi es la primera instalación pulsa "Empezar vacío".',
+    buttons: ['Importar base de datos...', 'Empezar vacío'],
+    defaultId: 0,
+    cancelId: 1,
+  })
+
+  if (response === 0) {
+    const result = await dialog.showOpenDialog({
+      title: 'Selecciona la base de datos de LogiCompare',
+      filters: [{ name: 'Base de datos SQLite', extensions: ['db'] }],
+      properties: ['openFile'],
+    })
+    if (!result.canceled && result.filePaths.length > 0) {
+      const srcPath = result.filePaths[0]
+      const destPath = path.join(electronApp.getPath('userData'), 'logicompare.db')
+      try {
+        // Close current DB before overwriting
+        db.close()
+        fs.copyFileSync(srcPath, destPath)
+        dialog.showMessageBoxSync({
+          type: 'info',
+          title: 'Base de datos importada',
+          message: 'La base de datos se ha importado correctamente.',
+          detail: 'La aplicación se reiniciará para cargar los datos.',
+          buttons: ['Aceptar'],
+        })
+        electronApp.relaunch()
+        electronApp.exit(0)
+      } catch (err) {
+        dialog.showMessageBoxSync({
+          type: 'error',
+          title: 'Error al importar',
+          message: 'No se pudo copiar la base de datos: ' + err.message,
+          buttons: ['Aceptar'],
+        })
+      }
+    }
+  }
+}
+
+app.whenReady().then(async () => {
   const { getDb } = require('./database/connection')
   getDb() // initialize DB + run migrations
 
@@ -123,6 +176,48 @@ app.whenReady().then(() => {
   require('./ipcHandlers/agencyHandler')
   require('./ipcHandlers/provinceHandler')
   require('./ipcHandlers/windowHandler')
+  require('./ipcHandlers/supportHandler')
+
+  // Import DB from support page (any time, not just first run)
+  ipcMain.handle('import-db', async () => {
+    const { getDb } = require('./database/connection')
+    const result = await dialog.showOpenDialog({
+      title: 'Selecciona la base de datos de LogiCompare',
+      filters: [{ name: 'Base de datos SQLite', extensions: ['db'] }],
+      properties: ['openFile'],
+    })
+    if (result.canceled || result.filePaths.length === 0) return { ok: false }
+    const srcPath = result.filePaths[0]
+    const destPath = path.join(app.getPath('userData'), 'logicompare.db')
+    try {
+      getDb().close()
+      fs.copyFileSync(srcPath, destPath)
+      app.relaunch()
+      app.exit(0)
+      return { ok: true }
+    } catch (err) {
+      return { ok: false, error: err.message }
+    }
+  })
+
+  // Export current DB (backup/share)
+  ipcMain.handle('export-db', async () => {
+    const srcPath = path.join(app.getPath('userData'), 'logicompare.db')
+    const { filePath } = await dialog.showSaveDialog({
+      title: 'Guardar copia de la base de datos',
+      defaultPath: 'logicompare_backup_' + new Date().toISOString().slice(0, 10) + '.db',
+      filters: [{ name: 'Base de datos SQLite', extensions: ['db'] }],
+    })
+    if (!filePath) return { ok: false }
+    try {
+      fs.copyFileSync(srcPath, filePath)
+      return { ok: true, filePath }
+    } catch (err) {
+      return { ok: false, error: err.message }
+    }
+  })
+
+  await checkFirstRun()
 
   createWindow()
 

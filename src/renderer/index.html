@@ -367,10 +367,74 @@
 
       <!-- ════ PAGE: SUPPORT ════ -->
       <div id="page-support" class="page flex-1 overflow-y-auto p-6">
-        <div class="max-w-4xl mx-auto flex flex-col items-center justify-center h-full text-center">
-          <span class="material-symbols-outlined text-6xl text-on-surface-variant mb-4" style="opacity:0.25;">help</span>
-          <h2 class="text-xl font-bold mb-2">Soporte</h2>
-          <p class="text-sm text-on-surface-variant" style="opacity:0.6;">LogiCompare v1.0.0 — Motor de comparación de tarifas logísticas.</p>
+        <div class="max-w-3xl mx-auto space-y-6 pb-10">
+          <div>
+            <h2 class="text-xl font-bold tracking-tight">Soporte</h2>
+            <p class="text-xs text-on-surface-variant mt-0.5" style="opacity:0.55;">Gestión de base de datos y herramientas de consolidación</p>
+          </div>
+
+          <!-- DB Management -->
+          <div class="card-surface rounded-2xl p-5 space-y-4">
+            <p class="text-xs font-bold uppercase tracking-widest text-on-surface-variant" style="opacity:0.5;">Base de Datos</p>
+            <div class="flex flex-wrap gap-3">
+              <button id="btn-export-db" class="btn-secondary flex items-center gap-2 text-sm px-4 py-2">
+                <span class="material-symbols-outlined" style="font-size:16px;">upload</span>
+                Exportar / Hacer copia de seguridad
+              </button>
+              <button id="btn-import-db" class="btn-secondary flex items-center gap-2 text-sm px-4 py-2">
+                <span class="material-symbols-outlined" style="font-size:16px;">download</span>
+                Importar base de datos existente
+              </button>
+            </div>
+            <p class="text-xs text-on-surface-variant" style="opacity:0.45;">
+              Exportar guarda una copia del archivo <code>logicompare.db</code> donde quieras. Importar reemplaza la DB actual y reinicia la app.
+            </p>
+          </div>
+
+          <!-- Excel Merge -->
+          <div class="card-surface rounded-2xl p-5 space-y-4">
+            <div class="flex items-center justify-between">
+              <p class="text-xs font-bold uppercase tracking-widest text-on-surface-variant" style="opacity:0.5;">Consolidar Excels de varios ordenadores</p>
+            </div>
+            <p class="text-xs text-on-surface-variant" style="opacity:0.6;">
+              Selecciona hasta 3 archivos Excel exportados desde distintos ordenadores. Se fusionarán, eliminarán duplicados y se agruparán por agencia ordenados por fecha.
+            </p>
+
+            <button id="btn-merge-select" class="btn-primary flex items-center gap-2 text-sm px-4 py-2">
+              <span class="material-symbols-outlined" style="font-size:16px;">folder_open</span>
+              Seleccionar archivos Excel (hasta 3)
+            </button>
+
+            <div id="merge-status" class="hidden"></div>
+
+            <div id="merge-actions" class="hidden flex-wrap gap-3 pt-1">
+              <button id="btn-merge-excel-full" class="btn-primary flex items-center gap-2 text-sm px-4 py-2">
+                <span class="material-symbols-outlined" style="font-size:16px;">table_view</span>
+                Exportar Excel completo
+              </button>
+              <button id="btn-merge-excel-simple" class="btn-secondary flex items-center gap-2 text-sm px-4 py-2">
+                <span class="material-symbols-outlined" style="font-size:16px;">receipt_long</span>
+                Exportar Excel simplificado
+              </button>
+              <button id="btn-merge-pdf-full" class="btn-secondary flex items-center gap-2 text-sm px-4 py-2">
+                <span class="material-symbols-outlined" style="font-size:16px;">picture_as_pdf</span>
+                Exportar PDF completo
+              </button>
+              <button id="btn-merge-pdf-simple" class="btn-secondary flex items-center gap-2 text-sm px-4 py-2">
+                <span class="material-symbols-outlined" style="font-size:16px;">summarize</span>
+                Exportar PDF simplificado
+              </button>
+            </div>
+          </div>
+
+          <!-- App info -->
+          <div class="card-surface rounded-2xl p-5">
+            <p class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-3" style="opacity:0.5;">Información</p>
+            <div class="space-y-1.5 text-xs text-on-surface-variant">
+              <p><span style="opacity:0.5;">Versión</span> <span class="font-semibold text-on-surface" id="support-version">—</span></p>
+              <p><span style="opacity:0.5;">Motor</span> <span class="font-semibold text-on-surface">LogiCompare Industrial Precision Engine</span></p>
+            </div>
+          </div>
         </div>
       </div>
 

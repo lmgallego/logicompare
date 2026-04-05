@@ -5,6 +5,7 @@ import { loadAgencies, initAgencyModal } from './components/databaseView.js'
 import { initDevidosView } from './components/devidosView.js'
 import { loadAnalytics } from './components/analyticsView.js'
 import { initAgenciasView, loadAgenciasView } from './components/agenciasView.js'
+import { initSupportView } from './components/supportView.js'
 
 const PAGES = ['new-quote', 'debidos', 'history', 'agencias', 'analytics', 'database', 'support']
 let currentPage = 'new-quote'
@@ -36,6 +37,7 @@ async function initApp() {
   initAgencyModal()
   initHistoryControls()  // fire-and-forget — populates agency dropdown async
   initAgenciasView()    // preload agency list for comparison view
+  initSupportView()
 
   document.getElementById('btn-refresh-history')?.addEventListener('click', () => {
     const desde = document.getElementById('history-desde')?.value || null
