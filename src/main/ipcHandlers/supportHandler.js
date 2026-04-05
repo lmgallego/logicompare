@@ -1,4 +1,3 @@
-const { ipcMain, dialog } = require('electron')
 const fs = require('fs')
 const path = require('path')
 const zlib = require('zlib')
@@ -135,71 +134,84 @@ function redondear5(precio) {
   return Math.ceil(precio * 20) / 20
 }
 
-// ── IPC: merge-excels ─────────────────────────────────────────────────────────
-ipcMain.handle('merge-excels', async () => {
-  const result = await dialog.showOpenDialog({
-    title: 'Selecciona los archivos Excel de LogiCompare (hasta 3)',
-    filters: [{ name: 'Excel LogiCompare', extensions: ['xlsx'] }],
-    properties: ['openFile', 'multiSelections'],
-  })
-  if (result.canceled || result.filePaths.length === 0) return { ok: false }
+// ── Register all IPC handlers (called from main.js after app.whenReady) ────────
+function init() {
+  const { ipcMain, dialog } = require('electron')
 
-  const filePaths = result.filePaths.slice(0, 3)
-  let allRows = []
+  ipcMain.handle('merge-excels', async () => {
+    const result = await dialog.showOpenDialog({
+      title: 'Selecciona los archivos Excel de LogiCompare (hasta 3)',
+      filters: [{ name: 'Excel LogiCompare', extensions: ['xlsx'] }],
+      properties: ['openFile', 'multiSelections'],
+    })
+    if (result.canceled || result.filePaths.length === 0) return { ok: false }
 
-  for (const fp of filePaths) {
-    try {
-      const buf = fs.readFileSync(fp)
-      const rows = parseXlsxBuffer(buf)
-      allRows = allRows.concat(rows)
-    } catch (err) {
-      return { ok: false, error: `Error leyendo ${path.basename(fp)}: ${err.message}` }
+    const filePaths = result.filePaths.slice(0, 3)
+    let allRows = []
+
+    for (const fp of filePaths) {
+      try {
+        const buf = fs.readFileSync(fp)
+        const rows = parseXlsxBuffer(buf)
+        allRows = allRows.concat(rows)
+      } catch (err) {
+        return { ok: false, error: `Error leyendo ${path.basename(fp)}: ${err.message}` }
+      }
     }
-  }
 
-  if (!allRows.length) return { ok: false, error: 'No se encontraron datos en los archivos.' }
+    if (!allRows.length) return { ok: false, error: 'No se encontraron datos en los archivos.' }
 
-  // Deduplicate by fecha+agencia+precio (same row from multiple exports)
-  const seen = new Set()
-  allRows = allRows.filter(r => {
-    const key = `${r.fecha}|${normalizeAgencia(r.agencia_nombre)}|${r.precio_final}`
-    if (seen.has(key)) return false
-    seen.add(key)
-    return true
+    // Normalize agency names first
+    allRows.forEach(r => { r.agencia_nombre = normalizeAgencia(r.agencia_nombre) })
+
+    // Deduplicate: fecha exacta + agencia + precio + medidas + CP
+    // This safely handles repeated measurements (same dims/price but different time)
+    // while correctly removing identical rows exported from multiple machines
+    const seen = new Set()
+    allRows = allRows.filter(r => {
+      const key = [
+        r.fecha,
+        r.agencia_nombre,
+        r.precio_final,
+        r.medidas || '',
+        r.cp_prefix || '',
+      ].join('|')
+      if (seen.has(key)) return false
+      seen.add(key)
+      return true
+    })
+
+    // Sort by date ASC, then agency
+    allRows.sort((a, b) => {
+      const da = parseDateEs(a.fecha)
+      const db2 = parseDateEs(b.fecha)
+      if (da < db2) return -1
+      if (da > db2) return 1
+      return (a.agencia_nombre || '').localeCompare(b.agencia_nombre || '')
+    })
+
+    return { ok: true, rows: allRows, count: allRows.length }
   })
 
-  // Normalize agency names
-  allRows.forEach(r => { r.agencia_nombre = normalizeAgencia(r.agencia_nombre) })
+  ipcMain.handle('export-merged-xlsx', async (event, { rows, simplificada }) => {
+    const { filePath } = await dialog.showSaveDialog({
+      title: 'Guardar Excel consolidado',
+      defaultPath: 'historial_consolidado_' + new Date().toISOString().slice(0, 10) + '.xlsx',
+      filters: [{ name: 'Excel', extensions: ['xlsx'] }],
+    })
+    if (!filePath) return { ok: false }
 
-  // Sort by sortable date then by agency
-  allRows.sort((a, b) => {
-    const da = parseDateEs(a.fecha)
-    const db2 = parseDateEs(b.fecha)
-    if (da < db2) return -1
-    if (da > db2) return 1
-    return (a.agencia_nombre || '').localeCompare(b.agencia_nombre || '')
+    try {
+      const xlsxBuf = buildMergedXlsx(rows, simplificada)
+      fs.writeFileSync(filePath, xlsxBuf)
+      return { ok: true, filePath }
+    } catch (err) {
+      return { ok: false, error: err.message }
+    }
   })
+}
 
-  return { ok: true, rows: allRows, count: allRows.length }
-})
-
-// ── IPC: export-merged-xlsx ───────────────────────────────────────────────────
-ipcMain.handle('export-merged-xlsx', async (event, { rows, simplificada }) => {
-  const { filePath } = await dialog.showSaveDialog({
-    title: 'Guardar Excel consolidado',
-    defaultPath: 'historial_consolidado_' + new Date().toISOString().slice(0, 10) + '.xlsx',
-    filters: [{ name: 'Excel', extensions: ['xlsx'] }],
-  })
-  if (!filePath) return { ok: false }
-
-  try {
-    const xlsxBuf = buildMergedXlsx(rows, simplificada)
-    fs.writeFileSync(filePath, xlsxBuf)
-    return { ok: true, filePath }
-  } catch (err) {
-    return { ok: false, error: err.message }
-  }
-})
+module.exports = { init }
 
 function buildMergedXlsx(rows, simplificada) {
   const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')

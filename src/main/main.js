@@ -176,7 +176,7 @@ app.whenReady().then(async () => {
   require('./ipcHandlers/agencyHandler')
   require('./ipcHandlers/provinceHandler')
   require('./ipcHandlers/windowHandler')
-  require('./ipcHandlers/supportHandler')
+  require('./ipcHandlers/supportHandler').init()
 
   // Import DB from support page (any time, not just first run)
   ipcMain.handle('import-db', async () => {
