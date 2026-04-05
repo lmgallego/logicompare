@@ -1,4 +1,5 @@
 import { formatPrice, formatWeight, formatVolume } from '../utils/formatters.js'
+import { getSelectedAgenciaIds } from './agenciasView.js'
 
 let sortedAsc = true
 let sortAbortController = null
@@ -45,6 +46,7 @@ export function initFormHandler() {
       anchoCm,
       altoCm,
       cpPrefix: document.getElementById('input-cp').value.trim(),
+      agenciaIds: getSelectedAgenciaIds(),
     }
     const datos = lastFormDatos
 

@@ -134,9 +134,13 @@ function resolveZonaLogistica(agenciaId, zonaBase) {
   return zonaBase
 }
 
-function calcularTarifas({ largoCm, anchoCm, altoCm, cpPrefix }) {
+function calcularTarifas({ largoCm, anchoCm, altoCm, cpPrefix, agenciaIds }) {
   const metrosCubicos = calcularMetrosCubicos(largoCm, anchoCm, altoCm)
-  const agencias = getActive()
+  let agencias = getActive()
+  if (agenciaIds && agenciaIds.length > 0) {
+    const idSet = new Set(agenciaIds)
+    agencias = agencias.filter(a => idSet.has(a.id))
+  }
   const resultados = []
 
   for (const agencia of agencias) {
@@ -212,9 +216,13 @@ function calcularTarifas({ largoCm, anchoCm, altoCm, cpPrefix }) {
  * @param {{ largoCm, anchoCm, altoCm }} params
  * @returns {Array<{ agencia, metrosCubicos, peso }>}
  */
-function calcularPesosDebidos({ largoCm, anchoCm, altoCm }) {
+function calcularPesosDebidos({ largoCm, anchoCm, altoCm, agenciaIds }) {
   const metrosCubicos = calcularMetrosCubicos(largoCm, anchoCm, altoCm)
-  const agencias = getActive()
+  let agencias = getActive()
+  if (agenciaIds && agenciaIds.length > 0) {
+    const idSet = new Set(agenciaIds)
+    agencias = agencias.filter(a => idSet.has(a.id))
+  }
   return agencias.map(agencia => ({
     agencia,
     metrosCubicos,

@@ -51,9 +51,10 @@
           <span class="material-symbols-outlined text-xl">history</span>
           <span class="nav-label">Historial</span>
         </a>
-        <a class="nav-item" data-page="agencias">
+        <a class="nav-item" data-page="agencias" style="position:relative;">
           <span class="material-symbols-outlined text-xl">local_shipping</span>
           <span class="nav-label">Agencias</span>
+          <span id="agencias-nav-badge" class="hidden absolute top-1 right-2 bg-primary text-white text-[9px] font-black rounded-full w-4 h-4 flex items-center justify-center leading-none" style="font-size:9px;"></span>
         </a>
         <a class="nav-item" data-page="analytics">
           <span class="material-symbols-outlined text-xl">analytics</span>
@@ -315,21 +316,29 @@
 
       <!-- ════ PAGE: AGENCIAS ════ -->
       <div id="page-agencias" class="page flex-1 overflow-y-auto p-6">
-        <div class="max-w-5xl mx-auto space-y-6">
+        <div class="max-w-3xl mx-auto space-y-6">
           <div>
-            <h2 class="text-xl font-bold tracking-tight">Comparativa de Agencias</h2>
-            <p class="text-xs text-on-surface-variant mt-0.5" style="opacity:0.55;">Selecciona una o varias agencias para comparar sus tarifas por tramo de peso</p>
+            <h2 class="text-xl font-bold tracking-tight">Agencias activas</h2>
+            <p class="text-xs text-on-surface-variant mt-0.5" style="opacity:0.55;">Elige las agencias que quieres usar en el calculador. El resto no aparecerá en los resultados.</p>
           </div>
+
+          <!-- Filter status banner -->
+          <div id="agencias-filter-info" class="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-surface-container text-on-surface-variant">
+            <span class="material-symbols-outlined text-sm">filter_list_off</span> Usando todas las agencias
+          </div>
+
           <!-- Agency chips -->
           <div id="agencias-selector-list" class="flex flex-wrap gap-2">
             <div class="text-xs text-on-surface-variant" style="opacity:0.4;">Cargando agencias...</div>
           </div>
-          <!-- Comparison table -->
-          <div id="agencias-comparison-table">
-            <div class="flex flex-col items-center justify-center py-16 text-on-surface-variant text-center">
-              <span class="material-symbols-outlined text-5xl mb-3" style="opacity:0.2;">table_chart</span>
-              <p class="text-sm" style="opacity:0.5;">Selecciona una o más agencias para comparar sus tarifas</p>
-            </div>
+
+          <!-- Reset button -->
+          <div class="flex items-center gap-3 pt-2">
+            <button id="btn-agencias-all" class="btn-secondary flex items-center gap-1.5 text-xs px-3 py-1.5">
+              <span class="material-symbols-outlined" style="font-size:14px;">select_all</span>
+              Usar todas las agencias
+            </button>
+            <p class="text-xs text-on-surface-variant" style="opacity:0.45;">Pulsa una agencia para quitarla del calculador</p>
           </div>
         </div>
       </div>

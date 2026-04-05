@@ -1,4 +1,5 @@
 import { formatVolume } from '../utils/formatters.js'
+import { getSelectedAgenciaIds } from './agenciasView.js'
 
 export function initDevidosView() {
   const form      = document.getElementById('debidos-form')
@@ -62,7 +63,7 @@ export function initDevidosView() {
     btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;animation:spin 1s linear infinite;">progress_activity</span> Calculando...'
 
     try {
-      const resultados = await window.api.invoke('calcular-pesos-debidos', { largoCm, anchoCm, altoCm })
+      const resultados = await window.api.invoke('calcular-pesos-debidos', { largoCm, anchoCm, altoCm, agenciaIds: getSelectedAgenciaIds() })
       renderCards(resultados, cardsEl, isReca)
       resultsEl.classList.remove('hidden')
       emptyEl.classList.add('hidden')
