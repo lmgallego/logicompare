@@ -34,10 +34,6 @@ function createMainWindow() {
     win.loadFile(path.join(__dirname, '../renderer/dist/index.html'))
   }
 
-  win.once('ready-to-show', () => {
-    win.show()
-  })
-
   return win
 }
 
@@ -66,10 +62,19 @@ function createSplashWindow() {
   return splash
 }
 
+function showMain(main, splash) {
+  const elapsed = Date.now() - startTime
+  const remaining = Math.max(0, SPLASH_DURATION_MS - elapsed)
+  setTimeout(() => {
+    if (splash && !splash.isDestroyed()) splash.close()
+    if (!main.isDestroyed()) main.show()
+  }, remaining)
+}
+
 function createWindow() {
   if (isDev) {
-    // Dev: no splash, open immediately
-    createMainWindow()
+    const main = createMainWindow()
+    main.once('ready-to-show', () => main.show())
     return
   }
 
@@ -78,15 +83,20 @@ function createWindow() {
   splash.webContents.once('did-finish-load', () => splash.show())
 
   const main = createMainWindow()
-  main.once('ready-to-show', () => {
-    // Wait at least SPLASH_DURATION_MS for the splash animation, then show main
-    const elapsed = Date.now() - startTime
-    const remaining = Math.max(0, SPLASH_DURATION_MS - elapsed)
-    setTimeout(() => {
-      if (!splash.isDestroyed()) splash.close()
-      main.show()
-    }, remaining)
+
+  // Show main when page is loaded (ready-to-show or did-finish-load)
+  main.webContents.once('did-finish-load', () => showMain(main, splash))
+
+  // Fallback: if load fails, show anyway with an error visible
+  main.webContents.once('did-fail-load', (_e, code, desc) => {
+    dialog.showErrorBox('Error al cargar', `No se pudo cargar la interfaz.\nCódigo: ${code}\n${desc}`)
+    showMain(main, splash)
   })
+
+  // Safety fallback: if neither fires within 10s, show anyway
+  setTimeout(() => {
+    if (!main.isDestroyed() && !main.isVisible()) showMain(main, splash)
+  }, 10000)
 }
 
 const startTime = Date.now()
