@@ -135,28 +135,24 @@ function resolveZonaLogistica(agenciaId, zonaBase) {
 }
 
 /**
- * Calcula el precio total para UNA agencia/zona dado un array de bultos.
- * Suma el precio individual de cada bulto.
+ * Calcula el precio para UNA agencia/zona dado un array de bultos.
+ * Suma todos los m³ → obtiene UN peso total → busca UN precio para ese peso.
  * @returns {{ precioFinal: number|null, precioBase: number|null, desglose: [], peso: number, metrosCubicos: number, error: string|null }}
  */
 function calcularPrecioBultos(agencia, zona, bultos) {
-  let precioTotalBase = 0
-  let pesoTotal = 0
   let m3Total = 0
-
   for (const bulto of bultos) {
-    const m3 = calcularMetrosCubicos(bulto.largoCm, bulto.anchoCm, bulto.altoCm)
-    const peso = calcularPeso(m3, agencia.baremo)
-    m3Total += m3
-    pesoTotal += peso
-
-    const { precioBase, error } = calcularTarifaBase(agencia.id, zona, peso)
-    if (error) return { precioFinal: null, precioBase: null, desglose: [], peso: pesoTotal, metrosCubicos: m3Total, error }
-    precioTotalBase += precioBase
+    m3Total += calcularMetrosCubicos(bulto.largoCm, bulto.anchoCm, bulto.altoCm)
   }
+  m3Total = Math.round(m3Total * 1000) / 1000
 
-  const { precioFinal, desglose } = aplicarRecargos(Math.round(precioTotalBase * 100) / 100, agencia)
-  return { precioFinal, precioBase: Math.round(precioTotalBase * 100) / 100, desglose, peso: pesoTotal, metrosCubicos: Math.round(m3Total * 1000) / 1000, error: null }
+  const pesoTotal = calcularPeso(m3Total, agencia.baremo)
+
+  const { precioBase, error } = calcularTarifaBase(agencia.id, zona, pesoTotal)
+  if (error) return { precioFinal: null, precioBase: null, desglose: [], peso: pesoTotal, metrosCubicos: m3Total, error }
+
+  const { precioFinal, desglose } = aplicarRecargos(precioBase, agencia)
+  return { precioFinal, precioBase, desglose, peso: pesoTotal, metrosCubicos: m3Total, error: null }
 }
 
 function calcularTarifas({ largoCm, anchoCm, altoCm, cpPrefix, agenciaIds, bultos }) {
@@ -240,16 +236,14 @@ function calcularPesosDebidos({ largoCm, anchoCm, altoCm, agenciaIds, bultos }) 
   }
   return agencias.map(agencia => {
     let m3Total = 0
-    let pesoTotal = 0
     for (const bulto of listaBultos) {
-      const m3 = calcularMetrosCubicos(bulto.largoCm, bulto.anchoCm, bulto.altoCm)
-      m3Total += m3
-      pesoTotal += calcularPeso(m3, agencia.baremo)
+      m3Total += calcularMetrosCubicos(bulto.largoCm, bulto.anchoCm, bulto.altoCm)
     }
+    m3Total = Math.round(m3Total * 1000) / 1000
     return {
       agencia,
-      metrosCubicos: Math.round(m3Total * 1000) / 1000,
-      peso: pesoTotal,
+      metrosCubicos: m3Total,
+      peso: calcularPeso(m3Total, agencia.baremo),
       numeroBultos: listaBultos.length,
       error: null,
       zona: null,

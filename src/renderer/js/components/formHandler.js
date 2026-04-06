@@ -8,6 +8,34 @@ let lastFormDatos = null
 // Extra package rows (beyond the first)
 let extraBultos = []
 
+// Keyboard shortcuts: key letter → fragment of agency name to match (lowercase)
+const AGENCY_SHORTCUTS = {
+  g: 'gls',
+  s: 'seur',
+  t: 'transabadell',
+  p: 'transhaer palet',
+  b: 'transhaer bulto',
+  l: 'log',   // Logística
+}
+// Reverse map for display: name fragment → key
+const SHORTCUT_DISPLAY = {
+  gls:              'Ctrl+G',
+  seur:             'Ctrl+S',
+  transabadell:     'Ctrl+T',
+  'transhaer palet':'Ctrl+P',
+  'transhaer bulto':'Ctrl+B',
+  log:              'Ctrl+L',
+}
+
+function getShortcutForAgency(nombre) {
+  if (!nombre) return null
+  const lower = nombre.toLowerCase()
+  for (const [fragment, key] of Object.entries(SHORTCUT_DISPLAY)) {
+    if (lower.includes(fragment)) return key
+  }
+  return null
+}
+
 function getBultosFromForm() {
   const largo0 = parseFloat(document.getElementById('input-largo').value) || 0
   const ancho0 = parseFloat(document.getElementById('input-ancho').value) || 0
@@ -83,6 +111,28 @@ export function initFormHandler() {
       if (activePage && activePage.id === 'page-new-quote') {
         e.preventDefault()
         addExtraBultoRow()
+      }
+    }
+  })
+
+  // Agency shortcuts: Ctrl+G/S/T/P/B/L → click Elegir on matching card
+  document.addEventListener('keydown', (e) => {
+    if (!(e.ctrlKey || e.metaKey)) return
+    const key = e.key.toLowerCase()
+    if (!AGENCY_SHORTCUTS[key]) return
+    const activePage = document.querySelector('.page.active')
+    if (!activePage || activePage.id !== 'page-new-quote') return
+    e.preventDefault()
+    const fragment = AGENCY_SHORTCUTS[key]
+    // Find the Elegir button on a visible card whose agency name matches
+    const cards = document.querySelectorAll('#results-list .carrier-card')
+    for (const card of cards) {
+      const nameEl = card.querySelector('h3')
+      if (!nameEl) continue
+      if (nameEl.textContent.toLowerCase().includes(fragment)) {
+        const btn = card.querySelector('[data-agency-id]')
+        if (btn && !btn.disabled) btn.click()
+        break
       }
     }
   })
@@ -240,6 +290,11 @@ function renderCarrierCards(resultados, container, sortedAsc) {
       ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tight" style="background:rgba(186,26,26,0.1); color:#ba1a1a;"><span class="material-symbols-outlined" style="font-size:10px;">warning</span>Largo &gt;110cm — No elegible GLS</span>`
       : ''
 
+    const shortcut = getShortcutForAgency(r.agencia.nombre)
+    const shortcutHtml = shortcut
+      ? `<kbd class="px-1 py-0.5 rounded text-[9px] font-bold" style="background:rgba(196,197,217,0.25);color:inherit;">${shortcut}</kbd>`
+      : ''
+
     if (r.precioFinal !== null) {
       card.innerHTML = `
         <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -252,6 +307,7 @@ function renderCarrierCards(resultados, container, sortedAsc) {
                 <h3 class="font-bold text-base">${r.agencia.nombre}</h3>
                 ${isBest ? `<span class="bg-primary/10 text-primary text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-tight">Mejor precio</span>` : ''}
                 ${oversizeHtml}
+                ${shortcutHtml}
               </div>
               <p class="text-xs text-on-surface-variant mt-0.5" style="opacity:0.65;">Zona: ${r.zona?.nombre_zona || '—'} &nbsp;·&nbsp; <span class="font-semibold" style="opacity:1;">${formatVolume(r.metrosCubicos ?? 0)}</span>${r.numeroBultos > 1 ? ` &nbsp;·&nbsp; <span class="font-semibold text-primary" style="opacity:0.85;">${r.numeroBultos} bultos</span>` : ''}</p>
               <p class="text-xl font-black text-primary mt-1 tracking-tight">${r.peso ?? 0} kg &nbsp;|&nbsp; ${formatPrice(r.precioFinal)}</p>
