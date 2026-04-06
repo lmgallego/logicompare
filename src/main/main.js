@@ -67,18 +67,29 @@ function createSplashWindow() {
 }
 
 function createWindow() {
-  const splash = createSplashWindow()
+  if (isDev) {
+    // Dev: no splash, open immediately
+    createMainWindow()
+    return
+  }
 
-  splash.webContents.once('did-finish-load', () => {
-    splash.show()
+  // Production: show splash while main window loads, then swap
+  const splash = createSplashWindow()
+  splash.webContents.once('did-finish-load', () => splash.show())
+
+  const main = createMainWindow()
+  main.once('ready-to-show', () => {
+    // Wait at least SPLASH_DURATION_MS for the splash animation, then show main
+    const elapsed = Date.now() - startTime
+    const remaining = Math.max(0, SPLASH_DURATION_MS - elapsed)
     setTimeout(() => {
-      const main = createMainWindow()
-      main.once('ready-to-show', () => {
-        if (!splash.isDestroyed()) splash.close()
-      })
-    }, SPLASH_DURATION_MS)
+      if (!splash.isDestroyed()) splash.close()
+      main.show()
+    }, remaining)
   })
 }
+
+const startTime = Date.now()
 
 async function checkFirstRun() {
   const { getDb } = require('./database/connection')
@@ -133,99 +144,107 @@ async function checkFirstRun() {
 }
 
 app.whenReady().then(async () => {
-  const { getDb } = require('./database/connection')
-  getDb() // initialize DB + run migrations
-
-  if (process.argv.includes('--seed')) {
-    require('./database/seedGls')
-    app.quit()
-    return
-  }
-
-  if (process.argv.includes('--seed-logistica')) {
-    require('./database/seedLogistica')
-    app.quit()
-    return
-  }
-
-  if (process.argv.includes('--seed-dhl')) {
-    require('./database/seedDhl')
-    app.quit()
-    return
-  }
-
-  if (process.argv.includes('--seed-seur')) {
-    require('./database/seedSeur')
-    app.quit()
-    return
-  }
-
-  if (process.argv.includes('--seed-transhaer')) {
-    require('./database/seedTranshaer')
-    app.quit()
-    return
-  }
-
-  if (process.argv.includes('--seed-transabadell')) {
-    require('./database/seedTransabadell')
-    app.quit()
-    return
-  }
-
-  require('./ipcHandlers/quoteHandler')
-  require('./ipcHandlers/agencyHandler')
-  require('./ipcHandlers/provinceHandler')
-  require('./ipcHandlers/windowHandler')
-  require('./ipcHandlers/supportHandler').init()
-
-  ipcMain.handle('get-app-version', () => app.getVersion())
-
-  // Import DB from support page (any time, not just first run)
-  ipcMain.handle('import-db', async () => {
+  try {
     const { getDb } = require('./database/connection')
-    const result = await dialog.showOpenDialog({
-      title: 'Selecciona la base de datos de LogiCompare',
-      filters: [{ name: 'Base de datos SQLite', extensions: ['db'] }],
-      properties: ['openFile'],
-    })
-    if (result.canceled || result.filePaths.length === 0) return { ok: false }
-    const srcPath = result.filePaths[0]
-    const destPath = path.join(app.getPath('userData'), 'logicompare.db')
-    try {
-      getDb().close()
-      fs.copyFileSync(srcPath, destPath)
-      app.relaunch()
-      app.exit(0)
-      return { ok: true }
-    } catch (err) {
-      return { ok: false, error: err.message }
+    getDb() // initialize DB + run migrations
+
+    if (process.argv.includes('--seed')) {
+      require('./database/seedGls')
+      app.quit()
+      return
     }
-  })
 
-  // Export current DB (backup/share)
-  ipcMain.handle('export-db', async () => {
-    const srcPath = path.join(app.getPath('userData'), 'logicompare.db')
-    const { filePath } = await dialog.showSaveDialog({
-      title: 'Guardar copia de la base de datos',
-      defaultPath: 'logicompare_backup_' + new Date().toISOString().slice(0, 10) + '.db',
-      filters: [{ name: 'Base de datos SQLite', extensions: ['db'] }],
-    })
-    if (!filePath) return { ok: false }
-    try {
-      fs.copyFileSync(srcPath, filePath)
-      return { ok: true, filePath }
-    } catch (err) {
-      return { ok: false, error: err.message }
+    if (process.argv.includes('--seed-logistica')) {
+      require('./database/seedLogistica')
+      app.quit()
+      return
     }
-  })
 
-  await checkFirstRun()
+    if (process.argv.includes('--seed-dhl')) {
+      require('./database/seedDhl')
+      app.quit()
+      return
+    }
 
-  createWindow()
+    if (process.argv.includes('--seed-seur')) {
+      require('./database/seedSeur')
+      app.quit()
+      return
+    }
 
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow()
-  })
+    if (process.argv.includes('--seed-transhaer')) {
+      require('./database/seedTranshaer')
+      app.quit()
+      return
+    }
+
+    if (process.argv.includes('--seed-transabadell')) {
+      require('./database/seedTransabadell')
+      app.quit()
+      return
+    }
+
+    require('./ipcHandlers/quoteHandler')
+    require('./ipcHandlers/agencyHandler')
+    require('./ipcHandlers/provinceHandler')
+    require('./ipcHandlers/windowHandler')
+    require('./ipcHandlers/supportHandler').init()
+
+    ipcMain.handle('get-app-version', () => app.getVersion())
+
+    // Import DB from support page (any time, not just first run)
+    ipcMain.handle('import-db', async () => {
+      const { getDb } = require('./database/connection')
+      const result = await dialog.showOpenDialog({
+        title: 'Selecciona la base de datos de LogiCompare',
+        filters: [{ name: 'Base de datos SQLite', extensions: ['db'] }],
+        properties: ['openFile'],
+      })
+      if (result.canceled || result.filePaths.length === 0) return { ok: false }
+      const srcPath = result.filePaths[0]
+      const destPath = path.join(app.getPath('userData'), 'logicompare.db')
+      try {
+        getDb().close()
+        fs.copyFileSync(srcPath, destPath)
+        app.relaunch()
+        app.exit(0)
+        return { ok: true }
+      } catch (err) {
+        return { ok: false, error: err.message }
+      }
+    })
+
+    // Export current DB (backup/share)
+    ipcMain.handle('export-db', async () => {
+      const srcPath = path.join(app.getPath('userData'), 'logicompare.db')
+      const { filePath } = await dialog.showSaveDialog({
+        title: 'Guardar copia de la base de datos',
+        defaultPath: 'logicompare_backup_' + new Date().toISOString().slice(0, 10) + '.db',
+        filters: [{ name: 'Base de datos SQLite', extensions: ['db'] }],
+      })
+      if (!filePath) return { ok: false }
+      try {
+        fs.copyFileSync(srcPath, filePath)
+        return { ok: true, filePath }
+      } catch (err) {
+        return { ok: false, error: err.message }
+      }
+    })
+
+    await checkFirstRun()
+
+    createWindow()
+
+    app.on('activate', () => {
+      if (BrowserWindow.getAllWindows().length === 0) createWindow()
+    })
+  } catch (err) {
+    dialog.showErrorBox(
+      'LogiCompare — Error de inicio',
+      'La aplicación no ha podido iniciarse.\n\n' + err.message + '\n\n' + (err.stack || '')
+    )
+    app.quit()
+  }
 })
 
 app.on('window-all-closed', () => {

@@ -9,6 +9,7 @@
     "electron": "cross-env NODE_ENV=development electron .",
     "electron:wait": "wait-on http://localhost:5173 -t 30000 && cross-env NODE_ENV=development electron .",
     "build": "vite build && electron-builder",
+    "build:clean": "node -e \"require('fs').rmSync('release',{recursive:true,force:true})\" & vite build && electron-builder",
     "postinstall": "electron-rebuild -f -w better-sqlite3",
     "seed:gls": "electron . --seed",
     "seed:logistica": "electron . --seed-logistica",
@@ -45,7 +46,7 @@
     "productName": "LogiCompare",
     "copyright": "Copyright © 2025 LogiCompare",
     "directories": {
-      "output": "dist-installer"
+      "output": "release"
     },
     "files": [
       "src/main/**/*",
