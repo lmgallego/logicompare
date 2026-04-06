@@ -18,15 +18,17 @@ function redondear5(precio) {
   return Math.ceil(precio * 20) / 20
 }
 
-ipcMain.handle('save-quote', (event, { largoCm, anchoCm, altoCm, cpPrefix, metrosCubicos, peso, agenciaId, precioFinal }) => {
+ipcMain.handle('save-quote', (event, { largoCm, anchoCm, altoCm, cpPrefix, metrosCubicos, peso, agenciaId, precioFinal, bultos }) => {
   try {
     const precioRedondeado = redondear5(precioFinal)
+    // If multi-bulto, store first bulto dimensions; totals are already in metrosCubicos/peso
+    const primerBulto = (bultos && bultos.length > 0) ? bultos[0] : { largoCm, anchoCm, altoCm }
     getDb()
       .prepare(`
         INSERT INTO cotizaciones (largo_cm, ancho_cm, alto_cm, cp_prefix, metros_cubicos, peso, agencia_id, precio_final, precio_redondeado)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `)
-      .run(largoCm, anchoCm, altoCm, cpPrefix, metrosCubicos || 0, peso || 0, agenciaId, precioFinal, precioRedondeado)
+      .run(primerBulto.largoCm, primerBulto.anchoCm, primerBulto.altoCm, cpPrefix, metrosCubicos || 0, peso || 0, agenciaId, precioFinal, precioRedondeado)
     return { ok: true }
   } catch (e) {
     return { ok: false, error: e.message }
@@ -160,6 +162,82 @@ ipcMain.handle('get-analytics', () => {
 })
 
 // ── XLSX export via save dialog ──────────────────────────────────────────────
+ipcMain.handle('export-analytics-xlsx', async (event, { porAgencia, porMes, porDia, topCps }) => {
+  const { filePath } = await dialog.showSaveDialog({
+    title: 'Exportar Analíticas a Excel',
+    defaultPath: `analiticas_logicompare_${new Date().toISOString().slice(0,10)}.xlsx`,
+    filters: [{ name: 'Excel', extensions: ['xlsx'] }],
+  })
+  if (!filePath) return { ok: false }
+
+  try {
+    // Build worksheet XML rows helper
+    const esc = s => String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    const numCell = (v, col) => `<c r="${col}" t="n"><v>${v}</v></c>`
+    const strCell = (v, col) => `<c r="${col}" t="inlineStr"><is><t>${esc(v)}</t></is></c>`
+
+    function buildSheet(headers, rows) {
+      const cols = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+      let xml = `<?xml version="1.0" encoding="UTF-8"?>`
+      xml += `<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">`
+      xml += `<sheetData>`
+      // header row
+      xml += `<row r="1">`
+      headers.forEach((h, i) => { xml += strCell(h, cols[i] + '1') })
+      xml += `</row>`
+      rows.forEach((row, ri) => {
+        const rn = ri + 2
+        xml += `<row r="${rn}">`
+        row.forEach((cell, ci) => {
+          if (typeof cell === 'number') xml += numCell(cell, cols[ci] + rn)
+          else xml += strCell(cell, cols[ci] + rn)
+        })
+        xml += `</row>`
+      })
+      xml += `</sheetData></worksheet>`
+      return xml
+    }
+
+    const sheetAgencia = buildSheet(
+      ['Agencia', 'Envíos', 'Facturación (€)', 'Precio Medio (€)'],
+      (porAgencia || []).map(a => [a.nombre ?? '', a.total, Math.round(a.ingresos*100)/100, Math.round(a.precio_medio*100)/100])
+    )
+    const sheetMes = buildSheet(
+      ['Mes', 'Cotizaciones', 'Facturación (€)'],
+      (porMes || []).map(m => [m.mes, m.total, Math.round(m.ingresos*100)/100])
+    )
+    const sheetDia = buildSheet(
+      ['Fecha', 'Cotizaciones', 'Facturación (€)'],
+      (porDia || []).map(d => [d.dia, d.total, Math.round(d.ingresos*100)/100])
+    )
+    const sheetCps = buildSheet(
+      ['CP', 'Envíos', 'Facturación (€)'],
+      (topCps || []).map(c => [c.cp_prefix, c.total, Math.round(c.ingresos*100)/100])
+    )
+
+    const workbook = `<?xml version="1.0" encoding="UTF-8"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Agencias" sheetId="1" r:id="rId1"/><sheet name="Mensual" sheetId="2" r:id="rId2"/><sheet name="Diario" sheetId="3" r:id="rId3"/><sheet name="Top CPs" sheetId="4" r:id="rId4"/></sheets></workbook>`
+    const rels = `<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet2.xml"/><Relationship Id="rId3" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet3.xml"/><Relationship Id="rId4" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet4.xml"/></Relationships>`
+    const contentTypes = `<?xml version="1.0" encoding="UTF-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet2.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet3.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/worksheets/sheet4.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/></Types>`
+    const topRels = `<?xml version="1.0" encoding="UTF-8"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>`
+
+    const files = {
+      '[Content_Types].xml': contentTypes,
+      '_rels/.rels': topRels,
+      'xl/workbook.xml': workbook,
+      'xl/_rels/workbook.xml.rels': rels,
+      'xl/worksheets/sheet1.xml': sheetAgencia,
+      'xl/worksheets/sheet2.xml': sheetMes,
+      'xl/worksheets/sheet3.xml': sheetDia,
+      'xl/worksheets/sheet4.xml': sheetCps,
+    }
+    const buf = buildZip(files)
+    fs.writeFileSync(filePath, buf)
+    return { ok: true, filePath }
+  } catch (e) {
+    return { ok: false, error: e.message }
+  }
+})
+
 ipcMain.handle('export-xlsx', async (event, { filename, files }) => {
   const { filePath } = await dialog.showSaveDialog({
     title: 'Guardar como Excel',

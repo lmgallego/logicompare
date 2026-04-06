@@ -1,6 +1,65 @@
 import { formatVolume } from '../utils/formatters.js'
 import { getSelectedAgenciaIds } from './agenciasView.js'
 
+function getDebidosBultos() {
+  const largo0 = parseFloat(document.getElementById('deb-largo').value) || 0
+  const ancho0 = parseFloat(document.getElementById('deb-ancho').value) || 0
+  const alto0  = parseFloat(document.getElementById('deb-alto').value)  || 0
+  const bultos = [{ largoCm: largo0, anchoCm: ancho0, altoCm: alto0 }]
+  document.querySelectorAll('.deb-extra-bulto-row').forEach(row => {
+    const largo = parseFloat(row.querySelector('.deb-eb-largo').value) || 0
+    const ancho = parseFloat(row.querySelector('.deb-eb-ancho').value) || 0
+    const alto  = parseFloat(row.querySelector('.deb-eb-alto').value)  || 0
+    bultos.push({ largoCm: largo, anchoCm: ancho, altoCm: alto })
+  })
+  return bultos
+}
+
+function updateDebidosBadge() {
+  const count = 1 + document.querySelectorAll('.deb-extra-bulto-row').length
+  const badge = document.getElementById('debidos-bultos-badge')
+  if (!badge) return
+  if (count > 1) {
+    badge.textContent = `${count} bultos`
+    badge.classList.remove('hidden')
+  } else {
+    badge.classList.add('hidden')
+  }
+}
+
+function addDebidosExtraRow() {
+  const container = document.getElementById('deb-extra-bultos-container')
+  if (!container) return
+  const row = document.createElement('div')
+  row.className = 'deb-extra-bulto-row flex items-end gap-2 mt-2'
+  row.innerHTML = `
+    <div class="flex-1 flex gap-2">
+      <div class="flex flex-col gap-1">
+        <label class="label-stencil text-[9px]">Largo</label>
+        <input type="number" class="input-field deb-eb-largo w-24 text-sm" placeholder="0" min="0" step="0.1" />
+      </div>
+      <div class="flex flex-col gap-1">
+        <label class="label-stencil text-[9px]">Ancho</label>
+        <input type="number" class="input-field deb-eb-ancho w-24 text-sm" placeholder="0" min="0" step="0.1" />
+      </div>
+      <div class="flex flex-col gap-1">
+        <label class="label-stencil text-[9px]">Alto</label>
+        <input type="number" class="input-field deb-eb-alto w-24 text-sm" placeholder="0" min="0" step="0.1" />
+      </div>
+    </div>
+    <button type="button" class="deb-remove-bulto flex items-center justify-center w-7 h-7 rounded text-red-500 hover:bg-red-50 transition-colors shrink-0 mb-0.5" title="Eliminar bulto">
+      <span class="material-symbols-outlined" style="font-size:16px;">close</span>
+    </button>
+  `
+  row.querySelector('.deb-remove-bulto').addEventListener('click', () => {
+    row.remove()
+    updateDebidosBadge()
+  })
+  container.appendChild(row)
+  updateDebidosBadge()
+  row.querySelector('.deb-eb-largo')?.focus()
+}
+
 export function initDevidosView() {
   const form      = document.getElementById('debidos-form')
   const btnClear  = document.getElementById('btn-debidos-clear')
@@ -39,23 +98,37 @@ export function initDevidosView() {
   // Expose clearAll so app.js Ctrl+N can call it when on debidos page
   window._devidosClear = clearAll
 
+  // Ctrl+M — add extra bulto row (only when debidos page is active)
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'm') {
+      const activePage = document.querySelector('.page.active')
+      if (activePage && activePage.id === 'page-debidos') {
+        e.preventDefault()
+        addDebidosExtraRow()
+      }
+    }
+  })
+
   form?.addEventListener('submit', async (e) => {
     e.preventDefault()
 
-    const largoCm = parseFloat(document.getElementById('deb-largo').value) || 0
-    const anchoCm = parseFloat(document.getElementById('deb-ancho').value) || 0
-    const altoCm  = parseFloat(document.getElementById('deb-alto').value)  || 0
+    const bultos = getDebidosBultos()
+    const primero = bultos[0]
+    const largoCm = primero.largoCm
+    const anchoCm = primero.anchoCm
+    const altoCm  = primero.altoCm
     const isReca  = recaCheck?.checked ?? false
 
     if (!largoCm || !anchoCm || !altoCm) {
-      alert('Introduce las tres medidas.')
+      alert('Introduce las tres medidas del primer bulto.')
       return
     }
 
     if (!window.api) return
 
-    const m3 = (largoCm * anchoCm * altoCm) * 0.000001
-    m3Value.textContent = formatVolume(m3)
+    // Total m3 across all bultos
+    const m3Total = bultos.reduce((s, b) => s + (b.largoCm * b.anchoCm * b.altoCm) * 0.000001, 0)
+    m3Value.textContent = formatVolume(m3Total)
     m3Row.classList.remove('hidden')
 
     const btn = document.getElementById('btn-debidos-calc')
@@ -63,7 +136,7 @@ export function initDevidosView() {
     btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;animation:spin 1s linear infinite;">progress_activity</span> Calculando...'
 
     try {
-      const resultados = await window.api.invoke('calcular-pesos-debidos', { largoCm, anchoCm, altoCm, agenciaIds: getSelectedAgenciaIds() })
+      const resultados = await window.api.invoke('calcular-pesos-debidos', { largoCm, anchoCm, altoCm, agenciaIds: getSelectedAgenciaIds(), bultos })
       renderCards(resultados, cardsEl, isReca)
       resultsEl.classList.remove('hidden')
       emptyEl.classList.add('hidden')
@@ -135,7 +208,7 @@ function renderCards(resultados, container, isReca = false) {
         + '<div class="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden shrink-0" style="background:rgba(196,197,217,0.15);">' + logoHtml + '</div>'
         + '<div>'
         + '<p class="font-bold text-sm">' + r.agencia.nombre + '</p>'
-        + '<p class="text-[10px] text-on-surface-variant" style="opacity:0.6;">Baremo: ' + (r.agencia.baremo || '—') + '</p>'
+        + '<p class="text-[10px] text-on-surface-variant" style="opacity:0.6;">Baremo: ' + (r.agencia.baremo || '—') + (r.numeroBultos > 1 ? ' &nbsp;·&nbsp; ' + r.numeroBultos + ' bultos' : '') + '</p>'
         + '</div></div>'
         + (isMin ? '<span class="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full" style="background:rgba(0,64,224,0.1);color:#0040e0;">Menor peso</span>' : '')
         + '</div>'

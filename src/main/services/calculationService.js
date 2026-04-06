@@ -134,8 +134,36 @@ function resolveZonaLogistica(agenciaId, zonaBase) {
   return zonaBase
 }
 
-function calcularTarifas({ largoCm, anchoCm, altoCm, cpPrefix, agenciaIds }) {
-  const metrosCubicos = calcularMetrosCubicos(largoCm, anchoCm, altoCm)
+/**
+ * Calcula el precio para UNA agencia/zona dado un array de bultos.
+ * Suma todos los m³ → obtiene UN peso total → busca UN precio para ese peso.
+ * @returns {{ precioFinal: number|null, precioBase: number|null, desglose: [], peso: number, metrosCubicos: number, error: string|null }}
+ */
+function calcularPrecioBultos(agencia, zona, bultos) {
+  let m3Total = 0
+  for (const bulto of bultos) {
+    m3Total += calcularMetrosCubicos(bulto.largoCm, bulto.anchoCm, bulto.altoCm)
+  }
+  m3Total = Math.round(m3Total * 1000) / 1000
+
+  const pesoTotal = calcularPeso(m3Total, agencia.baremo)
+
+  const { precioBase, error } = calcularTarifaBase(agencia.id, zona, pesoTotal)
+  if (error) return { precioFinal: null, precioBase: null, desglose: [], peso: pesoTotal, metrosCubicos: m3Total, error }
+
+  const { precioFinal, desglose } = aplicarRecargos(precioBase, agencia)
+  return { precioFinal, precioBase, desglose, peso: pesoTotal, metrosCubicos: m3Total, error: null }
+}
+
+function calcularTarifas({ largoCm, anchoCm, altoCm, cpPrefix, agenciaIds, bultos }) {
+  // Normalizar bultos: si no viene array, usar las dimensiones simples
+  const listaBultos = (bultos && bultos.length > 0)
+    ? bultos
+    : [{ largoCm, anchoCm, altoCm }]
+
+  // Para compatibilidad con lógica de oversize (GLS largo > 110), exponer el max largo
+  const maxLargoCm = Math.max(...listaBultos.map(b => b.largoCm || 0))
+
   let agencias = getActive()
   if (agenciaIds && agenciaIds.length > 0) {
     const idSet = new Set(agenciaIds)
@@ -144,8 +172,6 @@ function calcularTarifas({ largoCm, anchoCm, altoCm, cpPrefix, agenciaIds }) {
   const resultados = []
 
   for (const agencia of agencias) {
-    const peso = calcularPeso(metrosCubicos, agencia.baremo)
-
     let zona = getZoneForCp(agencia.id, cpPrefix)
 
     // Lógica horaria Logística para Cataluña
@@ -162,43 +188,25 @@ function calcularTarifas({ largoCm, anchoCm, altoCm, cpPrefix, agenciaIds }) {
     const multiZonas = getZonesForCp(agencia.id, cpPrefix)
     if (multiZonas.length > 0) {
       for (const mZona of multiZonas) {
-        const { precioBase, error } = calcularTarifaBase(agencia.id, mZona, peso)
-        if (error) {
-          resultados.push({ agencia, zona: mZona, metrosCubicos, peso, precioBase: null, precioFinal: null, desglose: [], error })
-          continue
-        }
-        const { precioFinal, desglose } = aplicarRecargos(precioBase, agencia)
-        resultados.push({ agencia, zona: mZona, metrosCubicos, peso, precioBase, precioFinal, desglose, error: null })
+        const res = calcularPrecioBultos(agencia, mZona, listaBultos)
+        resultados.push({ agencia, zona: mZona, ...res, numeroBultos: listaBultos.length, maxLargoCm })
       }
       continue
     }
 
     if (!zona) {
       resultados.push({
-        agencia, zona: null, metrosCubicos, peso,
+        agencia, zona: null,
+        metrosCubicos: 0, peso: 0,
         precioBase: null, precioFinal: null, desglose: [],
         error: 'Sin cobertura para este CP',
+        numeroBultos: listaBultos.length, maxLargoCm,
       })
       continue
     }
 
-    const { precioBase, error } = calcularTarifaBase(agencia.id, zona, peso)
-    if (error) {
-      resultados.push({
-        agencia, zona, metrosCubicos, peso,
-        precioBase: null, precioFinal: null, desglose: [],
-        error,
-      })
-      continue
-    }
-
-    const { precioFinal, desglose } = aplicarRecargos(precioBase, agencia)
-
-    resultados.push({
-      agencia, zona, metrosCubicos, peso,
-      precioBase, precioFinal, desglose,
-      error: null,
-    })
+    const res = calcularPrecioBultos(agencia, zona, listaBultos)
+    resultados.push({ agencia, zona, ...res, numeroBultos: listaBultos.length, maxLargoCm })
   }
 
   resultados.sort((a, b) => {
@@ -216,21 +224,32 @@ function calcularTarifas({ largoCm, anchoCm, altoCm, cpPrefix, agenciaIds }) {
  * @param {{ largoCm, anchoCm, altoCm }} params
  * @returns {Array<{ agencia, metrosCubicos, peso }>}
  */
-function calcularPesosDebidos({ largoCm, anchoCm, altoCm, agenciaIds }) {
-  const metrosCubicos = calcularMetrosCubicos(largoCm, anchoCm, altoCm)
+function calcularPesosDebidos({ largoCm, anchoCm, altoCm, agenciaIds, bultos }) {
+  const listaBultos = (bultos && bultos.length > 0)
+    ? bultos
+    : [{ largoCm, anchoCm, altoCm }]
+
   let agencias = getActive()
   if (agenciaIds && agenciaIds.length > 0) {
     const idSet = new Set(agenciaIds)
     agencias = agencias.filter(a => idSet.has(a.id))
   }
-  return agencias.map(agencia => ({
-    agencia,
-    metrosCubicos,
-    peso: calcularPeso(metrosCubicos, agencia.baremo),
-    error: null,
-    zona: null,
-    precioFinal: null,
-  }))
+  return agencias.map(agencia => {
+    let m3Total = 0
+    for (const bulto of listaBultos) {
+      m3Total += calcularMetrosCubicos(bulto.largoCm, bulto.anchoCm, bulto.altoCm)
+    }
+    m3Total = Math.round(m3Total * 1000) / 1000
+    return {
+      agencia,
+      metrosCubicos: m3Total,
+      peso: calcularPeso(m3Total, agencia.baremo),
+      numeroBultos: listaBultos.length,
+      error: null,
+      zona: null,
+      precioFinal: null,
+    }
+  })
 }
 
 module.exports = { calcularTarifas, calcularMetrosCubicos, calcularPeso, calcularPesosDebidos }
