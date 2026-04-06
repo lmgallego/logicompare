@@ -62,15 +62,6 @@ function createSplashWindow() {
   return splash
 }
 
-function showMain(main, splash) {
-  const elapsed = Date.now() - startTime
-  const remaining = Math.max(0, SPLASH_DURATION_MS - elapsed)
-  setTimeout(() => {
-    if (splash && !splash.isDestroyed()) splash.close()
-    if (!main.isDestroyed()) main.show()
-  }, remaining)
-}
-
 function createWindow() {
   if (isDev) {
     const main = createMainWindow()
@@ -78,25 +69,28 @@ function createWindow() {
     return
   }
 
-  // Production: show splash while main window loads, then swap
+  // Production: start loading main window immediately
+  const main = createMainWindow()
+
+  // Show splash
   const splash = createSplashWindow()
   splash.webContents.once('did-finish-load', () => splash.show())
 
-  const main = createMainWindow()
-
-  // Show main when page is loaded (ready-to-show or did-finish-load)
-  main.webContents.once('did-finish-load', () => showMain(main, splash))
-
-  // Fallback: if load fails, show anyway with an error visible
-  main.webContents.once('did-fail-load', (_e, code, desc) => {
-    dialog.showErrorBox('Error al cargar', `No se pudo cargar la interfaz.\nCódigo: ${code}\n${desc}`)
-    showMain(main, splash)
-  })
-
-  // Safety fallback: if neither fires within 10s, show anyway
+  // After splash animation, show main window regardless of load state
   setTimeout(() => {
-    if (!main.isDestroyed() && !main.isVisible()) showMain(main, splash)
-  }, 10000)
+    if (!splash.isDestroyed()) splash.close()
+    if (!main.isDestroyed()) {
+      main.show()
+      main.focus()
+    }
+  }, SPLASH_DURATION_MS)
+
+  // Log load errors to help diagnose blank screen
+  main.webContents.on('did-fail-load', (_e, code, desc, url) => {
+    if (code !== -3) { // -3 = aborted (normal)
+      dialog.showErrorBox('Error al cargar interfaz', `URL: ${url}\nCódigo: ${code}\n${desc}`)
+    }
+  })
 }
 
 const startTime = Date.now()
