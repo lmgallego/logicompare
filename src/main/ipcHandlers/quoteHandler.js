@@ -18,15 +18,17 @@ function redondear5(precio) {
   return Math.ceil(precio * 20) / 20
 }
 
-ipcMain.handle('save-quote', (event, { largoCm, anchoCm, altoCm, cpPrefix, metrosCubicos, peso, agenciaId, precioFinal }) => {
+ipcMain.handle('save-quote', (event, { largoCm, anchoCm, altoCm, cpPrefix, metrosCubicos, peso, agenciaId, precioFinal, bultos }) => {
   try {
     const precioRedondeado = redondear5(precioFinal)
+    // If multi-bulto, store first bulto dimensions; totals are already in metrosCubicos/peso
+    const primerBulto = (bultos && bultos.length > 0) ? bultos[0] : { largoCm, anchoCm, altoCm }
     getDb()
       .prepare(`
         INSERT INTO cotizaciones (largo_cm, ancho_cm, alto_cm, cp_prefix, metros_cubicos, peso, agencia_id, precio_final, precio_redondeado)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `)
-      .run(largoCm, anchoCm, altoCm, cpPrefix, metrosCubicos || 0, peso || 0, agenciaId, precioFinal, precioRedondeado)
+      .run(primerBulto.largoCm, primerBulto.anchoCm, primerBulto.altoCm, cpPrefix, metrosCubicos || 0, peso || 0, agenciaId, precioFinal, precioRedondeado)
     return { ok: true }
   } catch (e) {
     return { ok: false, error: e.message }

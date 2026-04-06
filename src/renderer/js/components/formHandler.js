@@ -5,12 +5,87 @@ let sortedAsc = true
 let sortAbortController = null
 let lastFormDatos = null
 
+// Extra package rows (beyond the first)
+let extraBultos = []
+
+function getBultosFromForm() {
+  const largo0 = parseFloat(document.getElementById('input-largo').value) || 0
+  const ancho0 = parseFloat(document.getElementById('input-ancho').value) || 0
+  const alto0  = parseFloat(document.getElementById('input-alto').value)  || 0
+  const bultos = [{ largoCm: largo0, anchoCm: ancho0, altoCm: alto0 }]
+  document.querySelectorAll('.extra-bulto-row').forEach(row => {
+    const largo = parseFloat(row.querySelector('.eb-largo').value) || 0
+    const ancho = parseFloat(row.querySelector('.eb-ancho').value) || 0
+    const alto  = parseFloat(row.querySelector('.eb-alto').value)  || 0
+    bultos.push({ largoCm: largo, anchoCm: ancho, altoCm: alto })
+  })
+  return bultos
+}
+
+function updateBultoBadge() {
+  const count = 1 + document.querySelectorAll('.extra-bulto-row').length
+  const badge = document.getElementById('bultos-badge')
+  if (!badge) return
+  if (count > 1) {
+    badge.textContent = `${count} bultos`
+    badge.classList.remove('hidden')
+  } else {
+    badge.classList.add('hidden')
+  }
+}
+
+function addExtraBultoRow() {
+  const container = document.getElementById('extra-bultos-container')
+  if (!container) return
+
+  const row = document.createElement('div')
+  row.className = 'extra-bulto-row flex items-end gap-2 mt-2 animate-fade-in'
+  row.innerHTML = `
+    <div class="flex-1 grid grid-cols-3 gap-2">
+      <div class="space-y-1">
+        <label class="label-stencil block text-[9px]">Largo (cm)</label>
+        <input class="input-field eb-largo" type="number" min="1" step="0.1" placeholder="0" />
+      </div>
+      <div class="space-y-1">
+        <label class="label-stencil block text-[9px]">Ancho (cm)</label>
+        <input class="input-field eb-ancho" type="number" min="1" step="0.1" placeholder="0" />
+      </div>
+      <div class="space-y-1">
+        <label class="label-stencil block text-[9px]">Alto (cm)</label>
+        <input class="input-field eb-alto" type="number" min="1" step="0.1" placeholder="0" />
+      </div>
+    </div>
+    <button type="button" class="remove-bulto-btn flex items-center justify-center w-7 h-7 rounded text-red-500 hover:bg-red-50 transition-colors shrink-0 mb-0.5" title="Eliminar bulto">
+      <span class="material-symbols-outlined" style="font-size:16px;">close</span>
+    </button>
+  `
+  row.querySelector('.remove-bulto-btn').addEventListener('click', () => {
+    row.remove()
+    updateBultoBadge()
+  })
+  container.appendChild(row)
+  updateBultoBadge()
+  // Focus first input of new row
+  row.querySelector('.eb-largo')?.focus()
+}
+
 export function initFormHandler() {
   const form = document.getElementById('quote-form')
   const cpInput = document.getElementById('input-cp')
   const cpInfo = document.getElementById('cp-info')
 
   if (!form || !cpInput) return
+
+  // Ctrl+M — add extra bulto row
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'm') {
+      const activePage = document.querySelector('.page.active')
+      if (activePage && activePage.id === 'page-new-quote') {
+        e.preventDefault()
+        addExtraBultoRow()
+      }
+    }
+  })
 
   cpInput.addEventListener('input', async () => {
     const val = cpInput.value.trim()
@@ -37,16 +112,16 @@ export function initFormHandler() {
 
     showLoading()
 
-    const largoCm = parseFloat(document.getElementById('input-largo').value) || 0
-    const anchoCm = parseFloat(document.getElementById('input-ancho').value) || 0
-    const altoCm  = parseFloat(document.getElementById('input-alto').value)  || 0
+    const bultos = getBultosFromForm()
+    const primero = bultos[0]
 
     lastFormDatos = {
-      largoCm,
-      anchoCm,
-      altoCm,
+      largoCm: primero.largoCm,
+      anchoCm: primero.anchoCm,
+      altoCm:  primero.altoCm,
       cpPrefix: document.getElementById('input-cp').value.trim(),
       agenciaIds: getSelectedAgenciaIds(),
+      bultos,
     }
     const datos = lastFormDatos
 
@@ -158,8 +233,9 @@ function renderCarrierCards(resultados, container, sortedAsc) {
       card.style.borderColor = 'rgba(0, 64, 224, 0.35)'
     }
 
-    // GLS largo > 110 warning
-    const glsOversize = r.agencia.nombre?.toLowerCase().includes('gls') && lastFormDatos && lastFormDatos.largoCm > 110
+    // GLS largo > 110 warning (use maxLargoCm from multi-bulto result)
+    const maxLargo = r.maxLargoCm ?? (lastFormDatos?.largoCm ?? 0)
+    const glsOversize = r.agencia.nombre?.toLowerCase().includes('gls') && maxLargo > 110
     const oversizeHtml = glsOversize
       ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tight" style="background:rgba(186,26,26,0.1); color:#ba1a1a;"><span class="material-symbols-outlined" style="font-size:10px;">warning</span>Largo &gt;110cm — No elegible GLS</span>`
       : ''
@@ -177,7 +253,7 @@ function renderCarrierCards(resultados, container, sortedAsc) {
                 ${isBest ? `<span class="bg-primary/10 text-primary text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-tight">Mejor precio</span>` : ''}
                 ${oversizeHtml}
               </div>
-              <p class="text-xs text-on-surface-variant mt-0.5" style="opacity:0.65;">Zona: ${r.zona?.nombre_zona || '—'} &nbsp;·&nbsp; <span class="font-semibold" style="opacity:1;">${formatVolume(r.metrosCubicos ?? 0)}</span></p>
+              <p class="text-xs text-on-surface-variant mt-0.5" style="opacity:0.65;">Zona: ${r.zona?.nombre_zona || '—'} &nbsp;·&nbsp; <span class="font-semibold" style="opacity:1;">${formatVolume(r.metrosCubicos ?? 0)}</span>${r.numeroBultos > 1 ? ` &nbsp;·&nbsp; <span class="font-semibold text-primary" style="opacity:0.85;">${r.numeroBultos} bultos</span>` : ''}</p>
               <p class="text-xl font-black text-primary mt-1 tracking-tight">${r.peso ?? 0} kg &nbsp;|&nbsp; ${formatPrice(r.precioFinal)}</p>
             </div>
           </div>
@@ -231,6 +307,7 @@ function renderCarrierCards(resultados, container, sortedAsc) {
             peso: r.peso,
             agenciaId: r.agencia.id,
             precioFinal: r.precioFinal,
+            bultos: lastFormDatos.bultos,
           })
         }
       })

@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>LogiCompare | Industrial Precision Engine</title>
-  <script type="module" crossorigin src="./assets/index-D_ay0RuL.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-U6Tbc-hu.css">
+  <script type="module" crossorigin src="./assets/index-BtKy1tkw.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-BXWXsxsQ.css">
 </head>
 <body class="bg-background font-body text-on-surface antialiased flex flex-col h-screen overflow-hidden">
 
@@ -108,6 +108,17 @@
                   <label class="label-stencil block">Alto (cm)</label>
                   <input id="input-alto" class="input-field" type="number" min="1" step="0.1" placeholder="0" required />
                 </div>
+
+                <!-- Extra bultos container (populated by Ctrl+M) -->
+                <div id="extra-bultos-container"></div>
+
+                <!-- Ctrl+M hint -->
+                <div class="flex items-center gap-2 mt-1">
+                  <kbd class="px-1.5 py-0.5 rounded text-[10px] font-bold" style="background:rgba(196,197,217,0.25); color:inherit;">Ctrl+M</kbd>
+                  <span class="text-[10px] text-on-surface-variant" style="opacity:0.55;">Añadir otro bulto</span>
+                  <span id="bultos-badge" class="hidden ml-auto text-[10px] font-black px-2 py-0.5 rounded-full" style="background:rgba(0,64,224,0.1); color:#0040e0;">2 bultos</span>
+                </div>
+
                 <div class="space-y-1.5">
                   <label class="label-stencil block">CP (2 primeros dígitos)</label>
                   <input id="input-cp" class="input-field" type="text" maxlength="2" placeholder="28" pattern="\d{2}" required />
@@ -193,32 +204,45 @@
 
           <!-- Form -->
           <div class="bg-surface-container-lowest rounded-xl p-5" style="border:1px solid rgba(196,197,217,0.12);">
-            <form id="debidos-form" class="flex flex-wrap items-end gap-3">
-              <div class="flex flex-col gap-1">
-                <label class="label-stencil text-[10px]">Largo (cm)</label>
-                <input type="number" id="deb-largo" class="input-field w-24 text-sm" placeholder="0" min="0" step="0.1" />
+            <form id="debidos-form" class="flex flex-col gap-3">
+              <!-- First bulto row + controls -->
+              <div class="flex flex-wrap items-end gap-3">
+                <div class="flex flex-col gap-1">
+                  <label class="label-stencil text-[10px]">Largo (cm)</label>
+                  <input type="number" id="deb-largo" class="input-field w-24 text-sm" placeholder="0" min="0" step="0.1" />
+                </div>
+                <div class="flex flex-col gap-1">
+                  <label class="label-stencil text-[10px]">Ancho (cm)</label>
+                  <input type="number" id="deb-ancho" class="input-field w-24 text-sm" placeholder="0" min="0" step="0.1" />
+                </div>
+                <div class="flex flex-col gap-1">
+                  <label class="label-stencil text-[10px]">Alto (cm)</label>
+                  <input type="number" id="deb-alto" class="input-field w-24 text-sm" placeholder="0" min="0" step="0.1" />
+                </div>
+                <!-- RECA checkbox -->
+                <label class="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg" style="border:2px solid rgba(196,197,217,0.25); background:rgba(196,197,217,0.06);" id="reca-label">
+                  <input type="checkbox" id="deb-reca" class="w-4 h-4 accent-primary cursor-pointer" />
+                  <span class="text-sm font-black uppercase tracking-wider" style="letter-spacing:0.08em;">RECA</span>
+                </label>
+                <button type="submit" id="btn-debidos-calc" class="btn-primary px-5 py-2 text-sm font-bold flex items-center gap-2">
+                  <span class="material-symbols-outlined" style="font-size:16px;">scale</span>
+                  Calcular pesos
+                </button>
+                <button type="button" id="btn-debidos-clear" class="btn-secondary px-4 py-2 text-sm font-bold flex items-center gap-2">
+                  <span class="material-symbols-outlined" style="font-size:16px;">restart_alt</span>
+                  Limpiar
+                </button>
               </div>
-              <div class="flex flex-col gap-1">
-                <label class="label-stencil text-[10px]">Ancho (cm)</label>
-                <input type="number" id="deb-ancho" class="input-field w-24 text-sm" placeholder="0" min="0" step="0.1" />
+
+              <!-- Extra bultos container (populated by Ctrl+M) -->
+              <div id="deb-extra-bultos-container"></div>
+
+              <!-- Ctrl+M hint -->
+              <div class="flex items-center gap-2">
+                <kbd class="px-1.5 py-0.5 rounded text-[10px] font-bold" style="background:rgba(196,197,217,0.25); color:inherit;">Ctrl+M</kbd>
+                <span class="text-[10px] text-on-surface-variant" style="opacity:0.55;">Añadir otro bulto</span>
+                <span id="debidos-bultos-badge" class="hidden ml-2 text-[10px] font-black px-2 py-0.5 rounded-full" style="background:rgba(0,64,224,0.1); color:#0040e0;">2 bultos</span>
               </div>
-              <div class="flex flex-col gap-1">
-                <label class="label-stencil text-[10px]">Alto (cm)</label>
-                <input type="number" id="deb-alto" class="input-field w-24 text-sm" placeholder="0" min="0" step="0.1" />
-              </div>
-              <!-- RECA checkbox -->
-              <label class="flex items-center gap-2 cursor-pointer px-3 py-2 rounded-lg" style="border:2px solid rgba(196,197,217,0.25); background:rgba(196,197,217,0.06);" id="reca-label">
-                <input type="checkbox" id="deb-reca" class="w-4 h-4 accent-primary cursor-pointer" />
-                <span class="text-sm font-black uppercase tracking-wider" style="letter-spacing:0.08em;">RECA</span>
-              </label>
-              <button type="submit" id="btn-debidos-calc" class="btn-primary px-5 py-2 text-sm font-bold flex items-center gap-2">
-                <span class="material-symbols-outlined" style="font-size:16px;">scale</span>
-                Calcular pesos
-              </button>
-              <button type="button" id="btn-debidos-clear" class="btn-secondary px-4 py-2 text-sm font-bold flex items-center gap-2">
-                <span class="material-symbols-outlined" style="font-size:16px;">restart_alt</span>
-                Limpiar
-              </button>
             </form>
           </div>
 
