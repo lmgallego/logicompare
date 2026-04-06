@@ -2,6 +2,7 @@ import { formatPrice } from '../utils/formatters.js'
 import Chart from 'chart.js/auto'
 
 let charts = {}
+let lastAnalyticsData = null
 
 function destroyCharts() {
   Object.values(charts).forEach(c => { try { c.destroy() } catch (_) {} })
@@ -38,9 +39,17 @@ export async function loadAnalytics() {
           <h2 class="text-xl font-bold tracking-tight">Analíticas</h2>
           <p class="text-xs text-on-surface-variant mt-0.5" style="opacity:0.55;">Resumen de actividad y rendimiento por agencia</p>
         </div>
-        <button id="btn-analytics-refresh" class="btn-secondary flex items-center gap-1.5 text-xs px-3 py-1.5">
-          <span class="material-symbols-outlined" style="font-size:15px;">refresh</span> Actualizar
-        </button>
+        <div class="flex items-center gap-2">
+          <button id="btn-analytics-pdf" class="btn-secondary flex items-center gap-1.5 text-xs px-3 py-1.5">
+            <span class="material-symbols-outlined" style="font-size:15px;">picture_as_pdf</span> PDF
+          </button>
+          <button id="btn-analytics-xlsx" class="btn-secondary flex items-center gap-1.5 text-xs px-3 py-1.5">
+            <span class="material-symbols-outlined" style="font-size:15px;">table_view</span> Excel
+          </button>
+          <button id="btn-analytics-refresh" class="btn-secondary flex items-center gap-1.5 text-xs px-3 py-1.5">
+            <span class="material-symbols-outlined" style="font-size:15px;">refresh</span> Actualizar
+          </button>
+        </div>
       </div>
       <div id="analytics-body">
         <div class="flex items-center justify-center py-24 text-on-surface-variant text-sm" style="opacity:0.4;">
@@ -52,6 +61,25 @@ export async function loadAnalytics() {
 
   document.getElementById('btn-analytics-refresh')?.addEventListener('click', loadAnalytics)
 
+  document.getElementById('btn-analytics-pdf')?.addEventListener('click', () => {
+    window.print()
+  })
+
+  document.getElementById('btn-analytics-xlsx')?.addEventListener('click', async () => {
+    if (!lastAnalyticsData || !window.api) return
+    const btn = document.getElementById('btn-analytics-xlsx')
+    btn.disabled = true
+    btn.innerHTML = '<span class="material-symbols-outlined animate-spin" style="font-size:15px;">progress_activity</span> Exportando...'
+    try {
+      const { porAgencia, porMes, porDia, topCps } = lastAnalyticsData
+      const result = await window.api.invoke('export-analytics-xlsx', { porAgencia, porMes, porDia, topCps })
+      if (!result.ok && result.error) alert('Error al exportar: ' + result.error)
+    } finally {
+      btn.disabled = false
+      btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:15px;">table_view</span> Excel'
+    }
+  })
+
   let data
   try {
     data = await window.api.invoke('get-analytics')
@@ -61,6 +89,7 @@ export async function loadAnalytics() {
     return
   }
 
+  lastAnalyticsData = data
   const { totals, porAgencia, porDia, porMes, topCps, pesoBuckets, precioMedioAgencia, comparativa } = data
 
   const diffN = pct(comparativa.mes_actual_n, comparativa.mes_anterior_n)

@@ -84,30 +84,24 @@ async function initApp() {
       e.preventDefault()
       if (currentPage === 'debidos') {
         window._devidosClear?.()
+        // Also clear extra bulto rows in Debidos
+        const debExtra = document.getElementById('deb-extra-bultos-container')
+        if (debExtra) debExtra.innerHTML = ''
+        document.getElementById('debidos-bultos-badge')?.classList.add('hidden')
       } else {
         showPage('new-quote')
         document.getElementById('quote-form')?.reset()
+        // Clear extra bulto rows
+        const extraContainer = document.getElementById('extra-bultos-container')
+        if (extraContainer) extraContainer.innerHTML = ''
+        document.getElementById('bultos-badge')?.classList.add('hidden')
         document.getElementById('results-list')?.classList.add('hidden')
         document.getElementById('results-empty')?.classList.remove('hidden')
         document.getElementById('results-stats')?.classList.add('hidden')
         document.getElementById('metros-cubicos-row')?.classList.add('hidden')
         document.getElementById('cp-info')?.classList.add('hidden')
+        document.getElementById('quotes-badge')?.classList.add('hidden')
         document.getElementById('input-largo')?.focus()
-      }
-    }
-
-    if (e.key === 'g' || e.key === 'G') {
-      e.preventDefault()
-      // Click Elegir on the first visible GLS result card
-      const resultsList = document.getElementById('results-list')
-      if (!resultsList || resultsList.classList.contains('hidden')) return
-      const cards = resultsList.querySelectorAll('.carrier-card')
-      for (const card of cards) {
-        const nombre = card.querySelector('h3')?.textContent?.toLowerCase() || ''
-        if (nombre.includes('gls')) {
-          card.querySelector('[data-agency-id]')?.click()
-          break
-        }
       }
     }
   })
