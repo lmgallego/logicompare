@@ -178,6 +178,8 @@ app.whenReady().then(async () => {
   require('./ipcHandlers/windowHandler')
   require('./ipcHandlers/supportHandler').init()
 
+  ipcMain.handle('get-app-version', () => app.getVersion())
+
   // Import DB from support page (any time, not just first run)
   ipcMain.handle('import-db', async () => {
     const { getDb } = require('./database/connection')

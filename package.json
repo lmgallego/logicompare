@@ -32,7 +32,7 @@
     "concurrently": "^8.2.2",
     "cross-env": "^7.0.3",
     "electron": "^29.4.6",
-    "electron-builder": "^24.13.3",
+    "electron-builder": "^26.8.1",
     "tailwindcss": "^3.4.3",
     "vite": "^5.2.8",
     "wait-on": "^7.2.0"
@@ -43,19 +43,38 @@
   "build": {
     "appId": "com.logicompare.app",
     "productName": "LogiCompare",
+    "copyright": "Copyright © 2025 LogiCompare",
     "directories": {
-      "output": "dist"
+      "output": "dist-installer"
     },
     "files": [
       "src/main/**/*",
       "src/renderer/dist/**/*",
-      "assets/**/*"
+      "package.json"
     ],
     "extraResources": [
       {
-        "from": "assets",
+        "from": "src/main/assets",
         "to": "assets"
       }
-    ]
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "assets/icon.ico",
+      "requestedExecutionLevel": "asInvoker",
+      "forceCodeSigning": false,
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "LogiCompare",
+      "installerIcon": "assets/icon.ico",
+      "uninstallerIcon": "assets/icon.ico",
+      "installerHeaderIcon": "assets/icon.ico",
+      "deleteAppDataOnUninstall": false
+    }
   }
 }
