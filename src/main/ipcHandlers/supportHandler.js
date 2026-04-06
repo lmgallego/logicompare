@@ -138,6 +138,7 @@ function redondear5(precio) {
 function init() {
   const { ipcMain, dialog } = require('electron')
 
+  ipcMain.removeHandler('merge-excels')
   ipcMain.handle('merge-excels', async () => {
     const result = await dialog.showOpenDialog({
       title: 'Selecciona los archivos Excel de LogiCompare (hasta 3)',
@@ -193,6 +194,7 @@ function init() {
     return { ok: true, rows: allRows, count: allRows.length }
   })
 
+  ipcMain.removeHandler('export-merged-xlsx')
   ipcMain.handle('export-merged-xlsx', async (event, { rows, simplificada }) => {
     const { filePath } = await dialog.showSaveDialog({
       title: 'Guardar Excel consolidado',

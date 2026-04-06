@@ -190,9 +190,11 @@ app.whenReady().then(async () => {
     require('./ipcHandlers/windowHandler')
     require('./ipcHandlers/supportHandler').init()
 
+    ipcMain.removeHandler('get-app-version')
     ipcMain.handle('get-app-version', () => app.getVersion())
 
     // Import DB from support page (any time, not just first run)
+    ipcMain.removeHandler('import-db')
     ipcMain.handle('import-db', async () => {
       const { getDb } = require('./database/connection')
       const result = await dialog.showOpenDialog({
@@ -215,6 +217,7 @@ app.whenReady().then(async () => {
     })
 
     // Export current DB (backup/share)
+    ipcMain.removeHandler('export-db')
     ipcMain.handle('export-db', async () => {
       const srcPath = path.join(app.getPath('userData'), 'logicompare.db')
       const { filePath } = await dialog.showSaveDialog({
