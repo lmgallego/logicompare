@@ -9,28 +9,29 @@ let lastFormDatos = null
 let extraBultos = []
 
 // Keyboard shortcuts: key letter → fragment of agency name to match (lowercase)
+// Order matters: more specific fragments first
 const AGENCY_SHORTCUTS = {
   g: 'gls',
   s: 'seur',
   t: 'transabadell',
-  p: 'transhaer palet',
-  b: 'transhaer bulto',
+  p: 'palet',
+  b: 'bulto',
   l: 'log',   // Logística
 }
-// Reverse map for display: name fragment → key
-const SHORTCUT_DISPLAY = {
-  gls:              'Ctrl+G',
-  seur:             'Ctrl+S',
-  transabadell:     'Ctrl+T',
-  'transhaer palet':'Ctrl+P',
-  'transhaer bulto':'Ctrl+B',
-  log:              'Ctrl+L',
-}
+// Ordered list for display lookup (specific before generic)
+const SHORTCUT_DISPLAY_LIST = [
+  { fragment: 'gls',        key: 'Ctrl+G' },
+  { fragment: 'seur',       key: 'Ctrl+S' },
+  { fragment: 'transabadell', key: 'Ctrl+T' },
+  { fragment: 'palet',      key: 'Ctrl+P' },
+  { fragment: 'bulto',      key: 'Ctrl+B' },
+  { fragment: 'log',        key: 'Ctrl+L' },
+]
 
 function getShortcutForAgency(nombre) {
   if (!nombre) return null
   const lower = nombre.toLowerCase()
-  for (const [fragment, key] of Object.entries(SHORTCUT_DISPLAY)) {
+  for (const { fragment, key } of SHORTCUT_DISPLAY_LIST) {
     if (lower.includes(fragment)) return key
   }
   return null
