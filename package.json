@@ -39,7 +39,8 @@
     "wait-on": "^7.2.0"
   },
   "dependencies": {
-    "better-sqlite3": "^9.4.3"
+    "better-sqlite3": "^9.4.3",
+    "chart.js": "^4.5.1"
   },
   "build": {
     "appId": "com.logicompare.app",

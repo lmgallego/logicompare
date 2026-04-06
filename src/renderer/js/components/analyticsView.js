@@ -1,4 +1,5 @@
 import { formatPrice } from '../utils/formatters.js'
+import Chart from 'chart.js/auto'
 
 let charts = {}
 
@@ -189,8 +190,6 @@ export async function loadAnalytics() {
 }
 
 function renderCharts({ porDia, porMes, porAgencia, pesoBuckets, precioMedioAgencia, topCps }) {
-  const Chart = window.Chart
-  if (!Chart) return
 
   const gridColor = 'rgba(196,197,217,0.12)'
   const tickColor = 'rgba(100,110,130,0.5)'
