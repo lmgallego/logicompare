@@ -166,6 +166,17 @@ function runMigrations(db) {
     }
   }
 
+  // Tabla para cotizaciones pendientes de elegir agencia (guardadas con Ctrl+N sin elegir)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS cotizaciones_pendientes (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      fecha       TEXT NOT NULL DEFAULT (datetime('now')),
+      cp_prefix   TEXT NOT NULL,
+      bultos_json TEXT NOT NULL,
+      resultados_json TEXT NOT NULL
+    )
+  `)
+
   seedProvincias(db)
 }
 

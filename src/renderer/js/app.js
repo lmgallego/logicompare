@@ -6,8 +6,9 @@ import { initDevidosView } from './components/devidosView.js'
 import { loadAnalytics } from './components/analyticsView.js'
 import { initAgenciasView, loadAgenciasView } from './components/agenciasView.js'
 import { initSupportView } from './components/supportView.js'
+import { loadPendingView, updatePendingBadge } from './components/pendingView.js'
 
-const PAGES = ['new-quote', 'debidos', 'history', 'agencias', 'analytics', 'database', 'support']
+const PAGES = ['new-quote', 'pending', 'debidos', 'history', 'agencias', 'analytics', 'database', 'support']
 let currentPage = 'new-quote'
 
 function showToast(msg, type = 'info') {
@@ -98,6 +99,7 @@ function showPage(pageId) {
   if (pageId === 'database') loadAgencies()
   if (pageId === 'analytics') loadAnalytics()
   if (pageId === 'agencias') loadAgenciasView()
+  if (pageId === 'pending') loadPendingView()
 }
 
 async function initApp() {
@@ -137,6 +139,9 @@ async function initApp() {
       await window.api.invoke('get-provincias')
       const dbStatus = document.getElementById('status-db')
       if (dbStatus) dbStatus.textContent = 'DB: Conectado'
+      // Load pending badge count on startup
+      const countRow = await window.api.invoke('get-pending-count')
+      updatePendingBadge(countRow?.c ?? 0)
     } catch (err) {
       const dbStatus = document.getElementById('status-db')
       if (dbStatus) {
@@ -166,7 +171,7 @@ async function initApp() {
             title: '⚠️ No has seleccionado ninguna agencia',
             message: '¿Qué quieres hacer con las medidas actuales antes de empezar un nuevo registro?',
             buttons: [
-              { label: '💾 Guardar medidas sin agencia y continuar', style: 'background:rgba(196,197,217,0.12);', value: 'save' },
+              { label: '💾 Guardar en Pendientes y continuar', style: 'background:rgba(196,197,217,0.12);', value: 'save' },
               { label: '🗑 Descartar y continuar de todas formas', style: 'background:rgba(186,26,26,0.12);color:#f87171;', value: 'discard' },
               { label: '✕ Cancelar (volver al formulario)', style: 'background:rgba(196,197,217,0.06);opacity:0.65;', value: 'cancel' },
             ]
@@ -175,17 +180,13 @@ async function initApp() {
           if (action === 'save') {
             const datos = getLastFormDatos()
             if (datos && window.api) {
-              await window.api.invoke('save-quote', {
-                largoCm:       datos.largoCm,
-                anchoCm:       datos.anchoCm,
-                altoCm:        datos.altoCm,
-                cpPrefix:      datos.cpPrefix,
-                metrosCubicos: 0,
-                peso:          0,
-                agenciaId:     null,
-                precioFinal:   null,
-                bultos:        datos.bultos,
+              await window.api.invoke('save-pending-quote', {
+                cpPrefix:   datos.cpPrefix,
+                bultos:     datos.bultos,
+                resultados: datos.lastResultados || [],
               })
+              const countRow = await window.api.invoke('get-pending-count')
+              updatePendingBadge(countRow?.c ?? 0)
             }
           }
         }

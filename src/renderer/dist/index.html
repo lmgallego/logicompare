@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>LogiCompare | Industrial Precision Engine</title>
-  <script type="module" crossorigin src="./assets/index-DxoziwHN.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-COhuuPVt.css">
+  <script type="module" crossorigin src="./assets/index-CG5qBIoZ.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-DqsKMkc0.css">
 </head>
 <body class="bg-background font-body text-on-surface antialiased flex flex-col h-screen overflow-hidden">
 
@@ -46,6 +46,11 @@
         <a class="nav-item" data-page="debidos" style="padding-left:1.5rem;">
           <span class="material-symbols-outlined text-xl">scale</span>
           <span class="nav-label">Debidos</span>
+        </a>
+        <a class="nav-item" data-page="pending" style="position:relative;">
+          <span class="material-symbols-outlined text-xl">pending_actions</span>
+          <span class="nav-label">Pendientes</span>
+          <span id="pending-nav-badge" class="hidden absolute top-1 right-2 bg-amber-500 text-white text-[9px] font-black rounded-full w-4 h-4 flex items-center justify-center leading-none" style="font-size:9px;"></span>
         </a>
         <a class="nav-item" data-page="history">
           <span class="material-symbols-outlined text-xl">history</span>
@@ -191,6 +196,9 @@
           </section>
         </div>
       </div>
+
+      <!-- ════ PAGE: PENDING ════ -->
+      <div id="page-pending" class="page flex-1 overflow-y-auto p-6"></div>
 
       <!-- ════ PAGE: DEBIDOS ════ -->
       <div id="page-debidos" class="page flex-1 overflow-y-auto p-6">

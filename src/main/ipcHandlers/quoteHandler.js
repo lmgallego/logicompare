@@ -50,6 +50,57 @@ ipcMain.handle('get-agencies-simple', () => {
   return getDb().prepare('SELECT id, nombre FROM agencias ORDER BY nombre').all()
 })
 
+// ── Cotizaciones pendientes (guardadas sin agencia elegida) ──────────────────
+
+ipcMain.handle('save-pending-quote', (event, { cpPrefix, bultos, resultados }) => {
+  try {
+    getDb()
+      .prepare('INSERT INTO cotizaciones_pendientes (cp_prefix, bultos_json, resultados_json) VALUES (?,?,?)')
+      .run(cpPrefix, JSON.stringify(bultos), JSON.stringify(resultados))
+    return { ok: true }
+  } catch (e) {
+    return { ok: false, error: e.message }
+  }
+})
+
+ipcMain.handle('get-pending-quotes', () => {
+  return getDb()
+    .prepare('SELECT * FROM cotizaciones_pendientes ORDER BY fecha DESC')
+    .all()
+    .map(row => ({
+      ...row,
+      bultos:     JSON.parse(row.bultos_json),
+      resultados: JSON.parse(row.resultados_json),
+    }))
+})
+
+ipcMain.handle('resolve-pending-quote', (event, { pendingId, agenciaId, metrosCubicos, peso, precioFinal, cpPrefix, largoCm, anchoCm, altoCm, bultos }) => {
+  try {
+    const db = getDb()
+    const precioRedondeado = redondear5(precioFinal)
+    const primerBulto = (bultos && bultos.length > 0) ? bultos[0] : { largoCm, anchoCm, altoCm }
+    db.prepare(`
+      INSERT INTO cotizaciones (largo_cm, ancho_cm, alto_cm, cp_prefix, metros_cubicos, peso, agencia_id, precio_final, precio_redondeado)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(primerBulto.largoCm, primerBulto.anchoCm, primerBulto.altoCm, cpPrefix, metrosCubicos || 0, peso || 0, agenciaId, precioFinal, precioRedondeado)
+    db.prepare('DELETE FROM cotizaciones_pendientes WHERE id = ?').run(pendingId)
+    return { ok: true }
+  } catch (e) {
+    return { ok: false, error: e.message }
+  }
+})
+
+ipcMain.handle('delete-pending-quote', (event, { id }) => {
+  const result = getDb().prepare('DELETE FROM cotizaciones_pendientes WHERE id = ?').run(id)
+  return { deleted: result.changes }
+})
+
+ipcMain.handle('get-pending-count', () => {
+  return getDb().prepare('SELECT COUNT(*) as c FROM cotizaciones_pendientes').get()
+})
+
+// ────────────────────────────────────────────────────────────────────────────
+
 ipcMain.handle('delete-quote-by-id', (event, { id }) => {
   const result = getDb().prepare('DELETE FROM cotizaciones WHERE id = ?').run(id)
   return { deleted: result.changes }
