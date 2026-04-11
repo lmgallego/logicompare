@@ -98,6 +98,8 @@ function addExtraBultoRow() {
   row.querySelector('.eb-largo')?.focus()
 }
 
+export function getLastFormDatos() { return lastFormDatos }
+
 export function initFormHandler() {
   const form = document.getElementById('quote-form')
   const cpInput = document.getElementById('input-cp')

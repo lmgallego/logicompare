@@ -1,5 +1,5 @@
 import { initSidebar } from './components/sidebar.js'
-import { initFormHandler } from './components/formHandler.js'
+import { initFormHandler, getLastFormDatos } from './components/formHandler.js'
 import { loadHistory, initHistoryControls } from './components/historyView.js'
 import { loadAgencies, initAgencyModal } from './components/databaseView.js'
 import { initDevidosView } from './components/devidosView.js'
@@ -33,6 +33,41 @@ function showToast(msg, type = 'info') {
     toast.style.opacity = '0'
     setTimeout(() => toast.remove(), 300)
   }, 3800)
+}
+
+function showConfirmModal({ title, message, buttons }) {
+  return new Promise(resolve => {
+    const overlay = document.createElement('div')
+    overlay.style.cssText = `
+      position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:10000;
+      display:flex;align-items:center;justify-content:center;
+    `
+    const box = document.createElement('div')
+    box.style.cssText = `
+      background:var(--color-surface,#1e1e2e);color:var(--color-on-surface,#e0e0ff);
+      border-radius:16px;padding:28px 32px;max-width:420px;width:90%;
+      box-shadow:0 8px 32px rgba(0,0,0,0.5);
+    `
+    box.innerHTML = `
+      <p style="font-size:15px;font-weight:700;margin:0 0 8px 0;">${title}</p>
+      <p style="font-size:13px;opacity:0.7;margin:0 0 24px 0;">${message}</p>
+      <div id="modal-btns" style="display:flex;flex-direction:column;gap:8px;"></div>
+    `
+    const btnsEl = box.querySelector('#modal-btns')
+    buttons.forEach(({ label, style, value }) => {
+      const btn = document.createElement('button')
+      btn.textContent = label
+      btn.style.cssText = `
+        padding:10px 16px;border-radius:10px;font-size:13px;font-weight:600;
+        cursor:pointer;border:none;width:100%;text-align:left;
+        ${style}
+      `
+      btn.addEventListener('click', () => { overlay.remove(); resolve(value) })
+      btnsEl.appendChild(btn)
+    })
+    overlay.addEventListener('click', e => { if (e.target === overlay) { overlay.remove(); resolve('cancel') } })
+    document.body.appendChild(overlay)
+  })
 }
 
 function showPage(pageId) {
@@ -111,21 +146,50 @@ async function initApp() {
   }
 
   // Keyboard shortcuts
-  document.addEventListener('keydown', (e) => {
+  document.addEventListener('keydown', async (e) => {
     if (!e.ctrlKey) return
 
     if (e.key === 'n' || e.key === 'N') {
       e.preventDefault()
       if (currentPage === 'debidos') {
         window._devidosClear?.()
-        // Also clear extra bulto rows in Debidos
         const debExtra = document.getElementById('deb-extra-bultos-container')
         if (debExtra) debExtra.innerHTML = ''
         document.getElementById('debidos-bultos-badge')?.classList.add('hidden')
       } else {
+        // If results are visible and no agency was chosen, warn the user
+        const resultsList = document.getElementById('results-list')
+        const hasResults = resultsList && !resultsList.classList.contains('hidden')
+        if (hasResults) {
+          const action = await showConfirmModal({
+            title: '⚠️ No has seleccionado ninguna agencia',
+            message: '¿Qué quieres hacer con las medidas actuales antes de empezar un nuevo registro?',
+            buttons: [
+              { label: '💾 Guardar medidas sin agencia y continuar', style: 'background:rgba(196,197,217,0.12);', value: 'save' },
+              { label: '🗑 Descartar y continuar de todas formas', style: 'background:rgba(186,26,26,0.12);color:#f87171;', value: 'discard' },
+              { label: '✕ Cancelar (volver al formulario)', style: 'background:rgba(196,197,217,0.06);opacity:0.65;', value: 'cancel' },
+            ]
+          })
+          if (action === 'cancel') return
+          if (action === 'save') {
+            const datos = getLastFormDatos()
+            if (datos && window.api) {
+              await window.api.invoke('save-quote', {
+                largoCm:       datos.largoCm,
+                anchoCm:       datos.anchoCm,
+                altoCm:        datos.altoCm,
+                cpPrefix:      datos.cpPrefix,
+                metrosCubicos: 0,
+                peso:          0,
+                agenciaId:     null,
+                precioFinal:   null,
+                bultos:        datos.bultos,
+              })
+            }
+          }
+        }
         showPage('new-quote')
         document.getElementById('quote-form')?.reset()
-        // Clear extra bulto rows
         const extraContainer = document.getElementById('extra-bultos-container')
         if (extraContainer) extraContainer.innerHTML = ''
         document.getElementById('bultos-badge')?.classList.add('hidden')
