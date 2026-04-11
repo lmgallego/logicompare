@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>LogiCompare | Industrial Precision Engine</title>
-  <script type="module" crossorigin src="./assets/index-BtzkKJxp.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-COhuuPVt.css">
+  <script type="module" crossorigin src="./assets/index-Bc7PW8h5.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-8Eao8nLi.css">
 </head>
 <body class="bg-background font-body text-on-surface antialiased flex flex-col h-screen overflow-hidden">
 
@@ -46,6 +46,11 @@
         <a class="nav-item" data-page="debidos" style="padding-left:1.5rem;">
           <span class="material-symbols-outlined text-xl">scale</span>
           <span class="nav-label">Debidos</span>
+        </a>
+        <a class="nav-item" data-page="pending" style="position:relative;">
+          <span class="material-symbols-outlined text-xl">pending_actions</span>
+          <span class="nav-label">Pendientes</span>
+          <span id="pending-nav-badge" class="hidden absolute top-1 right-2 bg-amber-500 text-white text-[9px] font-black rounded-full w-4 h-4 flex items-center justify-center leading-none" style="font-size:9px;"></span>
         </a>
         <a class="nav-item" data-page="history">
           <span class="material-symbols-outlined text-xl">history</span>
@@ -191,6 +196,9 @@
           </section>
         </div>
       </div>
+
+      <!-- ════ PAGE: PENDING ════ -->
+      <div id="page-pending" class="page flex-1 overflow-y-auto p-6"></div>
 
       <!-- ════ PAGE: DEBIDOS ════ -->
       <div id="page-debidos" class="page flex-1 overflow-y-auto p-6">
@@ -459,6 +467,48 @@
               <p><span style="opacity:0.5;">Motor</span> <span class="font-semibold text-on-surface">LogiCompare Industrial Precision Engine</span></p>
             </div>
           </div>
+
+          <!-- Changelog -->
+          <div class="card-surface rounded-2xl p-5 space-y-5">
+            <p class="text-xs font-bold uppercase tracking-widest text-on-surface-variant" style="opacity:0.5;">Historial de Versiones</p>
+
+            <!-- v1.1.0 -->
+            <div class="space-y-2">
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-black text-primary">v1.1.0</span>
+                <span class="bg-primary/10 text-primary text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-tight">Actual</span>
+                <span class="text-xs text-on-surface-variant" style="opacity:0.45;">Abril 2025</span>
+              </div>
+              <ul class="space-y-1.5 text-xs text-on-surface-variant" style="padding-left:1rem;">
+                <li style="list-style:disc;"><strong class="text-on-surface">Cotizaciones pendientes</strong> — nuevo apartado en el menú. Al pulsar Ctrl+N sin haber elegido agencia se ofrece guardar todas las opciones calculadas para elegir más tarde.</li>
+                <li style="list-style:disc;"><strong class="text-on-surface">Aviso al salir sin elegir</strong> — si navegas a otra sección con resultados visibles sin haber seleccionado agencia, aparece un aviso.</li>
+                <li style="list-style:disc;"><strong class="text-on-surface">Corrección GLS zona Madrid (CP 28)</strong> — el código postal 28 pasa a zona Nacional en lugar de Regional.</li>
+                <li style="list-style:disc;"><strong class="text-on-surface">Multi-bulto (Ctrl+M)</strong> — permite introducir varios bultos y calcular el precio sobre el peso total agregado.</li>
+                <li style="list-style:disc;"><strong class="text-on-surface">Atajos de teclado agencias</strong> — Ctrl+G (GLS), Ctrl+S (SEUR), Ctrl+T (Transabadell), Ctrl+P (Palet), Ctrl+B (Bulto), Ctrl+L (Logística) para elegir agencia directamente.</li>
+                <li style="list-style:disc;"><strong class="text-on-surface">Exportar analíticas</strong> — botones PDF y Excel en la sección de analíticas.</li>
+                <li style="list-style:disc;"><strong class="text-on-surface">Badge de pendientes</strong> — indicador naranja en el sidebar con el número de cotizaciones sin resolver.</li>
+              </ul>
+            </div>
+
+            <div style="border-top:1px solid rgba(196,197,217,0.15);"></div>
+
+            <!-- v1.0.0 -->
+            <div class="space-y-2">
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-black text-on-surface-variant" style="opacity:0.7;">v1.0.0</span>
+                <span class="text-xs text-on-surface-variant" style="opacity:0.4;">Lanzamiento inicial</span>
+              </div>
+              <ul class="space-y-1.5 text-xs text-on-surface-variant" style="padding-left:1rem;opacity:0.65;">
+                <li style="list-style:disc;">Cálculo y comparativa de tarifas entre agencias (GLS, SEUR, Transabadell, Transhaer, Logística).</li>
+                <li style="list-style:disc;">Sección Debidos — cálculo de pesos volumétricos por baremo.</li>
+                <li style="list-style:disc;">Historial de cotizaciones con exportación a Excel y PDF.</li>
+                <li style="list-style:disc;">Analíticas por agencia, mes, día y CP.</li>
+                <li style="list-style:disc;">Gestión de base de datos: exportar, importar y consolidar excels de varios ordenadores.</li>
+                <li style="list-style:disc;">Agencias comparativas con filtro por selección.</li>
+              </ul>
+            </div>
+          </div>
+
         </div>
       </div>
 

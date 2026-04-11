@@ -141,6 +141,42 @@ function runMigrations(db) {
     db.prepare('ALTER TABLE cotizaciones ADD COLUMN precio_redondeado REAL').run()
   }
 
+  // Migración: CP 28 (Madrid) debe estar en zona Nacional, no Regional, en GLS Express
+  const glsAgencia = db.prepare("SELECT id FROM agencias WHERE nombre = 'GLS Express'").get()
+  if (glsAgencia) {
+    const zonaRegional = db.prepare(
+      "SELECT id FROM zonas_agencia WHERE agencia_id = ? AND nombre_zona = 'Regional'"
+    ).get(glsAgencia.id)
+    const zonaNacional = db.prepare(
+      "SELECT id FROM zonas_agencia WHERE agencia_id = ? AND nombre_zona = 'Nacional'"
+    ).get(glsAgencia.id)
+    if (zonaRegional && zonaNacional) {
+      const en28Regional = db.prepare(
+        "SELECT 1 FROM zonas_provincias WHERE agencia_id=? AND zona_id=? AND cp_prefix='28'"
+      ).get(glsAgencia.id, zonaRegional.id)
+      if (en28Regional) {
+        db.prepare(
+          "DELETE FROM zonas_provincias WHERE agencia_id=? AND zona_id=? AND cp_prefix='28'"
+        ).run(glsAgencia.id, zonaRegional.id)
+        db.prepare(
+          "INSERT OR REPLACE INTO zonas_provincias (agencia_id, zona_id, cp_prefix) VALUES (?,?,'28')"
+        ).run(glsAgencia.id, zonaNacional.id)
+        console.log('[migration] CP 28 (Madrid) movido de Regional a Nacional en GLS Express')
+      }
+    }
+  }
+
+  // Tabla para cotizaciones pendientes de elegir agencia (guardadas con Ctrl+N sin elegir)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS cotizaciones_pendientes (
+      id          INTEGER PRIMARY KEY AUTOINCREMENT,
+      fecha       TEXT NOT NULL DEFAULT (datetime('now')),
+      cp_prefix   TEXT NOT NULL,
+      bultos_json TEXT NOT NULL,
+      resultados_json TEXT NOT NULL
+    )
+  `)
+
   seedProvincias(db)
 }
 

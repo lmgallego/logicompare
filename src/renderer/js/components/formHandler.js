@@ -4,6 +4,7 @@ import { getSelectedAgenciaIds } from './agenciasView.js'
 let sortedAsc = true
 let sortAbortController = null
 let lastFormDatos = null
+let lastResultados = []
 
 // Extra package rows (beyond the first)
 let extraBultos = []
@@ -97,6 +98,8 @@ function addExtraBultoRow() {
   // Focus first input of new row
   row.querySelector('.eb-largo')?.focus()
 }
+
+export function getLastFormDatos() { return lastFormDatos ? { ...lastFormDatos, lastResultados } : null }
 
 export function initFormHandler() {
   const form = document.getElementById('quote-form')
@@ -209,6 +212,7 @@ function showError(msg) {
 }
 
 function renderResults(resultados) {
+  lastResultados = resultados
   document.getElementById('results-loading').classList.add('hidden')
   document.getElementById('results-empty').classList.add('hidden')
 
