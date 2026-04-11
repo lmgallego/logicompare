@@ -10,7 +10,41 @@ import { initSupportView } from './components/supportView.js'
 const PAGES = ['new-quote', 'debidos', 'history', 'agencias', 'analytics', 'database', 'support']
 let currentPage = 'new-quote'
 
+function showToast(msg, type = 'info') {
+  const existing = document.getElementById('app-toast')
+  if (existing) existing.remove()
+  const toast = document.createElement('div')
+  toast.id = 'app-toast'
+  toast.textContent = msg
+  const styles = {
+    warning: 'background:#7c5c00;color:#fff8e1;',
+    info:    'background:#1a237e;color:#fff;',
+  }
+  toast.style.cssText = `
+    position:fixed;bottom:28px;left:50%;transform:translateX(-50%);
+    padding:11px 22px;border-radius:12px;font-size:13px;font-weight:600;
+    z-index:9999;pointer-events:none;opacity:0;transition:opacity 0.25s;
+    box-shadow:0 4px 16px rgba(0,0,0,0.25);
+    ${styles[type] || styles.info}
+  `
+  document.body.appendChild(toast)
+  requestAnimationFrame(() => { toast.style.opacity = '1' })
+  setTimeout(() => {
+    toast.style.opacity = '0'
+    setTimeout(() => toast.remove(), 300)
+  }, 3800)
+}
+
 function showPage(pageId) {
+  // Aviso si salimos de Pagados con resultados visibles pero sin haber elegido agencia
+  if (currentPage === 'new-quote' && pageId !== 'new-quote') {
+    const resultsList = document.getElementById('results-list')
+    const hasResults = resultsList && !resultsList.classList.contains('hidden')
+    if (hasResults) {
+      showToast('⚠️ Has salido sin seleccionar ninguna agencia para este envío', 'warning')
+    }
+  }
+
   currentPage = pageId
   PAGES.forEach(id => {
     const el = document.getElementById(`page-${id}`)
