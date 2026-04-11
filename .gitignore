@@ -1,1 +1,10 @@
 node_modules
+
+# Release binaries (too large for GitHub)
+release/win-unpacked/
+release/*.exe
+release/*.blockmap
+release/builder-effective-config.yaml
+dist-installer/win-unpacked/
+dist-installer/*.exe
+dist-installer/*.blockmap
