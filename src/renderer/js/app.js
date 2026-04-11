@@ -65,6 +65,7 @@ function showConfirmModal({ title, message, buttons }) {
       btn.addEventListener('click', () => { overlay.remove(); resolve(value) })
       btnsEl.appendChild(btn)
     })
+    overlay.appendChild(box)
     overlay.addEventListener('click', e => { if (e.target === overlay) { overlay.remove(); resolve('cancel') } })
     document.body.appendChild(overlay)
   })
