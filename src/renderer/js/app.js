@@ -140,8 +140,10 @@ async function initApp() {
       const dbStatus = document.getElementById('status-db')
       if (dbStatus) dbStatus.textContent = 'DB: Conectado'
       // Load pending badge count on startup
-      const countRow = await window.api.invoke('get-pending-count')
-      updatePendingBadge(countRow?.c ?? 0)
+      try {
+        const countRow = await window.api.invoke('get-pending-count')
+        updatePendingBadge(countRow?.c ?? 0)
+      } catch (_) {}
     } catch (err) {
       const dbStatus = document.getElementById('status-db')
       if (dbStatus) {
