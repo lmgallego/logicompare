@@ -63,12 +63,23 @@ function showConfirmModal({ title, message, buttons }) {
         cursor:pointer;border:none;width:100%;text-align:left;
         ${style}
       `
-      btn.addEventListener('click', () => { overlay.remove(); resolve(value) })
+      btn.addEventListener('click', () => {
+        overlay.remove()
+        setTimeout(() => document.getElementById('input-largo')?.focus(), 50)
+        resolve(value)
+      })
       btnsEl.appendChild(btn)
     })
     overlay.appendChild(box)
-    overlay.addEventListener('click', e => { if (e.target === overlay) { overlay.remove(); resolve('cancel') } })
+    overlay.addEventListener('click', e => {
+      if (e.target === overlay) {
+        overlay.remove()
+        setTimeout(() => document.getElementById('input-largo')?.focus(), 50)
+        resolve('cancel')
+      }
+    })
     document.body.appendChild(overlay)
+    setTimeout(() => btnsEl.querySelector('button')?.focus(), 50)
   })
 }
 
@@ -100,6 +111,10 @@ function showPage(pageId) {
   if (pageId === 'analytics') loadAnalytics()
   if (pageId === 'agencias') loadAgenciasView()
   if (pageId === 'pending') loadPendingView()
+
+  if (pageId === 'new-quote') {
+    setTimeout(() => document.getElementById('input-largo')?.focus(), 80)
+  }
 }
 
 async function initApp() {
