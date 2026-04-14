@@ -90,7 +90,7 @@ export async function loadAnalytics() {
   }
 
   lastAnalyticsData = data
-  const { totals, porAgencia, porDia, porMes, topCps, pesoBuckets, precioMedioAgencia, comparativa } = data
+  const { totals, porAgencia, porDia, porMes, topCps, pesoBuckets, precioMedioAgencia, comparativa, comparativaDia, ultimos14, anteriores14 } = data
 
   const diffN = pct(comparativa.mes_actual_n, comparativa.mes_anterior_n)
   const diffI = pct(comparativa.mes_actual_ingresos, comparativa.mes_anterior_ingresos)
@@ -124,8 +124,8 @@ export async function loadAnalytics() {
       </div>
     </div>
 
-    <!-- Este mes vs anterior -->
-    <div class="grid grid-cols-2 gap-3">
+    <!-- Este mes vs anterior + Hoy vs Ayer -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
       <div class="card-surface rounded-2xl p-4 flex items-center gap-4">
         <span class="material-symbols-outlined text-3xl text-primary" style="opacity:0.7;">calendar_month</span>
         <div>
@@ -142,6 +142,35 @@ export async function loadAnalytics() {
           <p class="text-sm font-semibold text-on-surface-variant">${formatPrice(comparativa.mes_anterior_ingresos || 0)}</p>
         </div>
       </div>
+      <div class="card-surface rounded-2xl p-4 flex items-center gap-4">
+        <span class="material-symbols-outlined text-3xl" style="color:#f59e0b;opacity:0.85;">today</span>
+        <div>
+          <p class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant" style="opacity:0.5;">Hoy</p>
+          <p class="text-xl font-black">${(comparativaDia?.hoy_n || 0).toLocaleString('es-ES')} cotizaciones</p>
+          <p class="text-sm font-semibold" style="color:#15803d;">${formatPrice(comparativaDia?.hoy_ingresos || 0)}</p>
+          <p class="text-xs mt-0.5">${trendArrow(pct(comparativaDia?.hoy_n || 0, comparativaDia?.ayer_n || 0))} vs ayer</p>
+        </div>
+      </div>
+      <div class="card-surface rounded-2xl p-4 flex items-center gap-4">
+        <span class="material-symbols-outlined text-3xl text-on-surface-variant" style="opacity:0.35;">event</span>
+        <div>
+          <p class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant" style="opacity:0.5;">Ayer</p>
+          <p class="text-xl font-black">${(comparativaDia?.ayer_n || 0).toLocaleString('es-ES')} cotizaciones</p>
+          <p class="text-sm font-semibold text-on-surface-variant">${formatPrice(comparativaDia?.ayer_ingresos || 0)}</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart: comparativa día a día 14 días actuales vs 14 días anteriores -->
+    <div class="card-surface rounded-2xl p-5">
+      <div class="flex items-center justify-between mb-4">
+        <p class="text-xs font-bold uppercase tracking-widest" style="opacity:0.5;">Comparativa Día a Día — Últimas 2 semanas vs 2 semanas anteriores</p>
+        <div class="flex items-center gap-3 text-[10px] text-on-surface-variant">
+          <span class="flex items-center gap-1"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#0040e0;"></span>Período actual</span>
+          <span class="flex items-center gap-1"><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:rgba(0,64,224,0.25);"></span>Período anterior</span>
+        </div>
+      </div>
+      <div style="position:relative;height:220px;"><canvas id="chart-dia-comparativa"></canvas></div>
     </div>
 
     <!-- Charts row 1: actividad diaria + distribución por agencia -->
@@ -215,10 +244,10 @@ export async function loadAnalytics() {
   })
 
   // Wait a tick for DOM to be ready, then draw charts
-  requestAnimationFrame(() => renderCharts({ porDia, porMes, porAgencia, pesoBuckets, precioMedioAgencia, topCps }))
+  requestAnimationFrame(() => renderCharts({ porDia, porMes, porAgencia, pesoBuckets, precioMedioAgencia, topCps, ultimos14: ultimos14 || [], anteriores14: anteriores14 || [] }))
 }
 
-function renderCharts({ porDia, porMes, porAgencia, pesoBuckets, precioMedioAgencia, topCps }) {
+function renderCharts({ porDia, porMes, porAgencia, pesoBuckets, precioMedioAgencia, topCps, ultimos14, anteriores14 }) {
 
   const gridColor = 'rgba(196,197,217,0.12)'
   const tickColor = 'rgba(100,110,130,0.5)'
@@ -227,6 +256,64 @@ function renderCharts({ porDia, porMes, porAgencia, pesoBuckets, precioMedioAgen
   const baseScales = {
     x: { grid: { color: gridColor }, ticks: { color: tickColor, font: { family: fontFamily, size: 10 } } },
     y: { grid: { color: gridColor }, ticks: { color: tickColor, font: { family: fontFamily, size: 10 } } },
+  }
+
+  // ── Comparativa día a día: últimas 2 semanas vs 2 semanas anteriores ────────
+  if (document.getElementById('chart-dia-comparativa')) {
+    // Build a fixed 14-slot label array (Día 1 … Día 14)
+    const labels = Array.from({ length: 14 }, (_, i) => `Día ${i + 1}`)
+
+    // Map DB rows to array of 14 values (fill missing days with 0)
+    function buildSeries(rows) {
+      const out = new Array(14).fill(0)
+      rows.forEach((r, i) => { if (i < 14) out[i] = r.total })
+      return out
+    }
+
+    charts.diaComparativa = new Chart(document.getElementById('chart-dia-comparativa'), {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          {
+            label: 'Período anterior',
+            data: buildSeries(anteriores14),
+            backgroundColor: 'rgba(0,64,224,0.18)',
+            borderColor: 'rgba(0,64,224,0.4)',
+            borderWidth: 1,
+            borderRadius: 3,
+          },
+          {
+            label: 'Período actual',
+            data: buildSeries(ultimos14),
+            backgroundColor: 'rgba(0,64,224,0.75)',
+            borderColor: '#0040e0',
+            borderWidth: 0,
+            borderRadius: 4,
+          },
+        ],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            callbacks: {
+              title: (items) => {
+                const idx = items[0].dataIndex
+                const actual = ultimos14[idx]
+                const anterior = anteriores14[idx]
+                const labelActual = actual ? actual.dia.slice(5) : '—'
+                const labelAnterior = anterior ? anterior.dia.slice(5) : '—'
+                return `Actual: ${labelActual}  /  Anterior: ${labelAnterior}`
+              },
+            },
+          },
+        },
+        scales: baseScales,
+      },
+    })
   }
 
   // ── Daily activity (line) ───────────────────────────────────────────────────

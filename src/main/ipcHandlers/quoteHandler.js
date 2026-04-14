@@ -209,7 +209,34 @@ ipcMain.handle('get-analytics', () => {
     FROM cotizaciones
   `).get()
 
-  return { totals, porAgencia, porDia, porMes, topCps, pesoBuckets, precioMedioAgencia, comparativa }
+  // Today vs yesterday
+  const comparativaDia = db.prepare(`
+    SELECT
+      SUM(CASE WHEN date(fecha) = date('now') THEN 1 ELSE 0 END) as hoy_n,
+      SUM(CASE WHEN date(fecha) = date('now','-1 day') THEN 1 ELSE 0 END) as ayer_n,
+      COALESCE(SUM(CASE WHEN date(fecha) = date('now') THEN precio_final ELSE 0 END),0) as hoy_ingresos,
+      COALESCE(SUM(CASE WHEN date(fecha) = date('now','-1 day') THEN precio_final ELSE 0 END),0) as ayer_ingresos
+    FROM cotizaciones
+  `).get()
+
+  // Last 14 days detail for day-over-day chart (today + previous 13 days and the same 14 days before)
+  const ultimos14 = db.prepare(`
+    SELECT date(fecha) as dia, COUNT(*) as total, COALESCE(SUM(precio_final),0) as ingresos
+    FROM cotizaciones
+    WHERE fecha >= date('now','-13 days')
+    GROUP BY dia
+    ORDER BY dia ASC
+  `).all()
+
+  const anteriores14 = db.prepare(`
+    SELECT date(fecha) as dia, COUNT(*) as total, COALESCE(SUM(precio_final),0) as ingresos
+    FROM cotizaciones
+    WHERE fecha >= date('now','-27 days') AND fecha < date('now','-13 days')
+    GROUP BY dia
+    ORDER BY dia ASC
+  `).all()
+
+  return { totals, porAgencia, porDia, porMes, topCps, pesoBuckets, precioMedioAgencia, comparativa, comparativaDia, ultimos14, anteriores14 }
 })
 
 // ── XLSX export via save dialog ──────────────────────────────────────────────
