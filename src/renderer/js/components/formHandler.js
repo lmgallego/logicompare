@@ -5,6 +5,7 @@ let sortedAsc = true
 let sortAbortController = null
 let lastFormDatos = null
 let lastResultados = []
+let agenciaElegida = false
 
 // Extra package rows (beyond the first)
 let extraBultos = []
@@ -100,6 +101,7 @@ function addExtraBultoRow() {
 }
 
 export function getLastFormDatos() { return lastFormDatos ? { ...lastFormDatos, lastResultados } : null }
+export function wasAgenciaElegida() { return agenciaElegida }
 
 export function initFormHandler() {
   const form = document.getElementById('quote-form')
@@ -169,6 +171,7 @@ export function initFormHandler() {
     const bultos = getBultosFromForm()
     const primero = bultos[0]
 
+    agenciaElegida = false
     lastFormDatos = {
       largoCm: primero.largoCm,
       anchoCm: primero.anchoCm,
@@ -354,6 +357,7 @@ function renderCarrierCards(resultados, container, sortedAsc) {
           const ok = confirm('⚠️ GLS no admite largos superiores a 110 cm.\nEsta expedición puede ser rechazada.\n\n¿Deseas elegir GLS de todas formas?')
           if (!ok) return
         }
+        agenciaElegida = true
         elegirBtn.disabled = true
         elegirBtn.textContent = '✓ Elegido'
         elegirBtn.classList.remove('btn-primary')

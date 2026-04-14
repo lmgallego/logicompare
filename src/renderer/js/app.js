@@ -1,5 +1,5 @@
 import { initSidebar } from './components/sidebar.js'
-import { initFormHandler, getLastFormDatos } from './components/formHandler.js'
+import { initFormHandler, getLastFormDatos, wasAgenciaElegida } from './components/formHandler.js'
 import { loadHistory, initHistoryControls } from './components/historyView.js'
 import { loadAgencies, initAgencyModal } from './components/databaseView.js'
 import { initDevidosView } from './components/devidosView.js'
@@ -183,7 +183,7 @@ async function initApp() {
         // If results are visible and no agency was chosen, warn the user
         const resultsList = document.getElementById('results-list')
         const hasResults = resultsList && !resultsList.classList.contains('hidden')
-        if (hasResults) {
+        if (hasResults && !wasAgenciaElegida()) {
           const action = await showConfirmModal({
             title: '⚠️ No has seleccionado ninguna agencia',
             message: '¿Qué quieres hacer con las medidas actuales antes de empezar un nuevo registro?',
