@@ -1,4 +1,5 @@
 import { formatPrice, formatDate, formatDimensions, formatVolume } from '../utils/formatters.js'
+import { confirmModal, alertModal, showFormModal } from '../utils/modals.js'
 
 let currentRows = []
 let pendingExportFormat = null  // 'excel' | 'pdf'
@@ -62,23 +63,96 @@ function renderTable(tbody, colCount) {
       + '<td class="px-4 py-3 text-right"><span class="text-sm font-black text-primary">' + formatPrice(row.precio_final) + '</span></td>'
       + '<td class="px-4 py-3 text-right"><span class="text-sm font-bold" style="color:#15803d;">' + formatPrice(redondeado) + '</span></td>'
       + '<td class="px-3 py-3 text-center">'
+      + '<div class="flex items-center justify-center gap-1">'
+      + '<button class="btn-edit-row w-7 h-7 flex items-center justify-center rounded-lg transition-colors hover:bg-blue-100" title="Editar esta fila" data-row-id="' + row.id + '">'
+      + '<span class="material-symbols-outlined" style="font-size:15px; color:#0040e0;">edit</span>'
+      + '</button>'
       + '<button class="btn-delete-row w-7 h-7 flex items-center justify-center rounded-lg transition-colors hover:bg-red-100" title="Borrar esta fila" data-row-id="' + row.id + '">'
       + '<span class="material-symbols-outlined" style="font-size:15px; color:#ba1a1a;">delete</span>'
-      + '</button></td>'
+      + '</button>'
+      + '</div></td>'
 
     tbody.appendChild(tr)
 
     tr.querySelector('.btn-delete-row').addEventListener('click', async () => {
-      if (!confirm('¿Borrar esta cotización (' + formatDate(row.fecha) + ' · ' + (row.agencia_nombre || '—') + ')?\nUna vez borrada no aparecerá en las exportaciones.')) return
+      const ok = await confirmModal(
+        '¿Borrar esta cotización (' + formatDate(row.fecha) + ' · ' + (row.agencia_nombre || '—') + ')?\nUna vez borrada no aparecerá en las exportaciones.',
+        'Borrar cotización'
+      )
+      if (!ok) return
       try {
         await window.api.invoke('delete-quote-by-id', { id: row.id })
         currentRows = currentRows.filter(r => r.id !== row.id)
         renderTable(tbody, colCount)
       } catch (err) {
-        alert('Error al borrar: ' + err.message)
+        alertModal('Error al borrar: ' + err.message, 'Error')
       }
     })
+
+    tr.querySelector('.btn-edit-row').addEventListener('click', async () => {
+      await openEditModal(row, tbody, colCount)
+    })
   })
+}
+
+async function getAgenciesOptions() {
+  try {
+    const list = await window.api.invoke('get-agencies-simple')
+    return [
+      { value: '', label: '— Sin agencia —' },
+      ...list.map(a => ({ value: String(a.id), label: a.nombre }))
+    ]
+  } catch (_) {
+    return [{ value: '', label: '— Sin agencia —' }]
+  }
+}
+
+async function openEditModal(row, tbody, colCount) {
+  const agencyOptions = await getAgenciesOptions()
+  // ISO date slice for date picker (fecha stored as 'YYYY-MM-DD HH:MM:SS')
+  const fechaDate = (row.fecha || '').slice(0, 10)
+
+  const result = await showFormModal({
+    title: 'Editar cotización',
+    subtitle: 'Modifica los datos y pulsa Guardar',
+    submitLabel: 'Guardar cambios',
+    fields: [
+      { name: 'fecha',         label: 'Fecha',           type: 'date',   value: fechaDate, required: true },
+      { name: 'largoCm',       label: 'Largo (cm)',      type: 'number', value: row.largo_cm, step: '0.1', min: 0, required: true },
+      { name: 'anchoCm',       label: 'Ancho (cm)',      type: 'number', value: row.ancho_cm, step: '0.1', min: 0, required: true },
+      { name: 'altoCm',        label: 'Alto (cm)',       type: 'number', value: row.alto_cm,  step: '0.1', min: 0, required: true },
+      { name: 'cpPrefix',      label: 'CP (2 dígitos)',  type: 'text',   value: row.cp_prefix, required: true },
+      { name: 'peso',          label: 'Peso (kg)',       type: 'number', value: row.peso ?? 0, step: '0.01', min: 0 },
+      { name: 'metrosCubicos', label: 'Metros cúbicos',  type: 'number', value: row.metros_cubicos ?? 0, step: '0.000001', min: 0 },
+      { name: 'agenciaId',     label: 'Agencia',         type: 'select', value: row.agencia_id ? String(row.agencia_id) : '', options: agencyOptions },
+      { name: 'precioFinal',   label: 'Precio final (€)', type: 'number', value: row.precio_final ?? 0, step: '0.01', min: 0, required: true },
+    ],
+  })
+
+  if (!result) return
+
+  try {
+    const res = await window.api.invoke('update-quote', {
+      id: row.id,
+      fecha: result.fecha ? (result.fecha + ' ' + ((row.fecha || '').slice(11, 19) || '12:00:00')) : null,
+      largoCm: parseFloat(result.largoCm),
+      anchoCm: parseFloat(result.anchoCm),
+      altoCm:  parseFloat(result.altoCm),
+      cpPrefix: String(result.cpPrefix).trim().padStart(2, '0').slice(0, 2),
+      peso: parseFloat(result.peso) || 0,
+      metrosCubicos: parseFloat(result.metrosCubicos) || 0,
+      agenciaId: result.agenciaId ? parseInt(result.agenciaId) : null,
+      precioFinal: parseFloat(result.precioFinal),
+    })
+    if (!res.ok) throw new Error(res.error || 'No se pudo actualizar')
+    // Reload current filters
+    const desde = document.getElementById('history-desde')?.value || null
+    const hasta = document.getElementById('history-hasta')?.value || null
+    const agenciaId = document.getElementById('history-agencia')?.value || null
+    await loadHistory(desde, hasta, agenciaId)
+  } catch (err) {
+    alertModal('Error al actualizar: ' + err.message, 'Error')
+  }
 }
 
 export async function initHistoryControls() {
@@ -149,19 +223,20 @@ export async function initHistoryControls() {
     const rango = f.desde || f.hasta
       ? 'entre ' + (f.desde || '…') + ' y ' + (f.hasta || '…')
       : 'TODO el historial'
-    if (!confirm('¿Borrar cotizaciones ' + rango + '? Esta acción no se puede deshacer.')) return
+    const ok = await confirmModal('¿Borrar cotizaciones ' + rango + '?\nEsta acción no se puede deshacer.', 'Borrar cotizaciones')
+    if (!ok) return
     try {
       const res = await window.api.invoke('delete-history', { desde: f.desde, hasta: f.hasta })
-      alert(res.deleted + ' cotización(es) eliminada(s).')
+      await alertModal(res.deleted + ' cotización(es) eliminada(s).', 'Hecho')
       loadHistory(f.desde, f.hasta, f.agenciaId)
     } catch (err) {
-      alert('Error al borrar: ' + err.message)
+      alertModal('Error al borrar: ' + err.message, 'Error')
     }
   })
 }
 
 function openExportModal(format) {
-  if (!currentRows.length) { alert('No hay datos para exportar.'); return }
+  if (!currentRows.length) { alertModal('No hay datos para exportar.', 'Aviso'); return }
   pendingExportFormat = format
   const title = document.getElementById('modal-export-title')
   if (title) title.textContent = format === 'excel' ? 'Exportar a Excel' : 'Exportar a PDF'
