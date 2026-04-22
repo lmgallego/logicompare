@@ -106,6 +106,54 @@ ipcMain.handle('delete-quote-by-id', (event, { id }) => {
   return { deleted: result.changes }
 })
 
+ipcMain.handle('update-quote', (event, { id, fecha, largoCm, anchoCm, altoCm, cpPrefix, metrosCubicos, peso, agenciaId, precioFinal }) => {
+  try {
+    const precioRedondeado = redondear5(precioFinal)
+    const db = getDb()
+    // Only update fecha if provided (YYYY-MM-DD or full datetime)
+    if (fecha) {
+      db.prepare(`
+        UPDATE cotizaciones
+           SET fecha = ?, largo_cm = ?, ancho_cm = ?, alto_cm = ?, cp_prefix = ?,
+               metros_cubicos = ?, peso = ?, agencia_id = ?, precio_final = ?, precio_redondeado = ?
+         WHERE id = ?
+      `).run(fecha, largoCm, anchoCm, altoCm, cpPrefix, metrosCubicos || 0, peso || 0, agenciaId, precioFinal, precioRedondeado, id)
+    } else {
+      db.prepare(`
+        UPDATE cotizaciones
+           SET largo_cm = ?, ancho_cm = ?, alto_cm = ?, cp_prefix = ?,
+               metros_cubicos = ?, peso = ?, agencia_id = ?, precio_final = ?, precio_redondeado = ?
+         WHERE id = ?
+      `).run(largoCm, anchoCm, altoCm, cpPrefix, metrosCubicos || 0, peso || 0, agenciaId, precioFinal, precioRedondeado, id)
+    }
+    return { ok: true }
+  } catch (e) {
+    return { ok: false, error: e.message }
+  }
+})
+
+// Save a manually-entered quote (with specific fecha)
+ipcMain.handle('save-quote-manual', (event, { fecha, largoCm, anchoCm, altoCm, cpPrefix, metrosCubicos, peso, agenciaId, precioFinal }) => {
+  try {
+    const precioRedondeado = redondear5(precioFinal)
+    const db = getDb()
+    if (fecha) {
+      db.prepare(`
+        INSERT INTO cotizaciones (fecha, largo_cm, ancho_cm, alto_cm, cp_prefix, metros_cubicos, peso, agencia_id, precio_final, precio_redondeado)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(fecha, largoCm, anchoCm, altoCm, cpPrefix, metrosCubicos || 0, peso || 0, agenciaId, precioFinal, precioRedondeado)
+    } else {
+      db.prepare(`
+        INSERT INTO cotizaciones (largo_cm, ancho_cm, alto_cm, cp_prefix, metros_cubicos, peso, agencia_id, precio_final, precio_redondeado)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(largoCm, anchoCm, altoCm, cpPrefix, metrosCubicos || 0, peso || 0, agenciaId, precioFinal, precioRedondeado)
+    }
+    return { ok: true }
+  } catch (e) {
+    return { ok: false, error: e.message }
+  }
+})
+
 ipcMain.handle('delete-history', (event, { desde, hasta } = {}) => {
   let sql = 'DELETE FROM cotizaciones'
   const params = []

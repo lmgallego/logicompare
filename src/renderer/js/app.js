@@ -7,6 +7,7 @@ import { loadAnalytics } from './components/analyticsView.js'
 import { initAgenciasView, loadAgenciasView } from './components/agenciasView.js'
 import { initSupportView } from './components/supportView.js'
 import { loadPendingView, updatePendingBadge } from './components/pendingView.js'
+import { showConfirmModal, showFormModal, alertModal } from './utils/modals.js'
 
 const PAGES = ['new-quote', 'pending', 'debidos', 'history', 'agencias', 'analytics', 'database', 'support']
 let currentPage = 'new-quote'
@@ -34,53 +35,6 @@ function showToast(msg, type = 'info') {
     toast.style.opacity = '0'
     setTimeout(() => toast.remove(), 300)
   }, 3800)
-}
-
-function showConfirmModal({ title, message, buttons }) {
-  return new Promise(resolve => {
-    const overlay = document.createElement('div')
-    overlay.style.cssText = `
-      position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:10000;
-      display:flex;align-items:center;justify-content:center;
-    `
-    const box = document.createElement('div')
-    box.style.cssText = `
-      background:var(--color-surface,#1e1e2e);color:var(--color-on-surface,#e0e0ff);
-      border-radius:16px;padding:28px 32px;max-width:420px;width:90%;
-      box-shadow:0 8px 32px rgba(0,0,0,0.5);
-    `
-    box.innerHTML = `
-      <p style="font-size:15px;font-weight:700;margin:0 0 8px 0;">${title}</p>
-      <p style="font-size:13px;opacity:0.7;margin:0 0 24px 0;">${message}</p>
-      <div id="modal-btns" style="display:flex;flex-direction:column;gap:8px;"></div>
-    `
-    const btnsEl = box.querySelector('#modal-btns')
-    buttons.forEach(({ label, style, value }) => {
-      const btn = document.createElement('button')
-      btn.textContent = label
-      btn.style.cssText = `
-        padding:10px 16px;border-radius:10px;font-size:13px;font-weight:600;
-        cursor:pointer;border:none;width:100%;text-align:left;
-        ${style}
-      `
-      btn.addEventListener('click', () => {
-        overlay.remove()
-        setTimeout(() => document.getElementById('input-largo')?.focus(), 50)
-        resolve(value)
-      })
-      btnsEl.appendChild(btn)
-    })
-    overlay.appendChild(box)
-    overlay.addEventListener('click', e => {
-      if (e.target === overlay) {
-        overlay.remove()
-        setTimeout(() => document.getElementById('input-largo')?.focus(), 50)
-        resolve('cancel')
-      }
-    })
-    document.body.appendChild(overlay)
-    setTimeout(() => btnsEl.querySelector('button')?.focus(), 50)
-  })
 }
 
 function showPage(pageId) {
@@ -131,6 +85,58 @@ async function initApp() {
     const hasta = document.getElementById('history-hasta')?.value || null
     const agenciaId = document.getElementById('history-agencia')?.value || null
     loadHistory(desde, hasta, agenciaId)
+  })
+
+  document.getElementById('btn-add-manual')?.addEventListener('click', async () => {
+    let agencyOptions = [{ value: '', label: '— Sin agencia —' }]
+    try {
+      const list = await window.api.invoke('get-agencies-simple')
+      agencyOptions = agencyOptions.concat(list.map(a => ({ value: String(a.id), label: a.nombre })))
+    } catch (_) {}
+
+    const today = new Date().toISOString().slice(0, 10)
+    // Prefill from current form if the user already typed something
+    const largoEl = document.getElementById('input-largo')
+    const anchoEl = document.getElementById('input-ancho')
+    const altoEl  = document.getElementById('input-alto')
+    const cpEl    = document.getElementById('input-cp')
+
+    const result = await showFormModal({
+      title: 'Añadir cotización manual',
+      subtitle: 'Crea un registro directamente en el historial sin calcular tarifas',
+      submitLabel: 'Guardar en historial',
+      fields: [
+        { name: 'fecha',         label: 'Fecha',           type: 'date',   value: today, required: true },
+        { name: 'largoCm',       label: 'Largo (cm)',      type: 'number', value: largoEl?.value || '', step: '0.1', min: 0, required: true },
+        { name: 'anchoCm',       label: 'Ancho (cm)',      type: 'number', value: anchoEl?.value || '', step: '0.1', min: 0, required: true },
+        { name: 'altoCm',        label: 'Alto (cm)',       type: 'number', value: altoEl?.value || '',  step: '0.1', min: 0, required: true },
+        { name: 'cpPrefix',      label: 'CP (2 dígitos)',  type: 'text',   value: cpEl?.value || '', required: true },
+        { name: 'peso',          label: 'Peso (kg)',       type: 'number', value: '', step: '0.01', min: 0 },
+        { name: 'metrosCubicos', label: 'Metros cúbicos',  type: 'number', value: '', step: '0.000001', min: 0 },
+        { name: 'agenciaId',     label: 'Agencia',         type: 'select', value: '', options: agencyOptions },
+        { name: 'precioFinal',   label: 'Precio final (€)', type: 'number', value: '', step: '0.01', min: 0, required: true },
+      ],
+    })
+
+    if (!result) return
+
+    try {
+      const res = await window.api.invoke('save-quote-manual', {
+        fecha: result.fecha ? (result.fecha + ' 12:00:00') : null,
+        largoCm: parseFloat(result.largoCm),
+        anchoCm: parseFloat(result.anchoCm),
+        altoCm:  parseFloat(result.altoCm),
+        cpPrefix: String(result.cpPrefix).trim().padStart(2, '0').slice(0, 2),
+        peso: parseFloat(result.peso) || 0,
+        metrosCubicos: parseFloat(result.metrosCubicos) || 0,
+        agenciaId: result.agenciaId ? parseInt(result.agenciaId) : null,
+        precioFinal: parseFloat(result.precioFinal),
+      })
+      if (!res.ok) throw new Error(res.error || 'No se pudo guardar')
+      showToast('✓ Cotización manual guardada en el historial', 'success')
+    } catch (err) {
+      alertModal('Error al guardar: ' + err.message, 'Error')
+    }
   })
 
   document.getElementById('btn-minimize')?.addEventListener('click', () => {

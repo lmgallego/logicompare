@@ -146,6 +146,10 @@
                 <span id="quotes-badge" class="hidden bg-primary/10 text-primary text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-tighter"></span>
               </div>
               <div class="flex gap-1.5">
+                <button class="btn-secondary flex items-center gap-1.5 text-xs px-3 py-1.5" id="btn-add-manual" title="Añadir una cotización a mano al historial">
+                  <span class="material-symbols-outlined" style="font-size:15px;">add_circle</span>
+                  Añadir manual
+                </button>
                 <button class="p-2 bg-surface-container-highest rounded text-on-surface-variant hover:bg-surface-container-high transition-colors" id="btn-sort-price" title="Ordenar por precio">
                   <span class="material-symbols-outlined" style="font-size:16px;">sort</span>
                 </button>
@@ -471,11 +475,26 @@
           <div class="card-surface rounded-2xl p-5 space-y-5">
             <p class="text-xs font-bold uppercase tracking-widest text-on-surface-variant" style="opacity:0.5;">Historial de Versiones</p>
 
+            <!-- v1.1.2 -->
+            <div class="space-y-2">
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-black text-primary">v1.1.2</span>
+                <span class="bg-primary/10 text-primary text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-tight">Actual</span>
+                <span class="text-xs text-on-surface-variant" style="opacity:0.45;">Abril 2026</span>
+              </div>
+              <ul class="space-y-1.5 text-xs text-on-surface-variant" style="padding-left:1rem;">
+                <li style="list-style:disc;"><strong class="text-on-surface">Editar registros del historial</strong> — nuevo icono de lápiz en cada fila que abre un formulario con todos los campos (fecha, medidas, CP, peso, m³, agencia y precio) para modificar registros existentes.</li>
+                <li style="list-style:disc;"><strong class="text-on-surface">Añadir cotización manual</strong> — nuevo botón en Pagados para crear un registro directamente en el historial sin calcular tarifas, útil para introducir portes antiguos o datos externos.</li>
+                <li style="list-style:disc;"><strong class="text-on-surface">Fix foco tras borrar del historial</strong> — ya no es necesario reiniciar la app para poder volver a escribir; los diálogos de confirmación se han reemplazado por modales internos que conservan el foco del teclado.</li>
+              </ul>
+            </div>
+
+            <div style="border-top:1px solid rgba(196,197,217,0.15);"></div>
+
             <!-- v1.1.1 -->
             <div class="space-y-2">
               <div class="flex items-center gap-2">
-                <span class="text-sm font-black text-primary">v1.1.1</span>
-                <span class="bg-primary/10 text-primary text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-tight">Actual</span>
+                <span class="text-sm font-black text-on-surface-variant" style="opacity:0.7;">v1.1.1</span>
                 <span class="text-xs text-on-surface-variant" style="opacity:0.45;">Abril 2026</span>
               </div>
               <ul class="space-y-1.5 text-xs text-on-surface-variant" style="padding-left:1rem;">
