@@ -51,6 +51,31 @@ export function initParachoquesView() {
   document.addEventListener('click', (e) => {
     if (!suggest.contains(e.target) && e.target !== refEl) hideSuggest()
   })
+
+  // Ctrl+N — limpiar para mirar una nueva referencia (solo en la página Parachoques)
+  document.addEventListener('keydown', (e) => {
+    if (!(e.ctrlKey || e.metaKey)) return
+    if (e.key.toLowerCase() !== 'n') return
+    const activePage = document.querySelector('.page.active')
+    if (!activePage || activePage.id !== 'page-parachoques') return
+    e.preventDefault()
+    resetParachoquesForm()
+  })
+}
+
+function resetParachoquesForm() {
+  const refEl    = document.getElementById('parachoques-ref')
+  const cpEl     = document.getElementById('parachoques-cp')
+  const results  = document.getElementById('parachoques-results')
+  const empty    = document.getElementById('parachoques-empty')
+  const info     = document.getElementById('parachoques-info')
+  if (refEl) refEl.value = ''
+  if (cpEl)  cpEl.value  = ''
+  if (results) { results.innerHTML = ''; results.classList.add('hidden') }
+  if (empty)   empty.classList.remove('hidden')
+  if (info)    info.classList.add('hidden')
+  hideSuggest()
+  setTimeout(() => refEl?.focus(), 30)
 }
 
 export async function loadParachoquesView() {

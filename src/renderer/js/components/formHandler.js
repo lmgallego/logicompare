@@ -1,5 +1,6 @@
 import { formatPrice, formatWeight, formatVolume } from '../utils/formatters.js'
 import { getSelectedAgenciaIds } from './agenciasView.js'
+import { confirmModal } from '../utils/modals.js'
 
 let sortedAsc = true
 let sortAbortController = null
@@ -293,10 +294,24 @@ function renderCarrierCards(resultados, container, sortedAsc) {
 
     // GLS largo > 110 warning (use maxLargoCm from multi-bulto result)
     const maxLargo = r.maxLargoCm ?? (lastFormDatos?.largoCm ?? 0)
-    const glsOversize = r.agencia.nombre?.toLowerCase().includes('gls') && maxLargo > 110
-    const oversizeHtml = glsOversize
-      ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tight" style="background:rgba(186,26,26,0.1); color:#ba1a1a;"><span class="material-symbols-outlined" style="font-size:10px;">warning</span>Largo &gt;110cm — No elegible GLS</span>`
-      : ''
+    const maxSumaDim = r.maxSumaDimCm ?? ((lastFormDatos?.largoCm ?? 0) + (lastFormDatos?.anchoCm ?? 0) + (lastFormDatos?.altoCm ?? 0))
+    const agenciaNombreLower = r.agencia.nombre?.toLowerCase() || ''
+    const glsOversize = agenciaNombreLower.includes('gls') && maxLargo > 110
+
+    // Seur: mercancía fuera de norma si largo > 175 o largo+ancho+alto > 300
+    const seurLargoFuera = maxLargo > 175
+    const seurSumaFuera  = maxSumaDim > 300
+    const seurFueraNorma = agenciaNombreLower.includes('seur') && (seurLargoFuera || seurSumaFuera)
+
+    let oversizeHtml = ''
+    if (glsOversize) {
+      oversizeHtml = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tight" style="background:rgba(186,26,26,0.1); color:#ba1a1a;"><span class="material-symbols-outlined" style="font-size:10px;">warning</span>Largo &gt;110cm — No elegible GLS</span>`
+    } else if (seurFueraNorma) {
+      const motivos = []
+      if (seurLargoFuera) motivos.push(`largo ${maxLargo}cm &gt; 175`)
+      if (seurSumaFuera)  motivos.push(`L+A+H ${maxSumaDim}cm &gt; 300`)
+      oversizeHtml = `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tight" style="background:rgba(186,26,26,0.1); color:#ba1a1a;" title="${motivos.join(' · ').replace(/&gt;/g, '>')}"><span class="material-symbols-outlined" style="font-size:10px;">warning</span>Mercancía fuera de norma</span>`
+    }
 
     const shortcut = getShortcutForAgency(r.agencia.nombre)
     const shortcutHtml = shortcut
@@ -354,7 +369,21 @@ function renderCarrierCards(resultados, container, sortedAsc) {
       const elegirBtn = card.querySelector('[data-agency-id]')
       elegirBtn?.addEventListener('click', async () => {
         if (glsOversize) {
-          const ok = confirm('⚠️ GLS no admite largos superiores a 110 cm.\nEsta expedición puede ser rechazada.\n\n¿Deseas elegir GLS de todas formas?')
+          const ok = await confirmModal(
+            'GLS no admite largos superiores a 110 cm.\nEsta expedición puede ser rechazada.\n\n¿Deseas elegir GLS de todas formas?',
+            '⚠️ Largo fuera de norma GLS'
+          )
+          if (!ok) return
+        }
+        if (seurFueraNorma) {
+          const motivos = []
+          if (seurLargoFuera) motivos.push(`• Largo ${maxLargo} cm (máx. 175)`)
+          if (seurSumaFuera)  motivos.push(`• Suma L+A+H ${maxSumaDim} cm (máx. 300)`)
+          const ok = await confirmModal(
+            'Seur no admite esta mercancía por:\n' + motivos.join('\n') +
+            '\n\nEsta expedición puede ser rechazada. ¿Elegir Seur de todas formas?',
+            '⚠️ Mercancía fuera de norma Seur'
+          )
           if (!ok) return
         }
         agenciaElegida = true

@@ -227,7 +227,7 @@
               <div class="col-span-12 md:col-span-6 space-y-1.5" style="position:relative;">
                 <label class="label-stencil block">Referencia</label>
                 <input id="parachoques-ref" class="input-field" type="text" placeholder="p. ej. 5Q0807221" autocomplete="off" required />
-                <div id="parachoques-suggest" class="hidden absolute left-0 right-0 z-20 mt-1 rounded-lg overflow-hidden" style="background:var(--color-surface,#1e1e2e);border:1px solid rgba(196,197,217,0.25);box-shadow:0 8px 24px rgba(0,0,0,0.3);max-height:240px;overflow-y:auto;top:100%;"></div>
+                <div id="parachoques-suggest" class="hidden absolute left-0 right-0 z-20 mt-1 rounded-lg overflow-hidden" style="background:#ffffff;color:#171c1f;border:1px solid rgba(23,28,31,0.12);box-shadow:0 10px 28px rgba(15,23,42,0.18);max-height:240px;overflow-y:auto;top:100%;"></div>
               </div>
               <div class="col-span-6 md:col-span-3 space-y-1.5">
                 <label class="label-stencil block">CP (2 dígitos)</label>
@@ -585,11 +585,28 @@
           <div class="card-surface rounded-2xl p-5 space-y-5">
             <p class="text-xs font-bold uppercase tracking-widest text-on-surface-variant" style="opacity:0.5;">Historial de Versiones</p>
 
+            <!-- v1.1.4 -->
+            <div class="space-y-2">
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-black text-primary">v1.1.4</span>
+                <span class="bg-primary/10 text-primary text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-tight">Actual</span>
+                <span class="text-xs text-on-surface-variant" style="opacity:0.45;">Abril 2026</span>
+              </div>
+              <ul class="space-y-1.5 text-xs text-on-surface-variant" style="padding-left:1rem;">
+                <li style="list-style:disc;"><strong class="text-on-surface">Parachoques — filtros automáticos</strong> — DHL nunca se muestra en el listado de Parachoques y GLS solo aparece si el largo es ≤ 110 cm. El resto de agencias se listan con normalidad.</li>
+                <li style="list-style:disc;"><strong class="text-on-surface">Seur · Mercancía fuera de norma</strong> — en Pagados/Cargar Portes se muestra el aviso "Mercancía fuera de norma" cuando el largo supera 175 cm o la suma L+A+H supera 300 cm. Al elegir Seur en ese caso aparece un diálogo de confirmación, igual que con GLS &gt; 110.</li>
+                <li style="list-style:disc;"><strong class="text-on-surface">Volumen automático</strong> — en los modales de "Añadir manual" (Pagados) y edición del histórico, los metros cúbicos se recalculan en vivo a partir de largo × ancho × alto. El campo m³ pasa a ser de solo lectura para evitar incoherencias.</li>
+                <li style="list-style:disc;"><strong class="text-on-surface">Ctrl+N en Parachoques</strong> — ahora limpia el formulario y resultados sin salir de la página (antes enviaba a Cargar Portes). Cada menú gestiona Ctrl+N de forma independiente.</li>
+                <li style="list-style:disc;"><strong class="text-on-surface">Fix visual buscador Parachoques</strong> — el desplegable de autocompletado de referencias se mostraba con texto ilegible en tema claro; ahora usa fondo blanco y texto oscuro con la marca destacada en negrita.</li>
+              </ul>
+            </div>
+
+            <div style="border-top:1px solid rgba(196,197,217,0.15);"></div>
+
             <!-- v1.1.3 -->
             <div class="space-y-2">
               <div class="flex items-center gap-2">
-                <span class="text-sm font-black text-primary">v1.1.3</span>
-                <span class="bg-primary/10 text-primary text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-tight">Actual</span>
+                <span class="text-sm font-black text-on-surface-variant" style="opacity:0.7;">v1.1.3</span>
                 <span class="text-xs text-on-surface-variant" style="opacity:0.45;">Abril 2026</span>
               </div>
               <ul class="space-y-1.5 text-xs text-on-surface-variant" style="padding-left:1rem;">
