@@ -188,6 +188,21 @@ async function initApp() {
         const debExtra = document.getElementById('deb-extra-bultos-container')
         if (debExtra) debExtra.innerHTML = ''
         document.getElementById('debidos-bultos-badge')?.classList.add('hidden')
+      } else if (currentPage === 'parachoques') {
+        // Limpiar formulario de parachoques sin salir de la página
+        const refEl    = document.getElementById('parachoques-ref')
+        const cpEl     = document.getElementById('parachoques-cp')
+        const results  = document.getElementById('parachoques-results')
+        const empty    = document.getElementById('parachoques-empty')
+        const info     = document.getElementById('parachoques-info')
+        const suggest  = document.getElementById('parachoques-suggest')
+        if (refEl) refEl.value = ''
+        if (cpEl)  cpEl.value  = ''
+        if (results) { results.innerHTML = ''; results.classList.add('hidden') }
+        if (empty)   empty.classList.remove('hidden')
+        if (info)    info.classList.add('hidden')
+        if (suggest) { suggest.innerHTML = ''; suggest.classList.add('hidden') }
+        setTimeout(() => refEl?.focus(), 30)
       } else {
         // If results are visible and no agency was chosen, warn the user
         const resultsList = document.getElementById('results-list')
