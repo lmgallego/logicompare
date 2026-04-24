@@ -163,6 +163,8 @@ function calcularTarifas({ largoCm, anchoCm, altoCm, cpPrefix, agenciaIds, bulto
 
   // Para compatibilidad con lógica de oversize (GLS largo > 110), exponer el max largo
   const maxLargoCm = Math.max(...listaBultos.map(b => b.largoCm || 0))
+  // Para la norma Seur (largo+ancho+alto ≤ 300), exponer la suma máxima de dimensiones
+  const maxSumaDimCm = Math.max(...listaBultos.map(b => (b.largoCm || 0) + (b.anchoCm || 0) + (b.altoCm || 0)))
 
   let agencias = getActive()
   if (agenciaIds && agenciaIds.length > 0) {
@@ -189,7 +191,7 @@ function calcularTarifas({ largoCm, anchoCm, altoCm, cpPrefix, agenciaIds, bulto
     if (multiZonas.length > 0) {
       for (const mZona of multiZonas) {
         const res = calcularPrecioBultos(agencia, mZona, listaBultos)
-        resultados.push({ agencia, zona: mZona, ...res, numeroBultos: listaBultos.length, maxLargoCm })
+        resultados.push({ agencia, zona: mZona, ...res, numeroBultos: listaBultos.length, maxLargoCm, maxSumaDimCm })
       }
       continue
     }
@@ -200,13 +202,13 @@ function calcularTarifas({ largoCm, anchoCm, altoCm, cpPrefix, agenciaIds, bulto
         metrosCubicos: 0, peso: 0,
         precioBase: null, precioFinal: null, desglose: [],
         error: 'Sin cobertura para este CP',
-        numeroBultos: listaBultos.length, maxLargoCm,
+        numeroBultos: listaBultos.length, maxLargoCm, maxSumaDimCm,
       })
       continue
     }
 
     const res = calcularPrecioBultos(agencia, zona, listaBultos)
-    resultados.push({ agencia, zona, ...res, numeroBultos: listaBultos.length, maxLargoCm })
+    resultados.push({ agencia, zona, ...res, numeroBultos: listaBultos.length, maxLargoCm, maxSumaDimCm })
   }
 
   resultados.sort((a, b) => {

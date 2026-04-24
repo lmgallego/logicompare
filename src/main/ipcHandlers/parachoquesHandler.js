@@ -201,11 +201,21 @@ ipcMain.handle('calcular-parachoques', (event, { referencia, cpPrefix }) => {
     bultos: [{ largoCm: row.largo_cm, anchoCm: row.ancho_cm, altoCm: row.alto_cm }],
   })
 
+  // Reglas específicas de parachoques:
+  //   - DHL nunca debe aparecer
+  //   - GLS solo aparece si el largo ≤ 110 cm
+  const filtrados = resultados.filter(r => {
+    const nombre = (r.agencia?.nombre || '').toLowerCase()
+    if (nombre.includes('dhl')) return false
+    if (nombre.includes('gls') && row.largo_cm > 110) return false
+    return true
+  })
+
   return {
     ok: true,
     parachoque: row,
     cpPrefix: cp,
-    resultados,
+    resultados: filtrados,
   }
 })
 

@@ -145,6 +145,34 @@ export function showFormModal({ title, subtitle, fields, submitLabel = 'Guardar'
 
     const form = box.querySelector('#modal-form')
 
+    // Auto-cálculo de metros cúbicos si el formulario tiene largoCm/anchoCm/altoCm y metrosCubicos
+    const dimNames = ['largoCm', 'anchoCm', 'altoCm']
+    const m3El = form.elements.namedItem('metrosCubicos')
+    const dimEls = dimNames.map(n => form.elements.namedItem(n)).filter(Boolean)
+    if (m3El && dimEls.length === 3) {
+      // Hacer el campo m³ de solo lectura visualmente y dejar claro que se calcula solo
+      m3El.readOnly = true
+      m3El.style.opacity = '0.75'
+      m3El.style.cursor = 'not-allowed'
+      m3El.title = 'Se calcula automáticamente a partir de largo × ancho × alto'
+
+      const recompute = () => {
+        const l = parseFloat(dimEls[0].value) || 0
+        const a = parseFloat(dimEls[1].value) || 0
+        const h = parseFloat(dimEls[2].value) || 0
+        if (l > 0 && a > 0 && h > 0) {
+          const m3 = Math.round(l * a * h * 0.000001 * 1000000) / 1000000
+          m3El.value = m3
+        } else {
+          m3El.value = ''
+        }
+      }
+
+      dimEls.forEach(el => el.addEventListener('input', recompute))
+      // Recompute at open so edits to existing rows show an up-to-date value
+      recompute()
+    }
+
     function close(result) {
       overlay.remove()
       restoreFocus()
