@@ -177,6 +177,18 @@ function runMigrations(db) {
     )
   `)
 
+  // Tabla para medidas de parachoques por referencia
+  // referencia es PK (único), medidas en cm (enteras, ya con el +5 aplicado en import)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS parachoques (
+      referencia    TEXT PRIMARY KEY,
+      largo_cm      INTEGER NOT NULL,
+      ancho_cm      INTEGER NOT NULL,
+      alto_cm       INTEGER NOT NULL,
+      actualizado   TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `)
+
   seedProvincias(db)
 }
 

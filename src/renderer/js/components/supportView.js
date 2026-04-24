@@ -1,4 +1,5 @@
 import { formatPrice, formatDate } from '../utils/formatters.js'
+import { confirmModal, alertModal } from '../utils/modals.js'
 
 let mergedRows = null
 
@@ -14,9 +15,25 @@ export function initSupportView() {
   })
 
   document.getElementById('btn-import-db')?.addEventListener('click', async () => {
-    if (!confirm('¿Seguro? Esto reemplazará la base de datos actual y reiniciará la app.')) return
+    const ok = await confirmModal('Esto reemplazará la base de datos actual y reiniciará la app.\n¿Continuar?', 'Importar base de datos')
+    if (!ok) return
     await window.api.invoke('import-db')
   })
+
+  document.getElementById('btn-db-backup')?.addEventListener('click', async () => {
+    const res = await window.api.invoke('db-backup')
+    if (res?.ok) {
+      showToast(`Copia de seguridad guardada (${formatBytes(res.sizeBytes)})`, 'success')
+      loadDbStats()
+    } else if (res?.error) {
+      showToast('Error: ' + res.error, 'error')
+    }
+  })
+
+  document.getElementById('btn-db-refresh-stats')?.addEventListener('click', loadDbStats)
+
+  // Parachoques import
+  document.getElementById('btn-import-parachoques')?.addEventListener('click', handleParachoquesImport)
 
   // Merge buttons
   document.getElementById('btn-merge-select')?.addEventListener('click', handleMergeSelect)
@@ -30,6 +47,109 @@ export function initSupportView() {
     const el = document.getElementById('support-version')
     if (el) el.textContent = `V. ${v}`
   }).catch(() => {})
+
+  // Load DB stats on init (also reloads when refreshed)
+  loadDbStats()
+}
+
+function formatBytes(n) {
+  if (n == null) return '—'
+  if (n < 1024) return n + ' B'
+  if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB'
+  if (n < 1024 * 1024 * 1024) return (n / (1024 * 1024)).toFixed(1) + ' MB'
+  return (n / (1024 * 1024 * 1024)).toFixed(2) + ' GB'
+}
+
+async function loadDbStats() {
+  try {
+    const s = await window.api.invoke('db-stats')
+    if (!s) return
+
+    document.getElementById('db-stat-size').textContent = formatBytes(s.sizeBytes)
+    document.getElementById('db-stat-rows').textContent = (s.totalRows || 0).toLocaleString('es-ES')
+    document.getElementById('db-stat-cot').textContent  = ((s.counts?.cotizaciones) || 0).toLocaleString('es-ES')
+    document.getElementById('db-stat-par').textContent  = ((s.counts?.parachoques) || 0).toLocaleString('es-ES')
+    document.getElementById('db-stat-path').textContent = s.dbPath
+
+    // Size warning above 50MB
+    const warn = document.getElementById('db-stat-warning')
+    const warnText = document.getElementById('db-stat-warning-text')
+    if (s.sizeBytes > 50 * 1024 * 1024) {
+      warnText.textContent = `La base de datos supera los 50 MB (${formatBytes(s.sizeBytes)}). Considera hacer copia de seguridad periódicamente.`
+      warn.classList.remove('hidden')
+    } else if (s.sizeBytes > 100 * 1024 * 1024) {
+      warnText.textContent = `Base de datos muy grande (${formatBytes(s.sizeBytes)}). Conviene hacer backup urgente.`
+      warn.classList.remove('hidden')
+    } else {
+      warn.classList.add('hidden')
+    }
+
+    // Detail per table
+    const detail = document.getElementById('db-stat-detail')
+    if (detail && s.counts) {
+      detail.innerHTML = Object.entries(s.counts).map(([t, n]) =>
+        `<div class="flex justify-between gap-2" style="padding:4px 8px;background:rgba(0,0,0,0.03);border-radius:4px;">
+          <span style="opacity:0.7;">${t}</span>
+          <span style="font-weight:700;">${(n ?? 0).toLocaleString('es-ES')}</span>
+        </div>`
+      ).join('')
+    }
+  } catch (err) {
+    console.warn('db-stats failed:', err)
+  }
+}
+
+async function handleParachoquesImport() {
+  const statusEl = document.getElementById('parachoques-import-status')
+  statusEl.className = 'flex items-center gap-2 text-xs text-on-surface-variant px-1'
+  statusEl.innerHTML = '<span class="material-symbols-outlined text-sm" style="animation:spin 1s linear infinite;">progress_activity</span> Leyendo y procesando Excel...'
+  statusEl.classList.remove('hidden')
+
+  try {
+    const res = await window.api.invoke('import-parachoques-xlsx')
+    if (res?.cancelled) {
+      statusEl.classList.add('hidden')
+      return
+    }
+    if (!res?.ok) {
+      statusEl.className = 'text-xs px-3 py-2 rounded-lg'
+      statusEl.style.cssText = 'color:#ba1a1a; background:rgba(186,26,26,0.06);'
+      statusEl.textContent = res?.error || 'Operación cancelada.'
+      return
+    }
+
+    const { summary, warnings } = res
+    const warnHtml = warnings && warnings.length
+      ? `<details class="text-xs mt-2"><summary style="cursor:pointer;opacity:0.65;">${warnings.length} aviso(s) durante la importación</summary>
+           <ul style="list-style:disc;padding-left:1.2rem;margin-top:4px;opacity:0.75;">
+             ${warnings.slice(0, 20).map(w => `<li>${w}</li>`).join('')}
+             ${warnings.length > 20 ? `<li>… y ${warnings.length - 20} más</li>` : ''}
+           </ul></details>`
+      : ''
+
+    statusEl.className = 'space-y-2 p-3 rounded-lg'
+    statusEl.style.cssText = 'background:rgba(21,128,61,0.06);border:1px solid rgba(21,128,61,0.2);'
+    statusEl.innerHTML = `
+      <div class="flex items-center gap-2 text-xs font-semibold" style="color:#15803d;">
+        <span class="material-symbols-outlined text-sm">check_circle</span>
+        Importación completada
+      </div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+        <div><span style="opacity:0.6;">Leídas</span> <strong class="block">${summary.filasLeidas}</strong></div>
+        <div><span style="opacity:0.6;">Nuevas</span> <strong class="block" style="color:#15803d;">${summary.insertadas}</strong></div>
+        <div><span style="opacity:0.6;">Actualizadas</span> <strong class="block" style="color:#0040e0;">${summary.actualizadas}</strong></div>
+        <div><span style="opacity:0.6;">Eliminadas</span> <strong class="block" style="color:#ba1a1a;">${summary.eliminadas}</strong></div>
+      </div>
+      <p class="text-[11px]" style="opacity:0.65;">Total en BD: <strong>${summary.antesTotal}</strong> → <strong>${summary.ahoraTotal}</strong> referencias</p>
+      ${warnHtml}
+    `
+
+    loadDbStats()
+  } catch (err) {
+    statusEl.className = 'text-xs px-3 py-2 rounded-lg'
+    statusEl.style.cssText = 'color:#ba1a1a; background:rgba(186,26,26,0.06);'
+    statusEl.textContent = 'Error: ' + err.message
+  }
 }
 
 async function handleMergeSelect() {

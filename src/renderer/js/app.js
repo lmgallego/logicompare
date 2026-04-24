@@ -7,9 +7,10 @@ import { loadAnalytics } from './components/analyticsView.js'
 import { initAgenciasView, loadAgenciasView } from './components/agenciasView.js'
 import { initSupportView } from './components/supportView.js'
 import { loadPendingView, updatePendingBadge } from './components/pendingView.js'
+import { initParachoquesView, loadParachoquesView } from './components/parachoquesView.js'
 import { showConfirmModal, showFormModal, alertModal } from './utils/modals.js'
 
-const PAGES = ['new-quote', 'pending', 'debidos', 'history', 'agencias', 'analytics', 'database', 'support']
+const PAGES = ['new-quote', 'pending', 'debidos', 'parachoques', 'history', 'agencias', 'analytics', 'database', 'support']
 let currentPage = 'new-quote'
 
 function showToast(msg, type = 'info') {
@@ -65,6 +66,7 @@ function showPage(pageId) {
   if (pageId === 'analytics') loadAnalytics()
   if (pageId === 'agencias') loadAgenciasView()
   if (pageId === 'pending') loadPendingView()
+  if (pageId === 'parachoques') loadParachoquesView()
 
   if (pageId === 'new-quote') {
     setTimeout(() => document.getElementById('input-largo')?.focus(), 80)
@@ -78,6 +80,7 @@ async function initApp() {
   initAgencyModal()
   initHistoryControls()  // fire-and-forget — populates agency dropdown async
   initAgenciasView()    // preload agency list for comparison view
+  initParachoquesView()
   initSupportView()
 
   document.getElementById('btn-refresh-history')?.addEventListener('click', () => {
