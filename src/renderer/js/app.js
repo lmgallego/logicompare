@@ -1,5 +1,5 @@
 import { initSidebar } from './components/sidebar.js'
-import { initFormHandler, getLastFormDatos, wasAgenciaElegida } from './components/formHandler.js'
+import { initFormHandler, getLastFormDatos, wasAgenciaElegida, getActiveCliente, setActiveCliente, promptCliente } from './components/formHandler.js'
 import { loadHistory, initHistoryControls } from './components/historyView.js'
 import { loadAgencies, initAgencyModal } from './components/databaseView.js'
 import { initDevidosView } from './components/devidosView.js'
@@ -231,6 +231,21 @@ async function initApp() {
             }
           }
         }
+
+        // Pedir el cliente obligatoriamente antes de empezar la nueva cotización.
+        // Si la BD no tiene clientes aún, dejamos pasar (no bloquea la app).
+        let totalClientes = 0
+        try { totalClientes = await window.api.invoke('count-clientes') } catch (_) {}
+        if (totalClientes > 0) {
+          const cliente = await promptCliente(true)
+          if (!cliente) {
+            // Cancelado: no abrimos el formulario en blanco; mantenemos lo anterior.
+            return
+          }
+        } else {
+          setActiveCliente(null)
+        }
+
         showPage('new-quote')
         document.getElementById('quote-form')?.reset()
         const extraContainer = document.getElementById('extra-bultos-container')

@@ -1,5 +1,5 @@
 import { formatPrice, formatDate, formatDimensions, formatVolume } from '../utils/formatters.js'
-import { confirmModal, alertModal, showFormModal } from '../utils/modals.js'
+import { confirmModal, alertModal, showFormModal, pickClienteModal } from '../utils/modals.js'
 
 let currentRows = []
 let pendingExportFormat = null  // 'excel' | 'pdf'
@@ -21,7 +21,7 @@ function formatRounded(precio) {
 
 export async function loadHistory(desde, hasta, agenciaId) {
   const tbody = document.getElementById('history-table-body')
-  const colCount = 9
+  const colCount = 10
   tbody.innerHTML = '<tr><td colspan="' + colCount + '" class="text-center py-8 text-on-surface-variant text-xs" style="opacity:0.5;">Cargando...</td></tr>'
 
   if (!window.api) {
@@ -54,7 +54,14 @@ function renderTable(tbody, colCount) {
     const tr = document.createElement('tr')
     tr.className = 'transition-colors ' + (idx % 2 === 0 ? 'bg-surface-container-lowest' : '') + ' hover:bg-surface-container-low'
     tr.dataset.id = row.id
+    const clienteCell = row.cliente_razon_social
+      ? '<div class="text-xs font-semibold truncate" style="max-width:200px;" title="' + row.cliente_razon_social + '">' + row.cliente_razon_social + '</div>'
+        + '<div class="text-[10px] font-mono" style="opacity:0.5;">' + (row.cliente_codigo || '') + '</div>'
+      : (row.cliente_codigo
+          ? '<div class="text-[10px] font-mono" style="opacity:0.65;">' + row.cliente_codigo + '</div><div class="text-[10px]" style="opacity:0.4;">sin razón social</div>'
+          : '<span class="text-xs" style="opacity:0.35;">—</span>')
     tr.innerHTML = '<td class="px-4 py-3 text-xs text-on-surface-variant">' + formatDate(row.fecha) + '</td>'
+      + '<td class="px-4 py-3">' + clienteCell + '</td>'
       + '<td class="px-4 py-3 text-xs font-medium">' + formatDimensions(row.largo_cm, row.ancho_cm, row.alto_cm) + ' cm</td>'
       + '<td class="px-4 py-3 text-xs font-medium">' + row.cp_prefix + '</td>'
       + '<td class="px-4 py-3 text-xs">' + formatVolume(row.metros_cubicos) + '</td>'
@@ -112,12 +119,23 @@ async function openEditModal(row, tbody, colCount) {
   // ISO date slice for date picker (fecha stored as 'YYYY-MM-DD HH:MM:SS')
   const fechaDate = (row.fecha || '').slice(0, 10)
 
+  // Cliente seleccionable a través de un picker. Guardamos el actual aquí.
+  let pickedCliente = row.cliente_codigo
+    ? { codigo: row.cliente_codigo, razon_social: row.cliente_razon_social || '' }
+    : null
+
+  const clienteLabel = () => pickedCliente
+    ? `${pickedCliente.razon_social || '(sin razón social)'} · cód. ${pickedCliente.codigo}`
+    : '— sin cliente —'
+
   const result = await showFormModal({
     title: 'Editar cotización',
     subtitle: 'Modifica los datos y pulsa Guardar',
     submitLabel: 'Guardar cambios',
     fields: [
       { name: 'fecha',         label: 'Fecha',           type: 'date',   value: fechaDate, required: true },
+      { name: 'cliente',       label: 'Cliente',         type: 'cliente', value: pickedCliente,
+        onPick: (c) => { pickedCliente = c }, getLabel: clienteLabel },
       { name: 'largoCm',       label: 'Largo (cm)',      type: 'number', value: row.largo_cm, step: '0.1', min: 0, required: true },
       { name: 'anchoCm',       label: 'Ancho (cm)',      type: 'number', value: row.ancho_cm, step: '0.1', min: 0, required: true },
       { name: 'altoCm',        label: 'Alto (cm)',       type: 'number', value: row.alto_cm,  step: '0.1', min: 0, required: true },
@@ -143,6 +161,7 @@ async function openEditModal(row, tbody, colCount) {
       metrosCubicos: parseFloat(result.metrosCubicos) || 0,
       agenciaId: result.agenciaId ? parseInt(result.agenciaId) : null,
       precioFinal: parseFloat(result.precioFinal),
+      clienteCodigo: pickedCliente ? pickedCliente.codigo : null,
     })
     if (!res.ok) throw new Error(res.error || 'No se pudo actualizar')
     // Reload current filters
@@ -301,11 +320,12 @@ function buildXLSX(simplificada) {
         return [formatDate(r.fecha), (r.precio_final ?? 0).toFixed(2), (red ?? 0).toFixed(2)]
       })
     } else {
-      headers = ['Fecha', 'Medidas (cm)', 'CP', 'Metros Cúbicos', 'Peso (kg)', 'Agencia', 'Precio Final (€)', 'Precio Redondeado (€)']
-      numCols = [4, 6, 7]
+      headers = ['Fecha', 'Cód. Cliente', 'Cliente', 'Medidas (cm)', 'CP', 'Metros Cúbicos', 'Peso (kg)', 'Agencia', 'Precio Final (€)', 'Precio Redondeado (€)']
+      numCols = [6, 8, 9]
       dataRows = rows.map(r => {
         const red = r.precio_redondeado != null ? r.precio_redondeado : redondear5(r.precio_final)
-        return [formatDate(r.fecha), r.largo_cm + 'x' + r.ancho_cm + 'x' + r.alto_cm, r.cp_prefix,
+        return [formatDate(r.fecha), r.cliente_codigo || '', r.cliente_razon_social || '',
+          r.largo_cm + 'x' + r.ancho_cm + 'x' + r.alto_cm, r.cp_prefix,
           (r.metros_cubicos ?? 0).toFixed(6), r.peso ?? 0, r.agencia_nombre || '',
           (r.precio_final ?? 0).toFixed(2), (red ?? 0).toFixed(2)]
       })
@@ -373,11 +393,15 @@ function buildPDF(simplificada) {
           + '</tr>'
       }).join('')
     } else {
-      head = '<tr><th>Fecha</th><th>Medidas</th><th>CP</th><th>m³</th><th>Peso</th><th style="text-align:right">Precio Final</th><th style="text-align:right">P. Redondeado</th></tr>'
+      head = '<tr><th>Fecha</th><th>Cliente</th><th>Medidas</th><th>CP</th><th>m³</th><th>Peso</th><th style="text-align:right">Precio Final</th><th style="text-align:right">P. Redondeado</th></tr>'
       body = rows.map((r, i) => {
         const red = r.precio_redondeado != null ? r.precio_redondeado : redondear5(r.precio_final)
+        const clienteHtml = r.cliente_razon_social
+          ? '<div style="font-weight:bold;">' + r.cliente_razon_social + '</div><div style="font-size:9px;color:#666;">cód. ' + (r.cliente_codigo || '') + '</div>'
+          : (r.cliente_codigo ? '<div style="font-size:10px;color:#666;">cód. ' + r.cliente_codigo + '</div>' : '<span style="opacity:0.4">—</span>')
         return '<tr style="background:' + (i % 2 === 0 ? '#f8f9fb' : '#fff') + '">'
           + '<td>' + formatDate(r.fecha) + '</td>'
+          + '<td>' + clienteHtml + '</td>'
           + '<td>' + r.largo_cm + '×' + r.ancho_cm + '×' + r.alto_cm + ' cm</td>'
           + '<td>' + r.cp_prefix + '</td>'
           + '<td>' + (r.metros_cubicos ?? 0).toFixed(3).replace('.', ',') + ' m³</td>'

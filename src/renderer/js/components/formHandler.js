@@ -1,12 +1,13 @@
 import { formatPrice, formatWeight, formatVolume } from '../utils/formatters.js'
 import { getSelectedAgenciaIds } from './agenciasView.js'
-import { confirmModal } from '../utils/modals.js'
+import { confirmModal, alertModal, pickClienteModal } from '../utils/modals.js'
 
 let sortedAsc = true
 let sortAbortController = null
 let lastFormDatos = null
 let lastResultados = []
 let agenciaElegida = false
+let activeCliente = null  // { codigo, razon_social } o null
 
 // Extra package rows (beyond the first)
 let extraBultos = []
@@ -103,6 +104,41 @@ function addExtraBultoRow() {
 
 export function getLastFormDatos() { return lastFormDatos ? { ...lastFormDatos, lastResultados } : null }
 export function wasAgenciaElegida() { return agenciaElegida }
+export function getActiveCliente() { return activeCliente }
+export function setActiveCliente(cliente) {
+  activeCliente = cliente || null
+  refreshClienteBanner()
+}
+
+export async function promptCliente(required = true) {
+  const cliente = await pickClienteModal({
+    required,
+    title: required ? 'Selecciona el cliente para esta cotización' : 'Cambiar cliente',
+    subtitle: 'Escribe el código numérico o parte de la razón social.',
+  })
+  if (cliente) setActiveCliente(cliente)
+  return cliente
+}
+
+function refreshClienteBanner() {
+  const text = document.getElementById('cliente-banner-text')
+  const code = document.getElementById('cliente-banner-code')
+  const banner = document.getElementById('cliente-banner')
+  if (!text || !code || !banner) return
+  if (activeCliente) {
+    text.textContent = activeCliente.razon_social
+    code.textContent = 'Código ' + activeCliente.codigo
+    banner.style.background = 'rgba(0,64,224,0.06)'
+    banner.style.borderColor = 'rgba(0,64,224,0.18)'
+    text.style.color = '#0040e0'
+  } else {
+    text.textContent = '— sin cliente seleccionado —'
+    code.textContent = 'Pulsa Ctrl+N o el botón Cambiar para asignar un cliente'
+    banner.style.background = 'rgba(245,158,11,0.08)'
+    banner.style.borderColor = 'rgba(245,158,11,0.35)'
+    text.style.color = '#b45309'
+  }
+}
 
 export function initFormHandler() {
   const form = document.getElementById('quote-form')
@@ -159,6 +195,14 @@ export function initFormHandler() {
     } else {
       cpInfo.classList.add('hidden')
     }
+  })
+
+  // Refresh banner on init (uses default empty state)
+  refreshClienteBanner()
+
+  // Cambiar cliente button
+  document.getElementById('btn-change-cliente')?.addEventListener('click', async () => {
+    await promptCliente(false)
   })
 
   form.addEventListener('submit', async (e) => {
@@ -402,6 +446,7 @@ function renderCarrierCards(resultados, container, sortedAsc) {
             agenciaId: r.agencia.id,
             precioFinal: r.precioFinal,
             bultos: lastFormDatos.bultos,
+            clienteCodigo: activeCliente?.codigo || null,
           })
         }
       })

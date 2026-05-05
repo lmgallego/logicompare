@@ -193,6 +193,7 @@ app.whenReady().then(async () => {
     require('./ipcHandlers/provinceHandler')
     require('./ipcHandlers/windowHandler')
     require('./ipcHandlers/parachoquesHandler')
+    require('./ipcHandlers/clientesHandler')
     require('./ipcHandlers/supportHandler').init()
 
     ipcMain.removeHandler('get-app-version')

@@ -189,6 +189,21 @@ function runMigrations(db) {
     )
   `)
 
+  // Tabla de clientes (código + razón social). El código es PK (texto para soportar prefijos/letras).
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS clientes (
+      codigo        TEXT PRIMARY KEY,
+      razon_social  TEXT NOT NULL,
+      actualizado   TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `)
+
+  // Añadir columna cliente_codigo a cotizaciones si no existe (no rompe DB existentes)
+  const cotCols = db.prepare("PRAGMA table_info(cotizaciones)").all().map(c => c.name)
+  if (!cotCols.includes('cliente_codigo')) {
+    db.prepare('ALTER TABLE cotizaciones ADD COLUMN cliente_codigo TEXT').run()
+  }
+
   seedProvincias(db)
 }
 

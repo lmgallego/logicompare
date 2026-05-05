@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>LogiCompare | Industrial Precision Engine</title>
-  <script type="module" crossorigin src="./assets/index-Dq24fqzR.js"></script>
+  <script type="module" crossorigin src="./assets/index-B88sMIkv.js"></script>
   <link rel="stylesheet" crossorigin href="./assets/index-NYWR2OpD.css">
 </head>
 <body class="bg-background font-body text-on-surface antialiased flex flex-col h-screen overflow-hidden">
@@ -102,6 +102,21 @@
                 <span class="material-symbols-outlined text-primary" style="font-size:20px;">edit_square</span>
                 <h2 class="text-base font-bold tracking-tight">Entrada de Datos del Envío</h2>
               </div>
+
+              <!-- Cliente activo banner -->
+              <div id="cliente-banner" class="mb-3 rounded-lg p-3 flex items-center gap-3" style="background:rgba(0,64,224,0.06); border:1px solid rgba(0,64,224,0.18);">
+                <span class="material-symbols-outlined text-primary" style="font-size:20px;">badge</span>
+                <div class="flex-1 min-w-0">
+                  <p class="text-[10px] font-bold uppercase tracking-widest text-primary" style="opacity:0.7;">Cliente activo</p>
+                  <p id="cliente-banner-text" class="text-sm font-bold truncate" style="color:#0040e0;">— sin cliente seleccionado —</p>
+                  <p id="cliente-banner-code" class="text-[11px] font-mono" style="opacity:0.55;"></p>
+                </div>
+                <button id="btn-change-cliente" type="button" class="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1" title="Cambiar cliente (también se pide al pulsar Ctrl+N)">
+                  <span class="material-symbols-outlined" style="font-size:14px;">person_search</span>
+                  Cambiar
+                </button>
+              </div>
+
               <form id="quote-form" class="space-y-4">
                 <div class="grid grid-cols-2 gap-3">
                   <div class="space-y-1.5">
@@ -380,6 +395,7 @@
               <thead>
                 <tr class="bg-surface-container-low">
                   <th class="label-stencil text-left px-4 py-3" style="font-size:9px;">Fecha</th>
+                  <th class="label-stencil text-left px-4 py-3" style="font-size:9px;">Cliente</th>
                   <th class="label-stencil text-left px-4 py-3" style="font-size:9px;">Medidas (cm)</th>
                   <th class="label-stencil text-left px-4 py-3" style="font-size:9px;">CP</th>
                   <th class="label-stencil text-left px-4 py-3" style="font-size:9px;">m³</th>
@@ -392,7 +408,7 @@
               </thead>
               <tbody id="history-table-body">
                 <tr>
-                  <td colspan="9" class="text-center py-12 text-on-surface-variant text-xs" style="opacity:0.5;">
+                  <td colspan="10" class="text-center py-12 text-on-surface-variant text-xs" style="opacity:0.5;">
                     Cargando historial...
                   </td>
                 </tr>
@@ -537,6 +553,28 @@
             <div id="parachoques-import-status" class="hidden"></div>
           </div>
 
+          <!-- Clientes import -->
+          <div class="card-surface rounded-2xl p-5 space-y-4">
+            <div class="flex items-center justify-between">
+              <p class="text-xs font-bold uppercase tracking-widest text-on-surface-variant" style="opacity:0.5;">Clientes — Importar/Actualizar</p>
+              <span class="text-[10px] font-bold uppercase tracking-widest" style="opacity:0.5;">Total: <span id="clientes-count" class="text-primary">—</span></span>
+            </div>
+            <p class="text-xs text-on-surface-variant" style="opacity:0.6;">
+              Sube el Excel con columnas <strong>Cliente</strong> (código) y <strong>Razón social</strong>. Se añadirán los nuevos y se actualizarán los existentes. Esta operación <strong>no toca</strong> el resto de la base de datos. Usa el modo "Reemplazar" solo si quieres eliminar también los códigos que no estén en el nuevo Excel.
+            </p>
+            <div class="flex flex-wrap gap-3 items-center">
+              <button id="btn-import-clientes" class="btn-primary flex items-center gap-2 text-sm px-4 py-2">
+                <span class="material-symbols-outlined" style="font-size:16px;">upload_file</span>
+                Añadir / Actualizar (recomendado)
+              </button>
+              <button id="btn-import-clientes-replace" class="btn-secondary flex items-center gap-2 text-sm px-4 py-2" title="Reemplaza por completo: elimina los que no estén en el nuevo Excel">
+                <span class="material-symbols-outlined" style="font-size:16px;">swap_horiz</span>
+                Reemplazar todo
+              </button>
+            </div>
+            <div id="clientes-import-status" class="hidden"></div>
+          </div>
+
           <!-- Excel Merge -->
           <div class="card-surface rounded-2xl p-5 space-y-4">
             <div class="flex items-center justify-between">
@@ -586,11 +624,27 @@
           <div class="card-surface rounded-2xl p-5 space-y-5">
             <p class="text-xs font-bold uppercase tracking-widest text-on-surface-variant" style="opacity:0.5;">Historial de Versiones</p>
 
+            <!-- v1.1.5 -->
+            <div class="space-y-2">
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-black text-primary">v1.1.5</span>
+                <span class="bg-primary/10 text-primary text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-tight">Actual</span>
+                <span class="text-xs text-on-surface-variant" style="opacity:0.45;">Mayo 2026</span>
+              </div>
+              <ul class="space-y-1.5 text-xs text-on-surface-variant" style="padding-left:1rem;">
+                <li style="list-style:disc;"><strong class="text-on-surface">Tabla de clientes</strong> — nueva tabla con código y razón social. Se importa desde un Excel en Soporte (columnas <em>Cliente</em> y <em>Razón social</em>). Se puede actualizar subiendo Excels nuevos: el modo "Añadir/Actualizar" mete los nuevos sin tocar el resto, y "Reemplazar todo" elimina los códigos que ya no estén.</li>
+                <li style="list-style:disc;"><strong class="text-on-surface">Cliente obligatorio en Cargar Portes</strong> — al pulsar Ctrl+N se abre un buscador para elegir cliente por código o razón social (autocomplete). El cliente activo se muestra en una banderola encima del formulario y queda asociado a cada cotización guardada.</li>
+                <li style="list-style:disc;"><strong class="text-on-surface">Cliente en historial y exportes</strong> — el historial añade columna Cliente; los Excel y PDF "completos" incluyen Código y Razón Social. El modal de edición permite cambiar el cliente de un registro.</li>
+                <li style="list-style:disc;"><strong class="text-on-surface">Cambiar cliente sin Ctrl+N</strong> — botón "Cambiar" en la banderola para reasignar el cliente activo en cualquier momento.</li>
+              </ul>
+            </div>
+
+            <div style="border-top:1px solid rgba(196,197,217,0.15);"></div>
+
             <!-- v1.1.4 -->
             <div class="space-y-2">
               <div class="flex items-center gap-2">
-                <span class="text-sm font-black text-primary">v1.1.4</span>
-                <span class="bg-primary/10 text-primary text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-tight">Actual</span>
+                <span class="text-sm font-black text-on-surface-variant" style="opacity:0.7;">v1.1.4</span>
                 <span class="text-xs text-on-surface-variant" style="opacity:0.45;">Abril 2026</span>
               </div>
               <ul class="space-y-1.5 text-xs text-on-surface-variant" style="padding-left:1rem;">
