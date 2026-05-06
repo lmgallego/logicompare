@@ -128,15 +128,9 @@ function refreshClienteBanner() {
   if (activeCliente) {
     text.textContent = activeCliente.razon_social
     code.textContent = 'Código ' + activeCliente.codigo
-    banner.style.background = 'rgba(0,64,224,0.06)'
-    banner.style.borderColor = 'rgba(0,64,224,0.18)'
-    text.style.color = '#0040e0'
+    banner.classList.remove('hidden')
   } else {
-    text.textContent = '— sin cliente seleccionado —'
-    code.textContent = 'Pulsa Ctrl+N o el botón Cambiar para asignar un cliente'
-    banner.style.background = 'rgba(245,158,11,0.08)'
-    banner.style.borderColor = 'rgba(245,158,11,0.35)'
-    text.style.color = '#b45309'
+    banner.classList.add('hidden')
   }
 }
 
@@ -197,13 +191,8 @@ export function initFormHandler() {
     }
   })
 
-  // Refresh banner on init (uses default empty state)
+  // Refresh banner on init
   refreshClienteBanner()
-
-  // Cambiar cliente button
-  document.getElementById('btn-change-cliente')?.addEventListener('click', async () => {
-    await promptCliente(false)
-  })
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault()
@@ -430,6 +419,14 @@ function renderCarrierCards(resultados, container, sortedAsc) {
           )
           if (!ok) return
         }
+        // Pedir cliente antes de guardar (si hay clientes en BD)
+        let totalClientes = 0
+        try { totalClientes = await window.api.invoke('count-clientes') } catch (_) {}
+        if (totalClientes > 0) {
+          const cliente = await promptCliente(true)
+          if (!cliente) return  // Cancelado → no guardamos
+        }
+
         agenciaElegida = true
         elegirBtn.disabled = true
         elegirBtn.textContent = '✓ Elegido'

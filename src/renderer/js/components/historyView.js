@@ -313,11 +313,11 @@ function buildXLSX(simplificada) {
     let headers, numCols, dataRows
 
     if (simplificada) {
-      headers = ['Fecha', 'Precio Final (€)', 'Precio Redondeado (€)']
-      numCols = [1, 2]
+      headers = ['Fecha', 'Cliente', 'Precio Final (€)', 'Precio Redondeado (€)']
+      numCols = [2, 3]
       dataRows = rows.map(r => {
         const red = r.precio_redondeado != null ? r.precio_redondeado : redondear5(r.precio_final)
-        return [formatDate(r.fecha), (r.precio_final ?? 0).toFixed(2), (red ?? 0).toFixed(2)]
+        return [formatDate(r.fecha), r.cliente_razon_social || '', (r.precio_final ?? 0).toFixed(2), (red ?? 0).toFixed(2)]
       })
     } else {
       headers = ['Fecha', 'Cód. Cliente', 'Cliente', 'Medidas (cm)', 'CP', 'Metros Cúbicos', 'Peso (kg)', 'Agencia', 'Precio Final (€)', 'Precio Redondeado (€)']
@@ -383,11 +383,12 @@ function buildPDF(simplificada) {
   const renderGroup = (agName, rows) => {
     let head, body
     if (simplificada) {
-      head = '<tr><th>Fecha</th><th style="text-align:right">Precio Final</th><th style="text-align:right">Precio Redondeado</th></tr>'
+      head = '<tr><th>Fecha</th><th>Cliente</th><th style="text-align:right">Precio Final</th><th style="text-align:right">Precio Redondeado</th></tr>'
       body = rows.map((r, i) => {
         const red = r.precio_redondeado != null ? r.precio_redondeado : redondear5(r.precio_final)
         return '<tr style="background:' + (i % 2 === 0 ? '#f8f9fb' : '#fff') + '">'
           + '<td>' + formatDate(r.fecha) + '</td>'
+          + '<td>' + (r.cliente_razon_social || '<span style="opacity:0.4">—</span>') + '</td>'
           + '<td style="text-align:right"><strong>' + formatPrice(r.precio_final) + '</strong></td>'
           + '<td style="text-align:right"><strong style="color:#15803d">' + formatPrice(red) + '</strong></td>'
           + '</tr>'

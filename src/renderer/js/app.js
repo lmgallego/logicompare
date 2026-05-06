@@ -104,12 +104,19 @@ async function initApp() {
     const altoEl  = document.getElementById('input-alto')
     const cpEl    = document.getElementById('input-cp')
 
+    let pickedManualCliente = null
+    const manualClienteLabel = () => pickedManualCliente
+      ? `${pickedManualCliente.razon_social || '(sin razón social)'} · cód. ${pickedManualCliente.codigo}`
+      : '— sin cliente —'
+
     const result = await showFormModal({
       title: 'Añadir cotización manual',
       subtitle: 'Crea un registro directamente en el historial sin calcular tarifas',
       submitLabel: 'Guardar en historial',
       fields: [
         { name: 'fecha',         label: 'Fecha',           type: 'date',   value: today, required: true },
+        { name: 'cliente',       label: 'Cliente',         type: 'cliente', value: null,
+          onPick: (c) => { pickedManualCliente = c }, getLabel: manualClienteLabel },
         { name: 'largoCm',       label: 'Largo (cm)',      type: 'number', value: largoEl?.value || '', step: '0.1', min: 0, required: true },
         { name: 'anchoCm',       label: 'Ancho (cm)',      type: 'number', value: anchoEl?.value || '', step: '0.1', min: 0, required: true },
         { name: 'altoCm',        label: 'Alto (cm)',       type: 'number', value: altoEl?.value || '',  step: '0.1', min: 0, required: true },
@@ -134,6 +141,7 @@ async function initApp() {
         metrosCubicos: parseFloat(result.metrosCubicos) || 0,
         agenciaId: result.agenciaId ? parseInt(result.agenciaId) : null,
         precioFinal: parseFloat(result.precioFinal),
+        clienteCodigo: pickedManualCliente?.codigo || null,
       })
       if (!res.ok) throw new Error(res.error || 'No se pudo guardar')
       showToast('✓ Cotización manual guardada en el historial', 'success')
@@ -232,20 +240,7 @@ async function initApp() {
           }
         }
 
-        // Pedir el cliente obligatoriamente antes de empezar la nueva cotización.
-        // Si la BD no tiene clientes aún, dejamos pasar (no bloquea la app).
-        let totalClientes = 0
-        try { totalClientes = await window.api.invoke('count-clientes') } catch (_) {}
-        if (totalClientes > 0) {
-          const cliente = await promptCliente(true)
-          if (!cliente) {
-            // Cancelado: no abrimos el formulario en blanco; mantenemos lo anterior.
-            return
-          }
-        } else {
-          setActiveCliente(null)
-        }
-
+        setActiveCliente(null)
         showPage('new-quote')
         document.getElementById('quote-form')?.reset()
         const extraContainer = document.getElementById('extra-bultos-container')

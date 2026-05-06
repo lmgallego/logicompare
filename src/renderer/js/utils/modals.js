@@ -246,10 +246,11 @@ export function showFormModal({ title, subtitle, fields, submitLabel = 'Guardar'
       const common = `style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(196,197,217,0.35);background:rgba(255,255,255,0.05);color:inherit;font-size:13px;"`
       let input
       if (f.type === 'select') {
+        const selectStyle = `style="width:100%;padding:8px 10px;border-radius:8px;border:1px solid rgba(196,197,217,0.35);background:#fff;color:#171c1f;font-size:13px;"`
         const opts = (f.options || []).map(o =>
-          `<option value="${String(o.value).replace(/"/g, '&quot;')}" ${String(o.value) === String(val) ? 'selected' : ''}>${o.label}</option>`
+          `<option value="${String(o.value).replace(/"/g, '&quot;')}" style="color:#171c1f;background:#fff;" ${String(o.value) === String(val) ? 'selected' : ''}>${o.label}</option>`
         ).join('')
-        input = `<select name="${f.name}" ${req} ${common}>${opts}</select>`
+        input = `<select name="${f.name}" ${req} ${selectStyle}>${opts}</select>`
       } else if (f.type === 'textarea') {
         input = `<textarea name="${f.name}" ${req} rows="3" ${common}>${val}</textarea>`
       } else if (f.type === 'cliente') {
