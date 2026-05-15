@@ -133,6 +133,24 @@ export function pickClienteModal(options = {}) {
       })
     }
 
+    async function tryDirectCodeWithSuffix() {
+      const raw = input.value.trim()
+      if (!raw) return false
+      const endsA = /[Aa]$/.test(raw)
+      if (!endsA) return false
+      const code = raw.replace(/[Aa]$/, '')
+      if (!code) return false
+      try {
+        const cliente = await window.api.invoke('get-cliente-by-codigo', { codigo: code })
+        if (cliente) {
+          cliente.needsDestinatario = true
+          close(cliente)
+          return true
+        }
+      } catch (_) {}
+      return false
+    }
+
     async function refresh() {
       const q = input.value.trim()
       if (q.length < 1) {
@@ -142,8 +160,10 @@ export function pickClienteModal(options = {}) {
         activeIdx = -1
         return
       }
+      // Search without trailing A/a suffix (user may be typing code + A)
+      const searchQ = q.replace(/[Aa]$/, '') || q
       try {
-        const results = await window.api.invoke('search-clientes', { query: q, limit: 30 })
+        const results = await window.api.invoke('search-clientes', { query: searchQ, limit: 30 })
         lastResults = results || []
         if (lastResults.length === 0) {
           renderEmpty('Sin coincidencias. Verifica el código o el nombre.')
@@ -187,7 +207,10 @@ export function pickClienteModal(options = {}) {
         if (lastResults.length) { activeIdx = Math.max(0, activeIdx - 1); highlight() }
       } else if (e.key === 'Enter') {
         e.preventDefault()
-        if (activeIdx >= 0 && lastResults[activeIdx]) close(lastResults[activeIdx])
+        // If input ends with A/a, try direct code lookup with destinatario flag
+        tryDirectCodeWithSuffix().then(handled => {
+          if (!handled && activeIdx >= 0 && lastResults[activeIdx]) close(lastResults[activeIdx])
+        })
       } else if (e.key === 'Escape') {
         e.preventDefault()
         close(null)

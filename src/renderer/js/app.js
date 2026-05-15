@@ -8,9 +8,10 @@ import { initAgenciasView, loadAgenciasView } from './components/agenciasView.js
 import { initSupportView } from './components/supportView.js'
 import { loadPendingView, updatePendingBadge } from './components/pendingView.js'
 import { initParachoquesView, loadParachoquesView } from './components/parachoquesView.js'
+import { initConsultasView } from './components/consultasView.js'
 import { showConfirmModal, showFormModal, alertModal } from './utils/modals.js'
 
-const PAGES = ['new-quote', 'pending', 'debidos', 'parachoques', 'history', 'agencias', 'analytics', 'database', 'support']
+const PAGES = ['new-quote', 'pending', 'debidos', 'parachoques', 'history', 'consultas', 'agencias', 'analytics', 'database', 'support']
 let currentPage = 'new-quote'
 
 function showToast(msg, type = 'info') {
@@ -71,6 +72,9 @@ function showPage(pageId) {
   if (pageId === 'new-quote') {
     setTimeout(() => document.getElementById('input-largo')?.focus(), 80)
   }
+  if (pageId === 'debidos') {
+    setTimeout(() => document.getElementById('deb-largo')?.focus(), 80)
+  }
 }
 
 async function initApp() {
@@ -81,6 +85,7 @@ async function initApp() {
   initHistoryControls()  // fire-and-forget — populates agency dropdown async
   initAgenciasView()    // preload agency list for comparison view
   initParachoquesView()
+  initConsultasView()
   initSupportView()
 
   document.getElementById('btn-refresh-history')?.addEventListener('click', () => {
@@ -159,6 +164,9 @@ async function initApp() {
   document.getElementById('btn-close')?.addEventListener('click', () => {
     window.api?.send('window-close')
   })
+  document.getElementById('btn-logout')?.addEventListener('click', () => {
+    window.api?.send('app-quit')
+  })
 
   if (window.api) {
     try {
@@ -229,10 +237,18 @@ async function initApp() {
           if (action === 'save') {
             const datos = getLastFormDatos()
             if (datos && window.api) {
+              // Preguntar opcionalmente por el cliente antes de guardar en pendientes
+              let pendingCliente = null
+              let totalClientes = 0
+              try { totalClientes = await window.api.invoke('count-clientes') } catch (_) {}
+              if (totalClientes > 0) {
+                pendingCliente = await promptCliente(false)
+              }
               await window.api.invoke('save-pending-quote', {
                 cpPrefix:   datos.cpPrefix,
                 bultos:     datos.bultos,
                 resultados: datos.lastResultados || [],
+                clienteCodigo: pendingCliente?.codigo || null,
               })
               const countRow = await window.api.invoke('get-pending-count')
               updatePendingBadge(countRow?.c ?? 0)

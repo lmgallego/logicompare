@@ -1,6 +1,6 @@
 import { formatPrice, formatWeight, formatVolume } from '../utils/formatters.js'
 import { getSelectedAgenciaIds } from './agenciasView.js'
-import { confirmModal, alertModal, pickClienteModal } from '../utils/modals.js'
+import { confirmModal, alertModal, pickClienteModal, showFormModal } from '../utils/modals.js'
 
 let sortedAsc = true
 let sortAbortController = null
@@ -8,6 +8,7 @@ let lastFormDatos = null
 let lastResultados = []
 let agenciaElegida = false
 let activeCliente = null  // { codigo, razon_social } o null
+let activeDestinatario = null  // string o null
 
 // Extra package rows (beyond the first)
 let extraBultos = []
@@ -105,8 +106,10 @@ function addExtraBultoRow() {
 export function getLastFormDatos() { return lastFormDatos ? { ...lastFormDatos, lastResultados } : null }
 export function wasAgenciaElegida() { return agenciaElegida }
 export function getActiveCliente() { return activeCliente }
+export function getActiveDestinatario() { return activeDestinatario }
 export function setActiveCliente(cliente) {
   activeCliente = cliente || null
+  activeDestinatario = null
   refreshClienteBanner()
 }
 
@@ -114,9 +117,22 @@ export async function promptCliente(required = true) {
   const cliente = await pickClienteModal({
     required,
     title: required ? 'Selecciona el cliente para esta cotización' : 'Cambiar cliente',
-    subtitle: 'Escribe el código numérico o parte de la razón social.',
+    subtitle: 'Escribe el código numérico o parte de la razón social.\nAñade "A" al final del código para indicar envío a destinatario.',
   })
-  if (cliente) setActiveCliente(cliente)
+  if (!cliente) return null
+  setActiveCliente(cliente)
+  // Si el picker detectó sufijo A/a, pedir destinatario
+  if (cliente.needsDestinatario) {
+    const result = await showFormModal({
+      title: 'Destinatario final',
+      subtitle: `El cliente ${cliente.razon_social} (${cliente.codigo}) envía a un destinatario distinto.`,
+      submitLabel: 'Confirmar destinatario',
+      fields: [
+        { name: 'destinatario', label: 'Nombre del destinatario', type: 'text', value: '', required: true, placeholder: 'Razón social o nombre del destinatario final' },
+      ],
+    })
+    activeDestinatario = result?.destinatario?.trim() || null
+  }
   return cliente
 }
 
@@ -444,6 +460,7 @@ function renderCarrierCards(resultados, container, sortedAsc) {
             precioFinal: r.precioFinal,
             bultos: lastFormDatos.bultos,
             clienteCodigo: activeCliente?.codigo || null,
+            destinatario: activeDestinatario || null,
           })
         }
       })

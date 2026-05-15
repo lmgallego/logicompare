@@ -82,6 +82,10 @@ function renderPendingCard(container, row) {
     </div>
   `).join('')
 
+  const clienteHtml = row.cliente_codigo
+    ? `<span class="text-[10px] font-semibold px-1.5 py-0.5 rounded-full" style="background:rgba(0,64,224,0.08);color:#0040e0;">👤 ${row.cliente_codigo}</span>`
+    : ''
+
   card.innerHTML = `
     <div class="flex items-start justify-between gap-4">
       <div class="space-y-1">
@@ -90,6 +94,7 @@ function renderPendingCard(container, row) {
           <span class="font-bold text-sm">CP ${row.cp_prefix}</span>
           <span class="text-xs text-on-surface-variant" style="opacity:0.55;">${formatDate(row.fecha)}</span>
           ${row.bultos.length > 1 ? `<span class="text-[10px] font-black px-1.5 py-0.5 rounded-full" style="background:rgba(0,64,224,0.08);color:#0040e0;">${row.bultos.length} bultos</span>` : ''}
+          ${clienteHtml}
         </div>
         <div class="flex flex-wrap gap-1 mt-1">${bultosSummary}</div>
       </div>
@@ -119,6 +124,7 @@ function renderPendingCard(container, row) {
         anchoCm:       parseFloat(btn.dataset.ancho),
         altoCm:        parseFloat(btn.dataset.alto),
         bultos:        row.bultos,
+        clienteCodigo: row.cliente_codigo || null,
       })
       card.remove()
       // Refresh badge

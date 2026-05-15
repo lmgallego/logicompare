@@ -313,18 +313,18 @@ function buildXLSX(simplificada) {
     let headers, numCols, dataRows
 
     if (simplificada) {
-      headers = ['Fecha', 'Cliente', 'Precio Final (€)', 'Precio Redondeado (€)']
-      numCols = [2, 3]
+      headers = ['Fecha', 'Cliente', 'Destinatario', 'Precio Final (€)', 'Precio Redondeado (€)']
+      numCols = [3, 4]
       dataRows = rows.map(r => {
         const red = r.precio_redondeado != null ? r.precio_redondeado : redondear5(r.precio_final)
-        return [formatDate(r.fecha), r.cliente_razon_social || '', (r.precio_final ?? 0).toFixed(2), (red ?? 0).toFixed(2)]
+        return [formatDate(r.fecha), r.cliente_razon_social || '', r.destinatario || '', (r.precio_final ?? 0).toFixed(2), (red ?? 0).toFixed(2)]
       })
     } else {
-      headers = ['Fecha', 'Cód. Cliente', 'Cliente', 'Medidas (cm)', 'CP', 'Metros Cúbicos', 'Peso (kg)', 'Agencia', 'Precio Final (€)', 'Precio Redondeado (€)']
-      numCols = [6, 8, 9]
+      headers = ['Fecha', 'Cód. Cliente', 'Cliente', 'Destinatario', 'Medidas (cm)', 'CP', 'Metros Cúbicos', 'Peso (kg)', 'Agencia', 'Precio Final (€)', 'Precio Redondeado (€)']
+      numCols = [7, 9, 10]
       dataRows = rows.map(r => {
         const red = r.precio_redondeado != null ? r.precio_redondeado : redondear5(r.precio_final)
-        return [formatDate(r.fecha), r.cliente_codigo || '', r.cliente_razon_social || '',
+        return [formatDate(r.fecha), r.cliente_codigo || '', r.cliente_razon_social || '', r.destinatario || '',
           r.largo_cm + 'x' + r.ancho_cm + 'x' + r.alto_cm, r.cp_prefix,
           (r.metros_cubicos ?? 0).toFixed(6), r.peso ?? 0, r.agencia_nombre || '',
           (r.precio_final ?? 0).toFixed(2), (red ?? 0).toFixed(2)]
@@ -383,26 +383,28 @@ function buildPDF(simplificada) {
   const renderGroup = (agName, rows) => {
     let head, body
     if (simplificada) {
-      head = '<tr><th>Fecha</th><th>Cliente</th><th style="text-align:right">Precio Final</th><th style="text-align:right">Precio Redondeado</th></tr>'
+      head = '<tr><th>Fecha</th><th>Cliente</th><th>Destinatario</th><th style="text-align:right">Precio Final</th><th style="text-align:right">Precio Redondeado</th></tr>'
       body = rows.map((r, i) => {
         const red = r.precio_redondeado != null ? r.precio_redondeado : redondear5(r.precio_final)
-        return '<tr style="background:' + (i % 2 === 0 ? '#f8f9fb' : '#fff') + '">'
+        return '<tr style="background:' + (i % 2 === 0 ? '#f8f9fb' : '#fff') + '">' 
           + '<td>' + formatDate(r.fecha) + '</td>'
           + '<td>' + (r.cliente_razon_social || '<span style="opacity:0.4">—</span>') + '</td>'
+          + '<td>' + (r.destinatario || '') + '</td>'
           + '<td style="text-align:right"><strong>' + formatPrice(r.precio_final) + '</strong></td>'
           + '<td style="text-align:right"><strong style="color:#15803d">' + formatPrice(red) + '</strong></td>'
           + '</tr>'
       }).join('')
     } else {
-      head = '<tr><th>Fecha</th><th>Cliente</th><th>Medidas</th><th>CP</th><th>m³</th><th>Peso</th><th style="text-align:right">Precio Final</th><th style="text-align:right">P. Redondeado</th></tr>'
+      head = '<tr><th>Fecha</th><th>Cliente</th><th>Destinatario</th><th>Medidas</th><th>CP</th><th>m³</th><th>Peso</th><th style="text-align:right">Precio Final</th><th style="text-align:right">P. Redondeado</th></tr>'
       body = rows.map((r, i) => {
         const red = r.precio_redondeado != null ? r.precio_redondeado : redondear5(r.precio_final)
         const clienteHtml = r.cliente_razon_social
           ? '<div style="font-weight:bold;">' + r.cliente_razon_social + '</div><div style="font-size:9px;color:#666;">cód. ' + (r.cliente_codigo || '') + '</div>'
           : (r.cliente_codigo ? '<div style="font-size:10px;color:#666;">cód. ' + r.cliente_codigo + '</div>' : '<span style="opacity:0.4">—</span>')
-        return '<tr style="background:' + (i % 2 === 0 ? '#f8f9fb' : '#fff') + '">'
+        return '<tr style="background:' + (i % 2 === 0 ? '#f8f9fb' : '#fff') + '">' 
           + '<td>' + formatDate(r.fecha) + '</td>'
           + '<td>' + clienteHtml + '</td>'
+          + '<td>' + (r.destinatario || '') + '</td>'
           + '<td>' + r.largo_cm + '×' + r.ancho_cm + '×' + r.alto_cm + ' cm</td>'
           + '<td>' + r.cp_prefix + '</td>'
           + '<td>' + (r.metros_cubicos ?? 0).toFixed(3).replace('.', ',') + ' m³</td>'

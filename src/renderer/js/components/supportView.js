@@ -1,5 +1,5 @@
 import { formatPrice, formatDate } from '../utils/formatters.js'
-import { confirmModal, alertModal } from '../utils/modals.js'
+import { confirmModal, alertModal, showFormModal } from '../utils/modals.js'
 
 let mergedRows = null
 
@@ -38,6 +38,7 @@ export function initSupportView() {
   // Clientes import
   document.getElementById('btn-import-clientes')?.addEventListener('click', () => handleClientesImport(false))
   document.getElementById('btn-import-clientes-replace')?.addEventListener('click', () => handleClientesImport(true))
+  document.getElementById('btn-create-cliente')?.addEventListener('click', handleCreateCliente)
   refreshClientesCount()
 
   // Merge buttons
@@ -168,6 +169,32 @@ async function handleClientesImport(replaceAll) {
     statusEl.className = 'text-xs px-3 py-2 rounded-lg'
     statusEl.style.cssText = 'color:#ba1a1a; background:rgba(186,26,26,0.06);'
     statusEl.textContent = 'Error: ' + err.message
+  }
+}
+
+async function handleCreateCliente() {
+  const result = await showFormModal({
+    title: 'Crear cliente manualmente',
+    subtitle: 'Introduce el código y la razón social del nuevo cliente.',
+    submitLabel: 'Guardar cliente',
+    fields: [
+      { name: 'codigo',      label: 'Código de cliente', type: 'text', value: '', required: true, placeholder: 'Ej: 10234' },
+      { name: 'razonSocial', label: 'Razón social',      type: 'text', value: '', required: true, placeholder: 'Nombre o razón social' },
+    ],
+  })
+  if (!result) return
+
+  try {
+    const res = await window.api.invoke('create-cliente', {
+      codigo: result.codigo.trim(),
+      razonSocial: result.razonSocial.trim(),
+    })
+    if (!res?.ok) throw new Error(res?.error || 'No se pudo guardar')
+    showToast(`✓ Cliente "${res.razonSocial}" (${res.codigo}) creado correctamente`, 'success')
+    refreshClientesCount()
+    loadDbStats()
+  } catch (err) {
+    alertModal('Error al crear cliente: ' + err.message, 'Error')
   }
 }
 

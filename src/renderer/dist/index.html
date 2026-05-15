@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>LogiCompare | Industrial Precision Engine</title>
-  <script type="module" crossorigin src="./assets/index-DmBi4lAc.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-COIYj6JT.css">
+  <script type="module" crossorigin src="./assets/index-B9u7Ni6G.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-DsKcsG_w.css">
 </head>
 <body class="bg-background font-body text-on-surface antialiased flex flex-col h-screen overflow-hidden">
 
@@ -59,6 +59,10 @@
         <a class="nav-item" data-page="history">
           <span class="material-symbols-outlined text-xl">history</span>
           <span class="nav-label">Historial</span>
+        </a>
+        <a class="nav-item" data-page="consultas">
+          <span class="material-symbols-outlined text-xl">person_search</span>
+          <span class="nav-label">Consultas</span>
         </a>
         <a class="nav-item" data-page="agencias" style="position:relative;">
           <span class="material-symbols-outlined text-xl">local_shipping</span>
@@ -465,6 +469,61 @@
         </div>
       </div>
 
+      <!-- ════ PAGE: CONSULTAS ════ -->
+      <div id="page-consultas" class="page flex-1 overflow-y-auto p-6">
+        <div class="max-w-5xl mx-auto space-y-4 pb-10">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-lg font-bold tracking-tight">Consultas por Cliente</h2>
+              <p class="text-xs text-on-surface-variant" style="opacity:0.55;">Busca un cliente para ver sus cotizaciones, estadísticas y desglose por agencia.</p>
+            </div>
+            <button id="btn-consulta-cliente" class="btn-primary flex items-center gap-2 text-sm px-4 py-2">
+              <span class="material-symbols-outlined" style="font-size:16px;">person_search</span>
+              Buscar cliente
+            </button>
+          </div>
+
+          <div id="consulta-cliente-info" class="hidden rounded-lg p-3 flex items-center gap-3" style="background:rgba(0,64,224,0.06);border:1px solid rgba(0,64,224,0.18);"></div>
+
+          <div id="consulta-stats" class="hidden"></div>
+
+          <div id="consulta-filters" class="hidden flex items-center gap-3 flex-wrap">
+            <div class="flex items-center gap-2">
+              <label class="label-stencil text-[10px]">Desde</label>
+              <input type="date" id="consulta-desde" class="input-field text-xs px-2 py-1" />
+            </div>
+            <div class="flex items-center gap-2">
+              <label class="label-stencil text-[10px]">Hasta</label>
+              <input type="date" id="consulta-hasta" class="input-field text-xs px-2 py-1" />
+            </div>
+            <button id="btn-consulta-refresh" class="btn-secondary flex items-center gap-1 text-xs px-3 py-1.5">
+              <span class="material-symbols-outlined" style="font-size:14px;">refresh</span> Filtrar
+            </button>
+          </div>
+
+          <div id="consulta-empty"></div>
+
+          <div id="consulta-table-wrap" class="hidden rounded-xl overflow-hidden" style="border:1px solid rgba(196,197,217,0.15);">
+            <table class="w-full text-left">
+              <thead>
+                <tr class="bg-surface-container text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">
+                  <th class="px-3 py-2">Fecha</th>
+                  <th class="px-3 py-2">Agencia</th>
+                  <th class="px-3 py-2">Medidas</th>
+                  <th class="px-3 py-2 text-center">CP</th>
+                  <th class="px-3 py-2 text-right">m³</th>
+                  <th class="px-3 py-2 text-right">Peso</th>
+                  <th class="px-3 py-2 text-right">Precio</th>
+                  <th class="px-3 py-2 text-right">P. Redond.</th>
+                  <th class="px-3 py-2">Destinatario</th>
+                </tr>
+              </thead>
+              <tbody id="consulta-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
       <!-- ════ PAGE: SUPPORT ════ -->
       <div id="page-support" class="page flex-1 overflow-y-auto p-6">
         <div class="max-w-3xl mx-auto space-y-6 pb-10">
@@ -566,6 +625,10 @@
               <button id="btn-import-clientes-replace" class="btn-secondary flex items-center gap-2 text-sm px-4 py-2" title="Reemplaza por completo: elimina los que no estén en el nuevo Excel">
                 <span class="material-symbols-outlined" style="font-size:16px;">swap_horiz</span>
                 Reemplazar todo
+              </button>
+              <button id="btn-create-cliente" class="btn-secondary flex items-center gap-2 text-sm px-4 py-2" title="Crear un cliente nuevo manualmente">
+                <span class="material-symbols-outlined" style="font-size:16px;">person_add</span>
+                Crear cliente
               </button>
             </div>
             <div id="clientes-import-status" class="hidden"></div>

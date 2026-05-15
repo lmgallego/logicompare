@@ -203,6 +203,15 @@ function runMigrations(db) {
   if (!cotCols.includes('cliente_codigo')) {
     db.prepare('ALTER TABLE cotizaciones ADD COLUMN cliente_codigo TEXT').run()
   }
+  if (!cotCols.includes('destinatario')) {
+    db.prepare('ALTER TABLE cotizaciones ADD COLUMN destinatario TEXT').run()
+  }
+
+  // Añadir columna cliente_codigo a cotizaciones_pendientes si no existe
+  const pendCols = db.prepare("PRAGMA table_info(cotizaciones_pendientes)").all().map(c => c.name)
+  if (!pendCols.includes('cliente_codigo')) {
+    db.prepare('ALTER TABLE cotizaciones_pendientes ADD COLUMN cliente_codigo TEXT').run()
+  }
 
   seedProvincias(db)
 }

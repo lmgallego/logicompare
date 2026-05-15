@@ -157,6 +157,25 @@ ipcMain.handle('search-clientes', (event, { query, limit }) => {
   `).all(q + '%', '%' + q.toLowerCase() + '%', q + '%', lim)
 })
 
+ipcMain.handle('create-cliente', (event, { codigo, razonSocial }) => {
+  const cod = String(codigo || '').trim()
+  const raz = String(razonSocial || '').trim()
+  if (!cod) return { ok: false, error: 'El código es obligatorio.' }
+  if (!raz) return { ok: false, error: 'La razón social es obligatoria.' }
+  try {
+    getDb().prepare(`
+      INSERT INTO clientes (codigo, razon_social, actualizado)
+      VALUES (?, ?, datetime('now'))
+      ON CONFLICT(codigo) DO UPDATE SET
+        razon_social = excluded.razon_social,
+        actualizado  = excluded.actualizado
+    `).run(cod, raz)
+    return { ok: true, codigo: cod, razonSocial: raz }
+  } catch (e) {
+    return { ok: false, error: e.message }
+  }
+})
+
 ipcMain.handle('count-clientes', () => {
   return getDb().prepare('SELECT COUNT(*) as c FROM clientes').get().c
 })
