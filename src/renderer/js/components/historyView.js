@@ -21,7 +21,7 @@ function formatRounded(precio) {
 
 export async function loadHistory(desde, hasta, agenciaId) {
   const tbody = document.getElementById('history-table-body')
-  const colCount = 10
+  const colCount = 11
   tbody.innerHTML = '<tr><td colspan="' + colCount + '" class="text-center py-8 text-on-surface-variant text-xs" style="opacity:0.5;">Cargando...</td></tr>'
 
   if (!window.api) {
@@ -69,6 +69,7 @@ function renderTable(tbody, colCount) {
       + '<td class="px-4 py-3 text-xs">' + (row.agencia_nombre || '—') + '</td>'
       + '<td class="px-4 py-3 text-right"><span class="text-sm font-black text-primary">' + formatPrice(row.precio_final) + '</span></td>'
       + '<td class="px-4 py-3 text-right"><span class="text-sm font-bold" style="color:#15803d;">' + formatPrice(redondeado) + '</span></td>'
+      + '<td class="px-4 py-3 text-xs">' + (row.destinatario || '<span style="opacity:0.3;">—</span>') + '</td>'
       + '<td class="px-3 py-3 text-center">'
       + '<div class="flex items-center justify-center gap-1">'
       + '<button class="btn-edit-row w-7 h-7 flex items-center justify-center rounded-lg transition-colors hover:bg-blue-100" title="Editar esta fila" data-row-id="' + row.id + '">'

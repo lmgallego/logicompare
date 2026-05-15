@@ -402,12 +402,13 @@
                   <th class="label-stencil text-left px-4 py-3" style="font-size:9px;">Agencia</th>
                   <th class="label-stencil text-right px-4 py-3" style="font-size:9px;">Precio Final</th>
                   <th class="label-stencil text-right px-4 py-3" style="font-size:9px;">P. Redondeado</th>
+                  <th class="label-stencil text-left px-4 py-3" style="font-size:9px;">Destinatario</th>
                   <th class="px-3 py-3" style="width:36px;"></th>
                 </tr>
               </thead>
               <tbody id="history-table-body">
                 <tr>
-                  <td colspan="10" class="text-center py-12 text-on-surface-variant text-xs" style="opacity:0.5;">
+                  <td colspan="11" class="text-center py-12 text-on-surface-variant text-xs" style="opacity:0.5;">
                     Cargando historial...
                   </td>
                 </tr>
@@ -682,11 +683,29 @@
           <div class="card-surface rounded-2xl p-5 space-y-5">
             <p class="text-xs font-bold uppercase tracking-widest text-on-surface-variant" style="opacity:0.5;">Historial de Versiones</p>
 
+            <!-- v1.1.6 -->
+            <div class="space-y-2">
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-black text-primary">v1.1.6</span>
+                <span class="bg-primary/10 text-primary text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-tight">Actual</span>
+                <span class="text-xs text-on-surface-variant" style="opacity:0.45;">Mayo 2026</span>
+              </div>
+              <ul class="space-y-1.5 text-xs text-on-surface-variant" style="padding-left:1rem;">
+                <li style="list-style:disc;"><strong class="text-on-surface">Menú Consultas</strong> — nueva sección en el sidebar para consultar cotizaciones por cliente. Muestra estadísticas (total, facturación, precio medio, primera/última fecha, desglose por agencia) y tabla filtrable por fechas.</li>
+                <li style="list-style:disc;"><strong class="text-on-surface">Focus automático en Debidos</strong> — al navegar a la página Debidos desde el menú, el campo Largo recibe el foco automáticamente.</li>
+                <li style="list-style:disc;"><strong class="text-on-surface">Cliente en Pendientes</strong> — al guardar en Pendientes (Ctrl+N) se pregunta opcionalmente el código de cliente. Se muestra en la tarjeta y se traspasa al resolver la cotización.</li>
+                <li style="list-style:disc;"><strong class="text-on-surface">Botón Salir</strong> — el botón Salir del sidebar cierra la aplicación completamente.</li>
+                <li style="list-style:disc;"><strong class="text-on-surface">Destinatario final (sufijo A)</strong> — al introducir un código de cliente terminado en "A" se abre un diálogo para indicar el destinatario final. Este dato se guarda en la cotización y aparece en el historial, las exportaciones Excel y PDF (tanto completa como simplificada).</li>
+                <li style="list-style:disc;"><strong class="text-on-surface">Columna Destinatario en historial</strong> — nueva columna visible en la tabla del historial cuando la cotización tiene destinatario final.</li>
+              </ul>
+            </div>
+
+            <div style="border-top:1px solid rgba(196,197,217,0.15);"></div>
+
             <!-- v1.1.5 -->
             <div class="space-y-2">
               <div class="flex items-center gap-2">
-                <span class="text-sm font-black text-primary">v1.1.5</span>
-                <span class="bg-primary/10 text-primary text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-tight">Actual</span>
+                <span class="text-sm font-black text-on-surface-variant" style="opacity:0.7;">v1.1.5</span>
                 <span class="text-xs text-on-surface-variant" style="opacity:0.45;">Mayo 2026</span>
               </div>
               <ul class="space-y-1.5 text-xs text-on-surface-variant" style="padding-left:1rem;">
