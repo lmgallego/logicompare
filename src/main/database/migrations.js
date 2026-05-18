@@ -213,6 +213,34 @@ function runMigrations(db) {
     db.prepare('ALTER TABLE cotizaciones_pendientes ADD COLUMN cliente_codigo TEXT').run()
   }
 
+  // Tabla de cajas (medidas estándar de cajas)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS cajas (
+      id        INTEGER PRIMARY KEY AUTOINCREMENT,
+      largo_cm  INTEGER NOT NULL,
+      ancho_cm  INTEGER NOT NULL,
+      alto_cm   INTEGER NOT NULL,
+      UNIQUE(largo_cm, ancho_cm, alto_cm)
+    )
+  `)
+
+  // Asegurar que las cajas base siempre existen (INSERT OR IGNORE no duplica)
+  {
+    const insertCaja = db.prepare('INSERT OR IGNORE INTO cajas (largo_cm, ancho_cm, alto_cm) VALUES (?, ?, ?)')
+    const cajasBase = [
+      [110, 35, 82],
+      [121, 42, 88],
+      [244, 27, 37],
+      [180, 27, 37],
+      [65, 35, 65],
+      [30, 20, 20],
+    ]
+    const txCajas = db.transaction((rows) => {
+      for (const row of rows) insertCaja.run(...row)
+    })
+    txCajas(cajasBase)
+  }
+
   seedProvincias(db)
 }
 

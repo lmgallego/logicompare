@@ -8,10 +8,11 @@ import { initAgenciasView, loadAgenciasView } from './components/agenciasView.js
 import { initSupportView } from './components/supportView.js'
 import { loadPendingView, updatePendingBadge } from './components/pendingView.js'
 import { initParachoquesView, loadParachoquesView } from './components/parachoquesView.js'
+import { initCajasView, loadCajasView } from './components/cajasView.js'
 import { initConsultasView } from './components/consultasView.js'
 import { showConfirmModal, showFormModal, alertModal } from './utils/modals.js'
 
-const PAGES = ['new-quote', 'pending', 'debidos', 'parachoques', 'history', 'consultas', 'agencias', 'analytics', 'database', 'support']
+const PAGES = ['new-quote', 'pending', 'debidos', 'parachoques', 'cajas', 'history', 'consultas', 'agencias', 'analytics', 'database', 'support']
 let currentPage = 'new-quote'
 
 function showToast(msg, type = 'info') {
@@ -68,6 +69,7 @@ function showPage(pageId) {
   if (pageId === 'agencias') loadAgenciasView()
   if (pageId === 'pending') loadPendingView()
   if (pageId === 'parachoques') loadParachoquesView()
+  if (pageId === 'cajas') loadCajasView()
 
   if (pageId === 'new-quote') {
     setTimeout(() => document.getElementById('input-largo')?.focus(), 80)
@@ -85,6 +87,7 @@ async function initApp() {
   initHistoryControls()  // fire-and-forget — populates agency dropdown async
   initAgenciasView()    // preload agency list for comparison view
   initParachoquesView()
+  initCajasView()
   initConsultasView()
   initSupportView()
 
@@ -219,6 +222,19 @@ async function initApp() {
         if (info)    info.classList.add('hidden')
         if (suggest) { suggest.innerHTML = ''; suggest.classList.add('hidden') }
         setTimeout(() => refEl?.focus(), 30)
+      } else if (currentPage === 'cajas') {
+        // Limpiar formulario de cajas sin salir de la página
+        const largoSel = document.getElementById('cajas-largo')
+        const cpEl     = document.getElementById('cajas-cp')
+        const results  = document.getElementById('cajas-results')
+        const empty    = document.getElementById('cajas-empty')
+        const info     = document.getElementById('cajas-info')
+        if (largoSel) largoSel.value = ''
+        if (cpEl)  cpEl.value  = ''
+        if (results) { results.innerHTML = ''; results.classList.add('hidden') }
+        if (empty)   empty.classList.remove('hidden')
+        if (info) { info.innerHTML = ''; info.classList.add('hidden') }
+        setTimeout(() => largoSel?.focus(), 30)
       } else {
         // If results are visible and no agency was chosen, warn the user
         const resultsList = document.getElementById('results-list')

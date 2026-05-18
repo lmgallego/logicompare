@@ -4,8 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>LogiCompare | Industrial Precision Engine</title>
-  <script type="module" crossorigin src="./assets/index-CVlKgwQL.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-0ShPwjTN.css">
+  <script type="module" crossorigin src="./assets/index-uU4A3QRc.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-CGjhVlxv.css">
 </head>
 <body class="bg-background font-body text-on-surface antialiased flex flex-col h-screen overflow-hidden">
 
@@ -50,6 +50,10 @@
         <a class="nav-item" data-page="parachoques" style="padding-left:1.5rem;">
           <span class="material-symbols-outlined text-xl">directions_car</span>
           <span class="nav-label">Parachoques</span>
+        </a>
+        <a class="nav-item" data-page="cajas">
+          <span class="material-symbols-outlined text-xl">inventory_2</span>
+          <span class="nav-label">Cajas</span>
         </a>
         <a class="nav-item" data-page="pending" style="position:relative;">
           <span class="material-symbols-outlined text-xl">pending_actions</span>
@@ -268,6 +272,58 @@
             <p class="text-sm font-medium text-on-surface-variant" style="opacity:0.6;">Introduce una referencia y CP para ver las tarifas</p>
           </div>
           <div id="parachoques-results" class="hidden space-y-3"></div>
+        </div>
+      </div>
+
+      <!-- ════ PAGE: CAJAS ════ -->
+      <div id="page-cajas" class="page flex-1 overflow-y-auto p-6">
+        <div class="max-w-5xl mx-auto space-y-6">
+          <div class="flex items-center justify-between">
+            <div>
+              <h2 class="text-xl font-bold tracking-tight">Cajas</h2>
+              <p class="text-xs text-on-surface-variant mt-0.5" style="opacity:0.6;">Selecciona el <strong>largo</strong> y el <strong>CP</strong> para ver el precio en todas las agencias.</p>
+            </div>
+            <div class="flex items-center gap-3">
+              <button id="btn-add-caja" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all" style="height:32px; background:rgba(0,64,224,0.08); color:#0040e0; border:1px solid rgba(0,64,224,0.15);">
+                <span class="material-symbols-outlined" style="font-size:14px;">add</span>
+                Nueva caja
+              </button>
+              <div class="text-right">
+                <p class="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant" style="opacity:0.5;">Cajas registradas</p>
+                <p id="cajas-count" class="text-xl font-black text-primary">—</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Form -->
+          <div class="bg-surface-container-lowest rounded-xl p-5" style="border:1px solid rgba(196,197,217,0.12);">
+            <form id="cajas-form" class="grid grid-cols-12 gap-3 items-end">
+              <div class="col-span-12 md:col-span-5 space-y-1.5">
+                <label class="label-stencil block">Largo (cm)</label>
+                <select id="cajas-largo" class="input-field" required>
+                  <option value="">— Selecciona largo —</option>
+                </select>
+              </div>
+              <div class="col-span-6 md:col-span-3 space-y-1.5">
+                <label class="label-stencil block">CP (2 dígitos)</label>
+                <input id="cajas-cp" class="input-field" type="text" maxlength="2" pattern="\d{2}" placeholder="28" required />
+              </div>
+              <div class="col-span-6 md:col-span-4">
+                <button class="btn-primary w-full" type="submit">
+                  <span class="material-symbols-outlined" style="font-size:16px;">calculate</span>
+                  Comparar agencias
+                </button>
+              </div>
+            </form>
+            <div id="cajas-info" class="hidden mt-4"></div>
+          </div>
+
+          <!-- Results -->
+          <div id="cajas-empty" class="flex flex-col items-center justify-center py-16 text-center">
+            <span class="material-symbols-outlined text-5xl text-on-surface-variant mb-3" style="opacity:0.3;">inventory_2</span>
+            <p class="text-sm font-medium text-on-surface-variant" style="opacity:0.6;">Selecciona un largo y CP para ver las tarifas</p>
+          </div>
+          <div id="cajas-results" class="hidden space-y-4"></div>
         </div>
       </div>
 

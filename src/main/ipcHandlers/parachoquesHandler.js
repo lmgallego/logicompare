@@ -234,7 +234,7 @@ ipcMain.handle('db-stats', () => {
   const tables = [
     'agencias', 'zonas_agencia', 'zonas_provincias', 'tarifas_agencia',
     'tarifas_kg_adicional', 'recargos_agencia', 'provincias',
-    'cotizaciones', 'cotizaciones_pendientes', 'parachoques', 'clientes',
+    'cotizaciones', 'cotizaciones_pendientes', 'parachoques', 'cajas', 'clientes',
   ]
   const counts = {}
   for (const t of tables) {
