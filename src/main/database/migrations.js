@@ -189,6 +189,23 @@ function runMigrations(db) {
     )
   `)
 
+  // Tablas parachoques y cospel se mantienen como legacy.
+  // Su contenido NO se borra automáticamente.
+  // La nueva tabla medidas_elmer las sustituye funcionalmente.
+  // Pendiente: eliminar tablas legacy en una migración futura cuando se confirme que medidas_elmer funciona en producción.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS medidas_elmer (
+      referencia_elmer TEXT PRIMARY KEY,
+      descripcion      TEXT,
+      proveedor        TEXT NOT NULL,
+      largo_cm         INTEGER NOT NULL,
+      ancho_cm         INTEGER NOT NULL,
+      alto_cm          INTEGER NOT NULL,
+      actualizado      TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `)
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_medidas_elmer_proveedor ON medidas_elmer(proveedor)`)
+
   seedProvincias(db)
 }
 

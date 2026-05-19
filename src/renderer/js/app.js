@@ -8,9 +8,10 @@ import { initAgenciasView, loadAgenciasView } from './components/agenciasView.js
 import { initSupportView } from './components/supportView.js'
 import { loadPendingView, updatePendingBadge } from './components/pendingView.js'
 import { initParachoquesView, loadParachoquesView } from './components/parachoquesView.js'
+import { initMedidasElmerView, loadMedidasElmerView } from './components/medidasElmerView.js'
 import { showConfirmModal, showFormModal, alertModal } from './utils/modals.js'
 
-const PAGES = ['new-quote', 'pending', 'debidos', 'parachoques', 'history', 'agencias', 'analytics', 'database', 'support']
+const PAGES = ['new-quote', 'pending', 'debidos', 'parachoques', 'medidas-elmer', 'history', 'agencias', 'analytics', 'database', 'support']
 let currentPage = 'new-quote'
 
 function showToast(msg, type = 'info') {
@@ -67,6 +68,7 @@ function showPage(pageId) {
   if (pageId === 'agencias') loadAgenciasView()
   if (pageId === 'pending') loadPendingView()
   if (pageId === 'parachoques') loadParachoquesView()
+  if (pageId === 'medidas-elmer') loadMedidasElmerView()
 
   if (pageId === 'new-quote') {
     setTimeout(() => document.getElementById('input-largo')?.focus(), 80)
@@ -81,6 +83,7 @@ async function initApp() {
   initHistoryControls()  // fire-and-forget — populates agency dropdown async
   initAgenciasView()    // preload agency list for comparison view
   initParachoquesView()
+  initMedidasElmerView()
   initSupportView()
 
   document.getElementById('btn-refresh-history')?.addEventListener('click', () => {
@@ -196,6 +199,21 @@ async function initApp() {
         const empty    = document.getElementById('parachoques-empty')
         const info     = document.getElementById('parachoques-info')
         const suggest  = document.getElementById('parachoques-suggest')
+        if (refEl) refEl.value = ''
+        if (cpEl)  cpEl.value  = ''
+        if (results) { results.innerHTML = ''; results.classList.add('hidden') }
+        if (empty)   empty.classList.remove('hidden')
+        if (info)    info.classList.add('hidden')
+        if (suggest) { suggest.innerHTML = ''; suggest.classList.add('hidden') }
+        setTimeout(() => refEl?.focus(), 30)
+      } else if (currentPage === 'medidas-elmer') {
+        // Limpiar formulario de medidas-elmer sin salir de la página
+        const refEl    = document.getElementById('medidas-elmer-ref')
+        const cpEl     = document.getElementById('medidas-elmer-cp')
+        const results  = document.getElementById('medidas-elmer-results')
+        const empty    = document.getElementById('medidas-elmer-empty')
+        const info     = document.getElementById('medidas-elmer-info')
+        const suggest  = document.getElementById('medidas-elmer-suggest')
         if (refEl) refEl.value = ''
         if (cpEl)  cpEl.value  = ''
         if (results) { results.innerHTML = ''; results.classList.add('hidden') }
