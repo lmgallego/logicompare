@@ -224,6 +224,20 @@ function runMigrations(db) {
     )
   `)
 
+  // ── Tabla cospel ──────────────────────────────────────────────────────────
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS cospel (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      code_cospel     TEXT NOT NULL,
+      referencia_elmer TEXT NOT NULL,
+      largo_cm        REAL NOT NULL,
+      ancho_cm        REAL NOT NULL,
+      alto_cm         REAL NOT NULL,
+      actualizado     TEXT,
+      UNIQUE(code_cospel)
+    )
+  `)
+
   // Asegurar que las cajas base siempre existen (INSERT OR IGNORE no duplica)
   {
     const insertCaja = db.prepare('INSERT OR IGNORE INTO cajas (largo_cm, ancho_cm, alto_cm) VALUES (?, ?, ?)')

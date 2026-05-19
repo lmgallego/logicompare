@@ -194,6 +194,7 @@ app.whenReady().then(async () => {
     require('./ipcHandlers/windowHandler')
     require('./ipcHandlers/parachoquesHandler')
     require('./ipcHandlers/cajasHandler')
+    require('./ipcHandlers/cospelHandler')
     require('./ipcHandlers/clientesHandler')
     require('./ipcHandlers/supportHandler').init()
 
