@@ -18,17 +18,18 @@ function redondear5(precio) {
   return Math.ceil(precio * 20) / 20
 }
 
-ipcMain.handle('save-quote', (event, { largoCm, anchoCm, altoCm, cpPrefix, metrosCubicos, peso, agenciaId, precioFinal, bultos }) => {
+ipcMain.handle('save-quote', (event, { largoCm, anchoCm, altoCm, cpPrefix, metrosCubicos, peso, agenciaId, precioFinal, bultos, clienteCodigo, destinatario }) => {
   try {
     const precioRedondeado = redondear5(precioFinal)
-    // If multi-bulto, store first bulto dimensions; totals are already in metrosCubicos/peso
     const primerBulto = (bultos && bultos.length > 0) ? bultos[0] : { largoCm, anchoCm, altoCm }
+    const cliente = clienteCodigo ? String(clienteCodigo).trim() : null
+    const dest = destinatario ? String(destinatario).trim() : null
     getDb()
       .prepare(`
-        INSERT INTO cotizaciones (largo_cm, ancho_cm, alto_cm, cp_prefix, metros_cubicos, peso, agencia_id, precio_final, precio_redondeado)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO cotizaciones (largo_cm, ancho_cm, alto_cm, cp_prefix, metros_cubicos, peso, agencia_id, precio_final, precio_redondeado, cliente_codigo, destinatario)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `)
-      .run(primerBulto.largoCm, primerBulto.anchoCm, primerBulto.altoCm, cpPrefix, metrosCubicos || 0, peso || 0, agenciaId, precioFinal, precioRedondeado)
+      .run(primerBulto.largoCm, primerBulto.anchoCm, primerBulto.altoCm, cpPrefix, metrosCubicos || 0, peso || 0, agenciaId, precioFinal, precioRedondeado, cliente, dest)
     return { ok: true }
   } catch (e) {
     return { ok: false, error: e.message }
@@ -42,7 +43,7 @@ ipcMain.handle('get-history', (event, { desde, hasta, agenciaId } = {}) => {
   if (hasta) { conds.push('date(c.fecha) <= date(?)'); params.push(hasta) }
   if (agenciaId) { conds.push('c.agencia_id = ?'); params.push(agenciaId) }
   const where = conds.length ? ' WHERE ' + conds.join(' AND ') : ''
-  const sql = `SELECT c.*, a.nombre as agencia_nombre FROM cotizaciones c LEFT JOIN agencias a ON a.id = c.agencia_id${where} ORDER BY c.fecha DESC LIMIT 500`
+  const sql = `SELECT c.*, a.nombre as agencia_nombre, cl.razon_social as cliente_razon_social FROM cotizaciones c LEFT JOIN agencias a ON a.id = c.agencia_id LEFT JOIN clientes cl ON cl.codigo = c.cliente_codigo${where} ORDER BY c.fecha DESC LIMIT 500`
   return getDb().prepare(sql).all(...params)
 })
 
@@ -52,11 +53,12 @@ ipcMain.handle('get-agencies-simple', () => {
 
 // ── Cotizaciones pendientes (guardadas sin agencia elegida) ──────────────────
 
-ipcMain.handle('save-pending-quote', (event, { cpPrefix, bultos, resultados }) => {
+ipcMain.handle('save-pending-quote', (event, { cpPrefix, bultos, resultados, clienteCodigo }) => {
   try {
+    const cliente = clienteCodigo ? String(clienteCodigo).trim() : null
     getDb()
-      .prepare('INSERT INTO cotizaciones_pendientes (cp_prefix, bultos_json, resultados_json) VALUES (?,?,?)')
-      .run(cpPrefix, JSON.stringify(bultos), JSON.stringify(resultados))
+      .prepare('INSERT INTO cotizaciones_pendientes (cp_prefix, bultos_json, resultados_json, cliente_codigo) VALUES (?,?,?,?)')
+      .run(cpPrefix, JSON.stringify(bultos), JSON.stringify(resultados), cliente)
     return { ok: true }
   } catch (e) {
     return { ok: false, error: e.message }
@@ -74,15 +76,16 @@ ipcMain.handle('get-pending-quotes', () => {
     }))
 })
 
-ipcMain.handle('resolve-pending-quote', (event, { pendingId, agenciaId, metrosCubicos, peso, precioFinal, cpPrefix, largoCm, anchoCm, altoCm, bultos }) => {
+ipcMain.handle('resolve-pending-quote', (event, { pendingId, agenciaId, metrosCubicos, peso, precioFinal, cpPrefix, largoCm, anchoCm, altoCm, bultos, clienteCodigo }) => {
   try {
     const db = getDb()
     const precioRedondeado = redondear5(precioFinal)
     const primerBulto = (bultos && bultos.length > 0) ? bultos[0] : { largoCm, anchoCm, altoCm }
+    const cliente = clienteCodigo ? String(clienteCodigo).trim() : null
     db.prepare(`
-      INSERT INTO cotizaciones (largo_cm, ancho_cm, alto_cm, cp_prefix, metros_cubicos, peso, agencia_id, precio_final, precio_redondeado)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(primerBulto.largoCm, primerBulto.anchoCm, primerBulto.altoCm, cpPrefix, metrosCubicos || 0, peso || 0, agenciaId, precioFinal, precioRedondeado)
+      INSERT INTO cotizaciones (largo_cm, ancho_cm, alto_cm, cp_prefix, metros_cubicos, peso, agencia_id, precio_final, precio_redondeado, cliente_codigo)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(primerBulto.largoCm, primerBulto.anchoCm, primerBulto.altoCm, cpPrefix, metrosCubicos || 0, peso || 0, agenciaId, precioFinal, precioRedondeado, cliente)
     db.prepare('DELETE FROM cotizaciones_pendientes WHERE id = ?').run(pendingId)
     return { ok: true }
   } catch (e) {
@@ -101,30 +104,87 @@ ipcMain.handle('get-pending-count', () => {
 
 // ────────────────────────────────────────────────────────────────────────────
 
+ipcMain.handle('get-quotes-by-cliente', (event, { clienteCodigo, desde, hasta }) => {
+  const conds = ['c.cliente_codigo = ?']
+  const params = [clienteCodigo]
+  if (desde) { conds.push('date(c.fecha) >= date(?)'); params.push(desde) }
+  if (hasta) { conds.push('date(c.fecha) <= date(?)'); params.push(hasta) }
+  const where = ' WHERE ' + conds.join(' AND ')
+  const sql = `SELECT c.*, a.nombre as agencia_nombre, cl.razon_social as cliente_razon_social
+    FROM cotizaciones c
+    LEFT JOIN agencias a ON a.id = c.agencia_id
+    LEFT JOIN clientes cl ON cl.codigo = c.cliente_codigo
+    ${where}
+    ORDER BY c.fecha DESC LIMIT 1000`
+  return getDb().prepare(sql).all(...params)
+})
+
+ipcMain.handle('get-cliente-stats', (event, { clienteCodigo }) => {
+  const db = getDb()
+  const stats = db.prepare(`
+    SELECT COUNT(*) as total,
+           COALESCE(SUM(precio_final),0) as facturacion,
+           COALESCE(AVG(precio_final),0) as precio_medio,
+           MIN(fecha) as primera,
+           MAX(fecha) as ultima
+    FROM cotizaciones WHERE cliente_codigo = ?
+  `).get(clienteCodigo)
+  const porAgencia = db.prepare(`
+    SELECT a.nombre, COUNT(*) as total, COALESCE(SUM(c.precio_final),0) as facturacion
+    FROM cotizaciones c LEFT JOIN agencias a ON a.id = c.agencia_id
+    WHERE c.cliente_codigo = ?
+    GROUP BY c.agencia_id ORDER BY total DESC
+  `).all(clienteCodigo)
+  return { ...stats, porAgencia }
+})
+
 ipcMain.handle('delete-quote-by-id', (event, { id }) => {
   const result = getDb().prepare('DELETE FROM cotizaciones WHERE id = ?').run(id)
   return { deleted: result.changes }
 })
 
-ipcMain.handle('update-quote', (event, { id, fecha, largoCm, anchoCm, altoCm, cpPrefix, metrosCubicos, peso, agenciaId, precioFinal }) => {
+ipcMain.handle('update-quote', (event, { id, fecha, largoCm, anchoCm, altoCm, cpPrefix, metrosCubicos, peso, agenciaId, precioFinal, clienteCodigo }) => {
   try {
     const precioRedondeado = redondear5(precioFinal)
     const db = getDb()
+    const cliente = clienteCodigo === undefined
+      ? undefined
+      : (clienteCodigo === null || clienteCodigo === '' ? null : String(clienteCodigo).trim())
     // Only update fecha if provided (YYYY-MM-DD or full datetime)
     if (fecha) {
-      db.prepare(`
-        UPDATE cotizaciones
-           SET fecha = ?, largo_cm = ?, ancho_cm = ?, alto_cm = ?, cp_prefix = ?,
-               metros_cubicos = ?, peso = ?, agencia_id = ?, precio_final = ?, precio_redondeado = ?
-         WHERE id = ?
-      `).run(fecha, largoCm, anchoCm, altoCm, cpPrefix, metrosCubicos || 0, peso || 0, agenciaId, precioFinal, precioRedondeado, id)
+      if (cliente !== undefined) {
+        db.prepare(`
+          UPDATE cotizaciones
+             SET fecha = ?, largo_cm = ?, ancho_cm = ?, alto_cm = ?, cp_prefix = ?,
+                 metros_cubicos = ?, peso = ?, agencia_id = ?, precio_final = ?, precio_redondeado = ?,
+                 cliente_codigo = ?
+           WHERE id = ?
+        `).run(fecha, largoCm, anchoCm, altoCm, cpPrefix, metrosCubicos || 0, peso || 0, agenciaId, precioFinal, precioRedondeado, cliente, id)
+      } else {
+        db.prepare(`
+          UPDATE cotizaciones
+             SET fecha = ?, largo_cm = ?, ancho_cm = ?, alto_cm = ?, cp_prefix = ?,
+                 metros_cubicos = ?, peso = ?, agencia_id = ?, precio_final = ?, precio_redondeado = ?
+           WHERE id = ?
+        `).run(fecha, largoCm, anchoCm, altoCm, cpPrefix, metrosCubicos || 0, peso || 0, agenciaId, precioFinal, precioRedondeado, id)
+      }
     } else {
-      db.prepare(`
-        UPDATE cotizaciones
-           SET largo_cm = ?, ancho_cm = ?, alto_cm = ?, cp_prefix = ?,
-               metros_cubicos = ?, peso = ?, agencia_id = ?, precio_final = ?, precio_redondeado = ?
-         WHERE id = ?
-      `).run(largoCm, anchoCm, altoCm, cpPrefix, metrosCubicos || 0, peso || 0, agenciaId, precioFinal, precioRedondeado, id)
+      if (cliente !== undefined) {
+        db.prepare(`
+          UPDATE cotizaciones
+             SET largo_cm = ?, ancho_cm = ?, alto_cm = ?, cp_prefix = ?,
+                 metros_cubicos = ?, peso = ?, agencia_id = ?, precio_final = ?, precio_redondeado = ?,
+                 cliente_codigo = ?
+           WHERE id = ?
+        `).run(largoCm, anchoCm, altoCm, cpPrefix, metrosCubicos || 0, peso || 0, agenciaId, precioFinal, precioRedondeado, cliente, id)
+      } else {
+        db.prepare(`
+          UPDATE cotizaciones
+             SET largo_cm = ?, ancho_cm = ?, alto_cm = ?, cp_prefix = ?,
+                 metros_cubicos = ?, peso = ?, agencia_id = ?, precio_final = ?, precio_redondeado = ?
+           WHERE id = ?
+        `).run(largoCm, anchoCm, altoCm, cpPrefix, metrosCubicos || 0, peso || 0, agenciaId, precioFinal, precioRedondeado, id)
+      }
     }
     return { ok: true }
   } catch (e) {
@@ -133,20 +193,22 @@ ipcMain.handle('update-quote', (event, { id, fecha, largoCm, anchoCm, altoCm, cp
 })
 
 // Save a manually-entered quote (with specific fecha)
-ipcMain.handle('save-quote-manual', (event, { fecha, largoCm, anchoCm, altoCm, cpPrefix, metrosCubicos, peso, agenciaId, precioFinal }) => {
+ipcMain.handle('save-quote-manual', (event, { fecha, largoCm, anchoCm, altoCm, cpPrefix, metrosCubicos, peso, agenciaId, precioFinal, clienteCodigo, destinatario }) => {
   try {
     const precioRedondeado = redondear5(precioFinal)
     const db = getDb()
+    const cliente = clienteCodigo ? String(clienteCodigo).trim() : null
+    const dest = destinatario ? String(destinatario).trim() : null
     if (fecha) {
       db.prepare(`
-        INSERT INTO cotizaciones (fecha, largo_cm, ancho_cm, alto_cm, cp_prefix, metros_cubicos, peso, agencia_id, precio_final, precio_redondeado)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(fecha, largoCm, anchoCm, altoCm, cpPrefix, metrosCubicos || 0, peso || 0, agenciaId, precioFinal, precioRedondeado)
+        INSERT INTO cotizaciones (fecha, largo_cm, ancho_cm, alto_cm, cp_prefix, metros_cubicos, peso, agencia_id, precio_final, precio_redondeado, cliente_codigo, destinatario)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(fecha, largoCm, anchoCm, altoCm, cpPrefix, metrosCubicos || 0, peso || 0, agenciaId, precioFinal, precioRedondeado, cliente, dest)
     } else {
       db.prepare(`
-        INSERT INTO cotizaciones (largo_cm, ancho_cm, alto_cm, cp_prefix, metros_cubicos, peso, agencia_id, precio_final, precio_redondeado)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).run(largoCm, anchoCm, altoCm, cpPrefix, metrosCubicos || 0, peso || 0, agenciaId, precioFinal, precioRedondeado)
+        INSERT INTO cotizaciones (largo_cm, ancho_cm, alto_cm, cp_prefix, metros_cubicos, peso, agencia_id, precio_final, precio_redondeado, cliente_codigo, destinatario)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(largoCm, anchoCm, altoCm, cpPrefix, metrosCubicos || 0, peso || 0, agenciaId, precioFinal, precioRedondeado, cliente, dest)
     }
     return { ok: true }
   } catch (e) {

@@ -189,10 +189,74 @@ function runMigrations(db) {
     )
   `)
 
+  // Tabla de clientes (código + razón social). El código es PK (texto para soportar prefijos/letras).
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS clientes (
+      codigo        TEXT PRIMARY KEY,
+      razon_social  TEXT NOT NULL,
+      actualizado   TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `)
+
+  // Añadir columna cliente_codigo a cotizaciones si no existe (no rompe DB existentes)
+  const cotCols = db.prepare("PRAGMA table_info(cotizaciones)").all().map(c => c.name)
+  if (!cotCols.includes('cliente_codigo')) {
+    db.prepare('ALTER TABLE cotizaciones ADD COLUMN cliente_codigo TEXT').run()
+  }
+  if (!cotCols.includes('destinatario')) {
+    db.prepare('ALTER TABLE cotizaciones ADD COLUMN destinatario TEXT').run()
+  }
+
+  // Añadir columna cliente_codigo a cotizaciones_pendientes si no existe
+  const pendCols = db.prepare("PRAGMA table_info(cotizaciones_pendientes)").all().map(c => c.name)
+  if (!pendCols.includes('cliente_codigo')) {
+    db.prepare('ALTER TABLE cotizaciones_pendientes ADD COLUMN cliente_codigo TEXT').run()
+  }
+
+  // Tabla de cajas (medidas estándar de cajas)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS cajas (
+      id        INTEGER PRIMARY KEY AUTOINCREMENT,
+      largo_cm  INTEGER NOT NULL,
+      ancho_cm  INTEGER NOT NULL,
+      alto_cm   INTEGER NOT NULL,
+      UNIQUE(largo_cm, ancho_cm, alto_cm)
+    )
+  `)
+
+  // ── Tabla cospel ──────────────────────────────────────────────────────────
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS cospel (
+      id              INTEGER PRIMARY KEY AUTOINCREMENT,
+      code_cospel     TEXT NOT NULL,
+      referencia_elmer TEXT NOT NULL,
+      largo_cm        REAL NOT NULL,
+      ancho_cm        REAL NOT NULL,
+      alto_cm         REAL NOT NULL,
+      actualizado     TEXT,
+      UNIQUE(code_cospel)
+    )
+  `)
+
+  // Asegurar que las cajas base siempre existen (INSERT OR IGNORE no duplica)
+  {
+    const insertCaja = db.prepare('INSERT OR IGNORE INTO cajas (largo_cm, ancho_cm, alto_cm) VALUES (?, ?, ?)')
+    const cajasBase = [
+      [110, 35, 82],
+      [121, 42, 88],
+      [244, 27, 37],
+      [180, 27, 37],
+      [65, 35, 65],
+      [30, 20, 20],
+    ]
+    const txCajas = db.transaction((rows) => {
+      for (const row of rows) insertCaja.run(...row)
+    })
+    txCajas(cajasBase)
+  }
+
   // Tablas parachoques y cospel se mantienen como legacy.
-  // Su contenido NO se borra automáticamente.
   // La nueva tabla medidas_elmer las sustituye funcionalmente.
-  // Pendiente: eliminar tablas legacy en una migración futura cuando se confirme que medidas_elmer funciona en producción.
   db.exec(`
     CREATE TABLE IF NOT EXISTS medidas_elmer (
       referencia_elmer TEXT PRIMARY KEY,

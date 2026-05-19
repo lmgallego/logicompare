@@ -18,4 +18,8 @@ ipcMain.on('window-close', () => {
   if (win) win.close()
 })
 
+ipcMain.on('app-quit', () => {
+  app.quit()
+})
+
 ipcMain.handle('get-app-version', () => app.getVersion())

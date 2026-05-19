@@ -1,5 +1,5 @@
 import { formatPrice, formatDate } from '../utils/formatters.js'
-import { confirmModal, alertModal } from '../utils/modals.js'
+import { confirmModal, alertModal, showFormModal } from '../utils/modals.js'
 
 let mergedRows = null
 
@@ -39,6 +39,15 @@ export function initSupportView() {
 
   // Medidas Elmer import
   document.getElementById('btn-import-medidas-elmer')?.addEventListener('click', handleMedidasElmerImport)
+
+  // Cospel import
+  document.getElementById('btn-import-cospel')?.addEventListener('click', handleCospelImport)
+
+  // Clientes import
+  document.getElementById('btn-import-clientes')?.addEventListener('click', () => handleClientesImport(false))
+  document.getElementById('btn-import-clientes-replace')?.addEventListener('click', () => handleClientesImport(true))
+  document.getElementById('btn-create-cliente')?.addEventListener('click', handleCreateCliente)
+  refreshClientesCount()
 
   // Merge buttons
   document.getElementById('btn-merge-select')?.addEventListener('click', handleMergeSelect)
@@ -106,6 +115,99 @@ async function loadDbStats() {
   }
 }
 
+async function refreshClientesCount() {
+  try {
+    const c = await window.api.invoke('count-clientes')
+    const el = document.getElementById('clientes-count')
+    if (el) el.textContent = (c || 0).toLocaleString('es-ES')
+  } catch (_) {}
+}
+
+async function handleClientesImport(replaceAll) {
+  const statusEl = document.getElementById('clientes-import-status')
+  if (replaceAll) {
+    const ok = await confirmModal(
+      'El modo "Reemplazar todo" eliminará de la base de datos los clientes que no estén en el Excel.\nLos códigos eliminados seguirán existiendo en cotizaciones antiguas (mostrarán "sin razón social"), pero no podrás seleccionarlos al cotizar.\n\n¿Continuar?',
+      '⚠️ Reemplazar tabla de clientes'
+    )
+    if (!ok) return
+  }
+  statusEl.className = 'flex items-center gap-2 text-xs text-on-surface-variant px-1'
+  statusEl.innerHTML = '<span class="material-symbols-outlined text-sm" style="animation:spin 1s linear infinite;">progress_activity</span> Leyendo y procesando Excel...'
+  statusEl.classList.remove('hidden')
+
+  try {
+    const res = await window.api.invoke('import-clientes-xlsx', { replaceAll })
+    if (res?.cancelled) {
+      statusEl.classList.add('hidden')
+      return
+    }
+    if (!res?.ok) {
+      statusEl.className = 'text-xs px-3 py-2 rounded-lg'
+      statusEl.style.cssText = 'color:#ba1a1a; background:rgba(186,26,26,0.06);'
+      statusEl.textContent = res?.error || 'Operación cancelada.'
+      return
+    }
+    const { summary, warnings } = res
+    const warnHtml = warnings && warnings.length
+      ? `<details class="text-xs mt-2"><summary style="cursor:pointer;opacity:0.65;">${warnings.length} aviso(s) durante la importación</summary>
+           <ul style="list-style:disc;padding-left:1.2rem;margin-top:4px;opacity:0.75;">
+             ${warnings.slice(0, 20).map(w => `<li>${w}</li>`).join('')}
+             ${warnings.length > 20 ? `<li>… y ${warnings.length - 20} más</li>` : ''}
+           </ul></details>`
+      : ''
+
+    statusEl.className = 'space-y-2 p-3 rounded-lg'
+    statusEl.style.cssText = 'background:rgba(21,128,61,0.06);border:1px solid rgba(21,128,61,0.2);'
+    statusEl.innerHTML = `
+      <div class="flex items-center gap-2 text-xs font-semibold" style="color:#15803d;">
+        <span class="material-symbols-outlined text-sm">check_circle</span>
+        Importación completada (modo: ${summary.modo})
+      </div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+        <div><span style="opacity:0.6;">Leídas</span> <strong class="block">${summary.filasLeidas}</strong></div>
+        <div><span style="opacity:0.6;">Nuevas</span> <strong class="block" style="color:#15803d;">${summary.insertadas}</strong></div>
+        <div><span style="opacity:0.6;">Actualizadas</span> <strong class="block" style="color:#0040e0;">${summary.actualizadas}</strong></div>
+        <div><span style="opacity:0.6;">Eliminadas</span> <strong class="block" style="color:#ba1a1a;">${summary.eliminadas}</strong></div>
+      </div>
+      <p class="text-[11px]" style="opacity:0.65;">Total en BD: <strong>${summary.antesTotal}</strong> → <strong>${summary.ahoraTotal}</strong> clientes</p>
+      ${warnHtml}
+    `
+    refreshClientesCount()
+    loadDbStats()
+  } catch (err) {
+    statusEl.className = 'text-xs px-3 py-2 rounded-lg'
+    statusEl.style.cssText = 'color:#ba1a1a; background:rgba(186,26,26,0.06);'
+    statusEl.textContent = 'Error: ' + err.message
+  }
+}
+
+async function handleCreateCliente() {
+  const result = await showFormModal({
+    title: 'Crear cliente manualmente',
+    subtitle: 'Introduce el código y la razón social del nuevo cliente.',
+    submitLabel: 'Guardar cliente',
+    fields: [
+      { name: 'codigo',      label: 'Código de cliente', type: 'text', value: '', required: true, placeholder: 'Ej: 10234' },
+      { name: 'razonSocial', label: 'Razón social',      type: 'text', value: '', required: true, placeholder: 'Nombre o razón social' },
+    ],
+  })
+  if (!result) return
+
+  try {
+    const res = await window.api.invoke('create-cliente', {
+      codigo: result.codigo.trim(),
+      razonSocial: result.razonSocial.trim(),
+    })
+    if (!res?.ok) throw new Error(res?.error || 'No se pudo guardar')
+    showToast(`✓ Cliente "${res.razonSocial}" (${res.codigo}) creado correctamente`, 'success')
+    refreshClientesCount()
+    loadDbStats()
+  } catch (err) {
+    alertModal('Error al crear cliente: ' + err.message, 'Error')
+  }
+}
+
 async function handleParachoquesImport() {
   const statusEl = document.getElementById('parachoques-import-status')
   statusEl.className = 'flex items-center gap-2 text-xs text-on-surface-variant px-1'
@@ -167,6 +269,59 @@ async function handleMedidasElmerImport() {
 
   try {
     const res = await window.api.invoke('import-medidas-elmer-xlsx')
+    if (res?.cancelled) {
+      statusEl.classList.add('hidden')
+      return
+    }
+    if (!res?.ok) {
+      statusEl.className = 'text-xs px-3 py-2 rounded-lg'
+      statusEl.style.cssText = 'color:#ba1a1a; background:rgba(186,26,26,0.06);'
+      statusEl.textContent = res?.error || 'Operación cancelada.'
+      return
+    }
+
+    const { summary, warnings } = res
+    const warnHtml = warnings && warnings.length
+      ? `<details class="text-xs mt-2"><summary style="cursor:pointer;opacity:0.65;">${warnings.length} aviso(s) durante la importación</summary>
+           <ul style="list-style:disc;padding-left:1.2rem;margin-top:4px;opacity:0.75;">
+             ${warnings.slice(0, 20).map(w => `<li>${w}</li>`).join('')}
+             ${warnings.length > 20 ? `<li>… y ${warnings.length - 20} más</li>` : ''}
+           </ul></details>`
+      : ''
+
+    statusEl.className = 'space-y-2 p-3 rounded-lg'
+    statusEl.style.cssText = 'background:rgba(21,128,61,0.06);border:1px solid rgba(21,128,61,0.2);'
+    statusEl.innerHTML = `
+      <div class="flex items-center gap-2 text-xs font-semibold" style="color:#15803d;">
+        <span class="material-symbols-outlined text-sm">check_circle</span>
+        Importación completada
+      </div>
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
+        <div><span style="opacity:0.6;">Leídas</span> <strong class="block">${summary.filasLeidas}</strong></div>
+        <div><span style="opacity:0.6;">Nuevas</span> <strong class="block" style="color:#15803d;">${summary.insertadas}</strong></div>
+        <div><span style="opacity:0.6;">Actualizadas</span> <strong class="block" style="color:#0040e0;">${summary.actualizadas}</strong></div>
+        <div><span style="opacity:0.6;">Eliminadas</span> <strong class="block" style="color:#ba1a1a;">${summary.eliminadas}</strong></div>
+      </div>
+      <p class="text-[11px]" style="opacity:0.65;">Total en BD: <strong>${summary.antesTotal}</strong> → <strong>${summary.ahoraTotal}</strong> referencias</p>
+      ${warnHtml}
+    `
+
+    loadDbStats()
+  } catch (err) {
+    statusEl.className = 'text-xs px-3 py-2 rounded-lg'
+    statusEl.style.cssText = 'color:#ba1a1a; background:rgba(186,26,26,0.06);'
+    statusEl.textContent = 'Error: ' + err.message
+  }
+}
+
+async function handleCospelImport() {
+  const statusEl = document.getElementById('cospel-import-status')
+  statusEl.className = 'flex items-center gap-2 text-xs text-on-surface-variant px-1'
+  statusEl.innerHTML = '<span class="material-symbols-outlined text-sm" style="animation:spin 1s linear infinite;">progress_activity</span> Leyendo y procesando Excel...'
+  statusEl.classList.remove('hidden')
+
+  try {
+    const res = await window.api.invoke('import-cospel-xlsx')
     if (res?.cancelled) {
       statusEl.classList.add('hidden')
       return

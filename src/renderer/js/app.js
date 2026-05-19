@@ -1,5 +1,5 @@
 import { initSidebar } from './components/sidebar.js'
-import { initFormHandler, getLastFormDatos, wasAgenciaElegida } from './components/formHandler.js'
+import { initFormHandler, getLastFormDatos, wasAgenciaElegida, getActiveCliente, setActiveCliente, promptCliente } from './components/formHandler.js'
 import { loadHistory, initHistoryControls } from './components/historyView.js'
 import { loadAgencies, initAgencyModal } from './components/databaseView.js'
 import { initDevidosView } from './components/devidosView.js'
@@ -9,9 +9,12 @@ import { initSupportView } from './components/supportView.js'
 import { loadPendingView, updatePendingBadge } from './components/pendingView.js'
 import { initParachoquesView, loadParachoquesView } from './components/parachoquesView.js'
 import { initMedidasElmerView, loadMedidasElmerView } from './components/medidasElmerView.js'
+import { initCajasView, loadCajasView } from './components/cajasView.js'
+import { initCospelView, loadCospelView } from './components/cospelView.js'
+import { initConsultasView } from './components/consultasView.js'
 import { showConfirmModal, showFormModal, alertModal } from './utils/modals.js'
 
-const PAGES = ['new-quote', 'pending', 'debidos', 'parachoques', 'medidas-elmer', 'history', 'agencias', 'analytics', 'database', 'support']
+const PAGES = ['new-quote', 'pending', 'debidos', 'parachoques', 'medidas-elmer', 'cajas', 'cospel', 'history', 'consultas', 'agencias', 'analytics', 'database', 'support']
 let currentPage = 'new-quote'
 
 function showToast(msg, type = 'info') {
@@ -69,9 +72,14 @@ function showPage(pageId) {
   if (pageId === 'pending') loadPendingView()
   if (pageId === 'parachoques') loadParachoquesView()
   if (pageId === 'medidas-elmer') loadMedidasElmerView()
+  if (pageId === 'cajas') loadCajasView()
+  if (pageId === 'cospel') loadCospelView()
 
   if (pageId === 'new-quote') {
     setTimeout(() => document.getElementById('input-largo')?.focus(), 80)
+  }
+  if (pageId === 'debidos') {
+    setTimeout(() => document.getElementById('deb-largo')?.focus(), 80)
   }
 }
 
@@ -84,6 +92,9 @@ async function initApp() {
   initAgenciasView()    // preload agency list for comparison view
   initParachoquesView()
   initMedidasElmerView()
+  initCajasView()
+  initCospelView()
+  initConsultasView()
   initSupportView()
 
   document.getElementById('btn-refresh-history')?.addEventListener('click', () => {
@@ -107,12 +118,19 @@ async function initApp() {
     const altoEl  = document.getElementById('input-alto')
     const cpEl    = document.getElementById('input-cp')
 
+    let pickedManualCliente = null
+    const manualClienteLabel = () => pickedManualCliente
+      ? `${pickedManualCliente.razon_social || '(sin razón social)'} · cód. ${pickedManualCliente.codigo}`
+      : '— sin cliente —'
+
     const result = await showFormModal({
       title: 'Añadir cotización manual',
       subtitle: 'Crea un registro directamente en el historial sin calcular tarifas',
       submitLabel: 'Guardar en historial',
       fields: [
         { name: 'fecha',         label: 'Fecha',           type: 'date',   value: today, required: true },
+        { name: 'cliente',       label: 'Cliente',         type: 'cliente', value: null,
+          onPick: (c) => { pickedManualCliente = c }, getLabel: manualClienteLabel },
         { name: 'largoCm',       label: 'Largo (cm)',      type: 'number', value: largoEl?.value || '', step: '0.1', min: 0, required: true },
         { name: 'anchoCm',       label: 'Ancho (cm)',      type: 'number', value: anchoEl?.value || '', step: '0.1', min: 0, required: true },
         { name: 'altoCm',        label: 'Alto (cm)',       type: 'number', value: altoEl?.value || '',  step: '0.1', min: 0, required: true },
@@ -137,6 +155,7 @@ async function initApp() {
         metrosCubicos: parseFloat(result.metrosCubicos) || 0,
         agenciaId: result.agenciaId ? parseInt(result.agenciaId) : null,
         precioFinal: parseFloat(result.precioFinal),
+        clienteCodigo: pickedManualCliente?.codigo || null,
       })
       if (!res.ok) throw new Error(res.error || 'No se pudo guardar')
       showToast('✓ Cotización manual guardada en el historial', 'success')
@@ -153,6 +172,9 @@ async function initApp() {
   })
   document.getElementById('btn-close')?.addEventListener('click', () => {
     window.api?.send('window-close')
+  })
+  document.getElementById('btn-logout')?.addEventListener('click', () => {
+    window.api?.send('app-quit')
   })
 
   if (window.api) {
@@ -221,6 +243,34 @@ async function initApp() {
         if (info)    info.classList.add('hidden')
         if (suggest) { suggest.innerHTML = ''; suggest.classList.add('hidden') }
         setTimeout(() => refEl?.focus(), 30)
+      } else if (currentPage === 'cajas') {
+        // Limpiar formulario de cajas sin salir de la página
+        const largoSel = document.getElementById('cajas-largo')
+        const cpEl     = document.getElementById('cajas-cp')
+        const results  = document.getElementById('cajas-results')
+        const empty    = document.getElementById('cajas-empty')
+        const info     = document.getElementById('cajas-info')
+        if (largoSel) largoSel.value = ''
+        if (cpEl)  cpEl.value  = ''
+        if (results) { results.innerHTML = ''; results.classList.add('hidden') }
+        if (empty)   empty.classList.remove('hidden')
+        if (info) { info.innerHTML = ''; info.classList.add('hidden') }
+        setTimeout(() => largoSel?.focus(), 30)
+      } else if (currentPage === 'cospel') {
+        // Limpiar formulario de cospel sin salir de la página
+        const refEl    = document.getElementById('cospel-ref')
+        const cpEl     = document.getElementById('cospel-cp')
+        const results  = document.getElementById('cospel-results')
+        const empty    = document.getElementById('cospel-empty')
+        const info     = document.getElementById('cospel-info')
+        const suggest  = document.getElementById('cospel-suggest')
+        if (refEl) refEl.value = ''
+        if (cpEl)  cpEl.value  = ''
+        if (results) { results.innerHTML = ''; results.classList.add('hidden') }
+        if (empty)   empty.classList.remove('hidden')
+        if (info)    info.classList.add('hidden')
+        if (suggest) { suggest.innerHTML = ''; suggest.classList.add('hidden') }
+        setTimeout(() => refEl?.focus(), 30)
       } else {
         // If results are visible and no agency was chosen, warn the user
         const resultsList = document.getElementById('results-list')
@@ -239,16 +289,26 @@ async function initApp() {
           if (action === 'save') {
             const datos = getLastFormDatos()
             if (datos && window.api) {
+              // Preguntar opcionalmente por el cliente antes de guardar en pendientes
+              let pendingCliente = null
+              let totalClientes = 0
+              try { totalClientes = await window.api.invoke('count-clientes') } catch (_) {}
+              if (totalClientes > 0) {
+                pendingCliente = await promptCliente(false)
+              }
               await window.api.invoke('save-pending-quote', {
                 cpPrefix:   datos.cpPrefix,
                 bultos:     datos.bultos,
                 resultados: datos.lastResultados || [],
+                clienteCodigo: pendingCliente?.codigo || null,
               })
               const countRow = await window.api.invoke('get-pending-count')
               updatePendingBadge(countRow?.c ?? 0)
             }
           }
         }
+
+        setActiveCliente(null)
         showPage('new-quote')
         document.getElementById('quote-form')?.reset()
         const extraContainer = document.getElementById('extra-bultos-container')
