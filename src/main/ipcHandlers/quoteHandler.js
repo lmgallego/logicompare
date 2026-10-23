@@ -13,12 +13,17 @@ ipcMain.handle('calcular-pesos-debidos', (event, datos) => {
   return calcularPesosDebidos(datos)
 })
 
+// Desglose del cálculo (DSV): solo se guarda si viene con líneas
+function desgloseJson(desglose) {
+  return Array.isArray(desglose) && desglose.length > 0 ? JSON.stringify(desglose) : null
+}
+
 function redondear5(precio) {
   if (precio == null) return null
   return Math.ceil(precio * 20) / 20
 }
 
-ipcMain.handle('save-quote', (event, { largoCm, anchoCm, altoCm, cpPrefix, metrosCubicos, peso, agenciaId, precioFinal, bultos, clienteCodigo, destinatario }) => {
+ipcMain.handle('save-quote', (event, { largoCm, anchoCm, altoCm, cpPrefix, metrosCubicos, peso, agenciaId, precioFinal, bultos, clienteCodigo, destinatario, desglose }) => {
   try {
     const precioRedondeado = redondear5(precioFinal)
     const primerBulto = (bultos && bultos.length > 0) ? bultos[0] : { largoCm, anchoCm, altoCm }
@@ -26,10 +31,10 @@ ipcMain.handle('save-quote', (event, { largoCm, anchoCm, altoCm, cpPrefix, metro
     const dest = destinatario ? String(destinatario).trim() : null
     getDb()
       .prepare(`
-        INSERT INTO cotizaciones (largo_cm, ancho_cm, alto_cm, cp_prefix, metros_cubicos, peso, agencia_id, precio_final, precio_redondeado, cliente_codigo, destinatario)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO cotizaciones (largo_cm, ancho_cm, alto_cm, cp_prefix, metros_cubicos, peso, agencia_id, precio_final, precio_redondeado, cliente_codigo, destinatario, desglose_json)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `)
-      .run(primerBulto.largoCm, primerBulto.anchoCm, primerBulto.altoCm, cpPrefix, metrosCubicos || 0, peso || 0, agenciaId, precioFinal, precioRedondeado, cliente, dest)
+      .run(primerBulto.largoCm, primerBulto.anchoCm, primerBulto.altoCm, cpPrefix, metrosCubicos || 0, peso || 0, agenciaId, precioFinal, precioRedondeado, cliente, dest, desgloseJson(desglose))
     return { ok: true }
   } catch (e) {
     return { ok: false, error: e.message }
@@ -76,16 +81,16 @@ ipcMain.handle('get-pending-quotes', () => {
     }))
 })
 
-ipcMain.handle('resolve-pending-quote', (event, { pendingId, agenciaId, metrosCubicos, peso, precioFinal, cpPrefix, largoCm, anchoCm, altoCm, bultos, clienteCodigo }) => {
+ipcMain.handle('resolve-pending-quote', (event, { pendingId, agenciaId, metrosCubicos, peso, precioFinal, cpPrefix, largoCm, anchoCm, altoCm, bultos, clienteCodigo, desglose }) => {
   try {
     const db = getDb()
     const precioRedondeado = redondear5(precioFinal)
     const primerBulto = (bultos && bultos.length > 0) ? bultos[0] : { largoCm, anchoCm, altoCm }
     const cliente = clienteCodigo ? String(clienteCodigo).trim() : null
     db.prepare(`
-      INSERT INTO cotizaciones (largo_cm, ancho_cm, alto_cm, cp_prefix, metros_cubicos, peso, agencia_id, precio_final, precio_redondeado, cliente_codigo)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(primerBulto.largoCm, primerBulto.anchoCm, primerBulto.altoCm, cpPrefix, metrosCubicos || 0, peso || 0, agenciaId, precioFinal, precioRedondeado, cliente)
+      INSERT INTO cotizaciones (largo_cm, ancho_cm, alto_cm, cp_prefix, metros_cubicos, peso, agencia_id, precio_final, precio_redondeado, cliente_codigo, desglose_json)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(primerBulto.largoCm, primerBulto.anchoCm, primerBulto.altoCm, cpPrefix, metrosCubicos || 0, peso || 0, agenciaId, precioFinal, precioRedondeado, cliente, desgloseJson(desglose))
     db.prepare('DELETE FROM cotizaciones_pendientes WHERE id = ?').run(pendingId)
     return { ok: true }
   } catch (e) {

@@ -2,6 +2,8 @@ const { getActive } = require('../repositories/agencyRepository')
 const { getZoneForCp, getZonesForCp } = require('../repositories/zoneRepository')
 const { getRateForWeight, getRateForWeight15 } = require('../repositories/rateRepository')
 const { getDb } = require('../database/connection')
+const { getActiveRulesByAgency, getCpAreas } = require('../repositories/surchargeRepository')
+const { bandaDsv, calcularDsv } = require('./recargosService')
 
 /**
  * Calcula los metros cúbicos a partir de las dimensiones en cm.
@@ -139,7 +141,9 @@ function resolveZonaLogistica(agenciaId, zonaBase) {
  * Suma todos los m³ → obtiene UN peso total → busca UN precio para ese peso.
  * @returns {{ precioFinal: number|null, precioBase: number|null, desglose: [], peso: number, metrosCubicos: number, error: string|null }}
  */
-function calcularPrecioBultos(agencia, zona, bultos) {
+function calcularPrecioBultos(agencia, zona, bultos, extra = {}) {
+  if (agencia.motor === 'reglas') return calcularPrecioReglas(agencia, zona, bultos, extra)
+
   let m3Total = 0
   for (const bulto of bultos) {
     m3Total += calcularMetrosCubicos(bulto.largoCm, bulto.anchoCm, bulto.altoCm)
@@ -155,7 +159,44 @@ function calcularPrecioBultos(agencia, zona, bultos) {
   return { precioFinal, precioBase, desglose, peso: pesoTotal, metrosCubicos: m3Total, error: null }
 }
 
-function calcularTarifas({ largoCm, anchoCm, altoCm, cpPrefix, agenciaIds, bultos }) {
+/**
+ * Flujo para agencias con motor = 'reglas' (DSV). No usa redondeos intermedios ni
+ * banda máxima + kg_adicional: fuera de límites devuelve error.
+ */
+const DSV_PESO_MAX_KG = 5000
+const DSV_VOLUMEN_MAX_M3 = 20
+
+function calcularPrecioReglas(agencia, zona, bultos, { cp5, pesoBruto, opcionesDsv, producto } = {}) {
+  const m3 = bultos.reduce((s, b) => s + b.largoCm * b.anchoCm * b.altoCm * 0.000001, 0)
+  const peso = Math.max(m3 * agencia.baremo, Number(pesoBruto) || 0)
+  const base = { precioFinal: null, precioBase: null, desglose: [], avisos: [],
+    peso: Math.round(peso * 100) / 100, metrosCubicos: Math.round(m3 * 1000) / 1000 }
+
+  if (peso > DSV_PESO_MAX_KG || m3 > DSV_VOLUMEN_MAX_M3) return { ...base, error: 'Excede peso/volumen máximo DSV' }
+
+  const tarifa = getRateForWeight(agencia.id, zona.id, bandaDsv(peso))
+  if (!tarifa) return { ...base, error: 'Sin tarifa para este peso' }
+
+  // Peso por bulto para la regla de Largos: solo se conoce si hay peso bruto
+  const pesoBulto = pesoBruto ? Number(pesoBruto) / bultos.length : undefined
+  const r = calcularDsv({
+    flete: tarifa.precio_base,
+    pesoTasable: peso,
+    zona,
+    bultos: bultos.map(b => ({ ...b, pesoKg: pesoBulto })),
+    opciones: opcionesDsv || {},
+    cp5,
+    recargos: getActiveRulesByAgency(agencia.id),
+    cpAreas: cp5 ? getCpAreas(agencia.id, cp5) : [],
+    producto,
+  })
+  if (r.error) return { ...base, avisos: r.avisos, error: r.error }
+  return { ...base, precioFinal: r.total, precioBase: Math.round(r.flete * 100) / 100, desglose: r.desglose, avisos: r.avisos, error: null }
+}
+
+function calcularTarifas({ largoCm, anchoCm, altoCm, cpPrefix, agenciaIds, bultos, cp5, pesoBruto, opcionesDsv, producto }) {
+  // Parámetros solo para agencias con motor 'reglas'; el resto los ignora
+  const extra = { cp5, pesoBruto, opcionesDsv, producto }
   // Normalizar bultos: si no viene array, usar las dimensiones simples
   const listaBultos = (bultos && bultos.length > 0)
     ? bultos
@@ -190,7 +231,7 @@ function calcularTarifas({ largoCm, anchoCm, altoCm, cpPrefix, agenciaIds, bulto
     const multiZonas = getZonesForCp(agencia.id, cpPrefix)
     if (multiZonas.length > 0) {
       for (const mZona of multiZonas) {
-        const res = calcularPrecioBultos(agencia, mZona, listaBultos)
+        const res = calcularPrecioBultos(agencia, mZona, listaBultos, extra)
         resultados.push({ agencia, zona: mZona, ...res, numeroBultos: listaBultos.length, maxLargoCm, maxSumaDimCm })
       }
       continue
@@ -207,7 +248,7 @@ function calcularTarifas({ largoCm, anchoCm, altoCm, cpPrefix, agenciaIds, bulto
       continue
     }
 
-    const res = calcularPrecioBultos(agencia, zona, listaBultos)
+    const res = calcularPrecioBultos(agencia, zona, listaBultos, extra)
     resultados.push({ agencia, zona, ...res, numeroBultos: listaBultos.length, maxLargoCm, maxSumaDimCm })
   }
 
