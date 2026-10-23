@@ -23,8 +23,9 @@ const seed = db.transaction(() => {
     console.log(`[seed:dsv] Agencia "${NOMBRE}" ya existe (ID ${ag.id}): se actualiza sin borrar.`)
   } else {
     const r = db.prepare(
-      `INSERT INTO agencias (nombre, ambito, baremo, recargo_combustible, recargo_seguro, logo_path, activa, motor)
-       VALUES (?, 'Nacional', ?, 0, 0, NULL, 1, 'reglas')`
+      // DSV solo trabaja a portes pagados: fuera de Debidos
+      `INSERT INTO agencias (nombre, ambito, baremo, recargo_combustible, recargo_seguro, logo_path, activa, motor, admite_debidos)
+       VALUES (?, 'Nacional', ?, 0, 0, NULL, 1, 'reglas', 0)`
     ).run(NOMBRE, datos.parametros.baremo_kg_m3)
     ag = { id: r.lastInsertRowid }
     console.log(`[seed:dsv] Agencia "${NOMBRE}" creada. ID: ${ag.id}`)

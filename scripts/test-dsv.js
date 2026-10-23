@@ -59,15 +59,40 @@ caso('V2 V1 con System Priority y sin responsabilidad → 49,70', () => {
   assert.equal(r.total, 49.70)
 })
 
-caso('V4 zona 4, 120×80×100, 180 kg, CP5 08001 metropolitana, sin responsabilidad → 71,03', () => {
+caso('V4 zona 2, 120×80×100, 180 kg, CP5 08001 metropolitana, sin responsabilidad → 46,33', () => {
   const bultos = [{ largoCm: 120, anchoCm: 80, altoCm: 100, pesoKg: 180 }]
   const peso = pesoTasable(bultos, 180)
-  const r = calcularDsv({ flete: tarifa('4', peso), pesoTasable: peso, zona: zona('4'), bultos, recargos: RECARGOS,
+  const r = calcularDsv({ flete: tarifa('2', peso), pesoTasable: peso, zona: zona('2'), bultos, recargos: RECARGOS,
     opciones: { incremento_responsabilidad: false }, cp5: '08001', cpAreas: ['metropolitana'] })
-  assert.equal(r.flete, 51.20)
-  assert.equal(r.suplementos, 19.83)
-  assert.equal(r.total, 71.03)
+  assert.equal(r.flete, 33.27)
+  assert.equal(r.suplementos, 13.06)
+  assert.equal(r.total, 46.33)
   assert.equal(r.avisos.length, 0)
+})
+
+caso('V1 a CP 07 Mallorca: sin MFR (inactivo como en la calculadora) → 92,37', () => {
+  const bultos = [{ largoCm: 215, anchoCm: 35, altoCm: 54, pesoKg: 100 }]
+  const peso = pesoTasable(bultos, 100)
+  const r = calcularDsv({ flete: tarifa('9', peso), pesoTasable: peso, zona: zona('9'), bultos, recargos: RECARGOS })
+  assert.equal(zona('9').nombre_zona, 'Mallorca')
+  assert.ok(!r.desglose.some(l => l.codigo === 'mfr_baleares'))
+  assert.equal(r.flete, 76.08)
+  assert.equal(r.opciones, 6.09)      // responsabilidad por defecto
+  assert.equal(r.suplementos, 10.20)  // fuel 9,70 + TTE 0,50
+  assert.equal(r.total, 92.37)
+})
+
+caso('V2 + Priority 12: +20 € y entra en la base del combustible → 72,25', () => {
+  const bultos = [{ largoCm: 215, anchoCm: 35, altoCm: 54, pesoKg: 100 }]
+  const peso = pesoTasable(bultos, 100)
+  const r = calcularDsv({ flete: tarifa('7', peso), pesoTasable: peso, zona: zona('7'), bultos, recargos: RECARGOS,
+    opciones: { incremento_responsabilidad: false, priority_12: true }, producto: 'priority' })
+  assert.equal(r.desglose.find(l => l.codigo === 'priority_12').valor, 20)
+  // fuel 12,75 % de (43,641 + 20) = 8,11
+  assert.equal(r.desglose.find(l => l.codigo === 'combustible').valor, 8.11)
+  assert.equal(r.opciones, 20)
+  assert.equal(r.suplementos, 8.61)
+  assert.equal(r.total, 72.25)
 })
 
 console.log('Largos')
@@ -99,18 +124,12 @@ caso('Día fijo no se aplica con Largos; ADR no con Priority', () => {
   assert.ok(codigos.includes('priority_12'))
   assert.equal(r.avisos.length, 3)  // día fijo, ADR, CP incompleto
 })
-caso('Fuel sobre flete + Priority 12', () => {
+caso('MFR Baleares (si se activa) solo en zonas de islas, mínimo 0,60 €', () => {
+  const conMfr = RECARGOS.map(r => r.codigo === 'mfr_baleares' ? { ...r, activo: 1 } : r)
   const bultos = [{ largoCm: 50, anchoCm: 50, altoCm: 50 }]
-  const r = calcularDsv({ flete: 100, pesoTasable: 27.5, zona: zona('1'), bultos, recargos: RECARGOS,
-    opciones: { incremento_responsabilidad: false, priority_12: true }, producto: 'priority' })
-  // flete 130 + priority 10 → fuel 12,75 % de 140 = 17,85
-  assert.equal(r.desglose.find(l => l.codigo === 'combustible').valor, 17.85)
-})
-caso('MFR Baleares solo en zonas de islas, mínimo 0,60 €', () => {
-  const bultos = [{ largoCm: 50, anchoCm: 50, altoCm: 50 }]
-  const isla = calcularDsv({ flete: 40, pesoTasable: 27.5, zona: { nombre_zona: 'Ibiza' }, bultos, recargos: RECARGOS })
+  const isla = calcularDsv({ flete: 40, pesoTasable: 27.5, zona: { nombre_zona: 'Ibiza' }, bultos, recargos: conMfr })
   assert.equal(isla.desglose.find(l => l.codigo === 'mfr_baleares').valor, 0.6)
-  const peninsula = calcularDsv({ flete: 40, pesoTasable: 27.5, zona: zona('3'), bultos, recargos: RECARGOS })
+  const peninsula = calcularDsv({ flete: 40, pesoTasable: 27.5, zona: zona('3'), bultos, recargos: conMfr })
   assert.ok(!peninsula.desglose.some(l => l.codigo === 'mfr_baleares'))
 })
 

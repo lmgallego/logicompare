@@ -272,7 +272,8 @@ function calcularPesosDebidos({ largoCm, anchoCm, altoCm, agenciaIds, bultos }) 
     ? bultos
     : [{ largoCm, anchoCm, altoCm }]
 
-  let agencias = getActive()
+  // Agencias que solo trabajan a portes pagados (p. ej. DSV) no salen en Debidos
+  let agencias = getActive().filter(a => a.admite_debidos !== 0)
   if (agenciaIds && agenciaIds.length > 0) {
     const idSet = new Set(agenciaIds)
     agencias = agencias.filter(a => idSet.has(a.id))

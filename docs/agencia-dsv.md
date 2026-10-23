@@ -54,18 +54,18 @@ Todos están en `csv/dsv_system_2026.json` → `recargos`, con importe, mínimo,
 | largo_tipo1 | 20 % flete, mín. 40 € | lado mayor 240–300 cm |
 | largo_tipo2 | 30 % flete, mín. 75 € | lado mayor 300–600 cm (2º lado ≤40, alto ≤40, ≤30 kg) |
 | reserva_manual | 7 € | opcional |
-| priority_12 / priority_10 | ver discrepancia | solo System Priority |
-| mfr_baleares | 0,60 € por 100 kg tasables, mín. 0,60 € | zonas 9–12. **No está en la calculadora** |
+| priority_12 / priority_10 | 20 € / 40 € (según la calculadora del Excel) | solo System Priority; entran en la base del fuel |
+| mfr_baleares | 0,60 € por 100 kg tasables, mín. 0,60 € | zonas 9–12. **Inactivo** (la calculadora no lo suma); editable |
 | manual: dirección incorrecta 5 €, corrección de datos 10 €, segunda entrega 30 %, gran superficie 6,40 €, no paletizada 1 €/bulto, escaneo albarán 1,50 €, seguro 0,3 % mín. 15 €, almacenaje 15 €/día | | referencia, activo=0 |
 
 Ecotasas, Mobility Package, UK, ICS2, Ferry y aduanas son internacionales: fuera de alcance.
 
 ## 3. Discrepancias del propio Excel (hay que confirmarlas con DSV)
 
-1. **Priority 10/12**: la calculadora cobra Priority 12 = 20 € y Priority 10 = 40 €. La hoja `Opciones y Suplementos` dice nacional 10 € y 20 €; los 20/40 son los importes *internacionales*. En el JSON he puesto los de la hoja de opciones (10/20).
+1. ~~**Priority 10/12**~~ **Resuelta según la calculadora del Excel**: Priority 12 = 20 € y Priority 10 = 40 €. (La hoja `Opciones y Suplementos` dice nacional 10 € y 20 €; se descarta.)
 2. **Área metropolitana**: la calculadora aplica `max(7 €, 25 % flete)` (igual que remota); la hoja de opciones dice 5 € fijos por envío. En el JSON he dejado la fórmula de la calculadora.
 3. **Fuel**: la hoja de opciones dice "12,75 % sobre el porte. Se cobraría el 50 % del fuel normal". La calculadora usa 12,75 % entero. No sé si 12,75 % ya es ese 50 %.
-4. **MFR Baleares** (0,60 €/100 kg) existe en la hoja de opciones pero la calculadora no lo suma.
+4. ~~**MFR Baleares**~~ **Resuelta según la calculadora del Excel**: no se suma. Queda en `recargos_agencia` con `activo = 0`, editable si DSV lo factura.
 5. **Factor 220** (acuerdo Elmer) frente a la nota genérica "1 m³ = 333 kg". Prevalece 220.
 
 ## 4. Qué choca con la app actual
@@ -102,7 +102,7 @@ Zonas y precios tomados del Excel. Peso bruto en kg; IVA no incluido.
 | V1 | Tarragona→Málaga (zona 7), 1×(215×35×54), 100 kg, System, resp. Sí | 33,57 | 2,69 | 4,78 | **41,04** | **Excel (celdas cacheadas)** |
 | V2 | V1 con System Priority y sin responsabilidad | 43,641 | 0 | 6,06 | 49,70 | Derivado de fórmulas |
 | V3 | Llegadas, zona 3, 2×(60×40×40), 45 kg, resp. Sí | 21,60 | 1,73 | 3,25 | 26,58 | Derivado de fórmulas |
-| V4 | Zona 4, 1×(120×80×100), 180 kg, CP 08001 (metropolitana) | 51,20 | 0 | 19,83 | 71,03 | Derivado de fórmulas |
+| V4 | Zona 2, 1×(120×80×100), 180 kg, CP 08001 (metropolitana), sin resp. | 33,27 | 0 | 13,06 | 46,33 | Derivado de fórmulas |
 
 V1 coincide con el Excel al céntimo con mi transcripción de las fórmulas. V2–V4 son cálculos de esa misma transcripción, no valores recalculados por Excel: conviene contrastar uno con una cotización real de DSV.
 
@@ -111,5 +111,5 @@ V1 coincide con el Excel al céntimo con mi transcripción de las fórmulas. V2�
 1. ¿Solo **Salidas** (Elmer envía desde Tarragona) o también **Llegadas** (×1,20)?
 2. ¿Se puede pasar a **CP de 5 dígitos** (opcional) en los formularios?
 3. ¿Añadimos **peso bruto** opcional?
-4. Valores correctos de las discrepancias 1–4 de la sección 3.
+4. Valores correctos de las discrepancias 2 y 3 de la sección 3 (1 y 4 resueltas según la calculadora).
 5. ¿Incremento de responsabilidad **marcado por defecto**, como en el Excel?

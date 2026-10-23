@@ -1,6 +1,7 @@
 import { showToast } from '../app.js'
 import { showConfirmModal } from '../utils/modals.js'
 import { initAgenciasView } from './agenciasView.js'
+import { refreshOpcionesDsv } from './formHandler.js'
 
 // Activa/desactiva conservando el resto de campos (update-agency no toca motor)
 async function toggleAgency(a) {
@@ -16,9 +17,11 @@ async function toggleAgency(a) {
         recargo_seguro: a.recargo_seguro,
         logo_path: a.logo_path,
         activa,
+        admite_debidos: a.admite_debidos,
       },
     })
     await initAgenciasView()
+    refreshOpcionesDsv()
     showToast(activa ? `✓ ${a.nombre} activada` : `${a.nombre} desactivada: no saldrá en nuevas cotizaciones`, 'success')
   } catch (err) {
     showToast(`Error: ${err.message}`, 'warning')
@@ -183,6 +186,7 @@ export function initAgencyModal() {
       recargo_seguro: parseFloat(document.getElementById('agency-recargo-seguro').value) || 0,
       logo_path: logoPath,
       activa: document.getElementById('agency-activa').checked ? 1 : 0,
+      admite_debidos: document.getElementById('agency-admite-debidos').checked ? 1 : 0,
     }
 
     try {
@@ -200,6 +204,7 @@ export function initAgencyModal() {
       closeModal()
       loadAgencies()
       initAgenciasView()
+      refreshOpcionesDsv()
     } catch (err) {
       alert(`Error al guardar: ${err.message}`)
     }
@@ -232,6 +237,7 @@ async function openAgencyModal(agencyId) {
         document.getElementById('agency-recargo-combustible').value = detail.agencia.recargo_combustible ?? 0
         document.getElementById('agency-recargo-seguro').value = detail.agencia.recargo_seguro ?? 0
         document.getElementById('agency-activa').checked = !!detail.agencia.activa
+        document.getElementById('agency-admite-debidos').checked = detail.agencia.admite_debidos !== 0
         if (detail.agencia.logo_path) {
           document.getElementById('agency-logo-path').value = detail.agencia.logo_path
           document.getElementById('logo-preview').innerHTML = `<img src="file://${detail.agencia.logo_path}" class="w-full h-full object-contain mix-blend-multiply rounded-lg" />`
@@ -451,6 +457,7 @@ async function renderRecargosEditor(agenciaId) {
       }
       saveBtn.textContent = cambiadas.length ? `✓ ${cambiadas.length} recargo(s) guardado(s)` : 'Sin cambios'
       saveBtn.disabled = true
+      refreshOpcionesDsv()  // por_defecto marca las casillas de la calculadora
       setTimeout(() => renderRecargosEditor(agenciaId), 1500)
     })
   } catch (err) {

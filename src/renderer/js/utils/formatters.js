@@ -23,6 +23,16 @@ export function formatWeight(value) {
   return `${Number(value)} kg`
 }
 
+/**
+ * Peso en kg con formato español: coma decimal, máximo 1 decimal (p. ej. "89,4 kg").
+ * @param {number} value
+ * @returns {string}
+ */
+export function formatKg(value) {
+  if (value === null || value === undefined) return '—'
+  return new Intl.NumberFormat('es-ES', { maximumFractionDigits: 1 }).format(value) + ' kg'
+}
+
 export function formatVolume(value) {
   if (value === null || value === undefined) return '—'
   return new Intl.NumberFormat('es-ES', {

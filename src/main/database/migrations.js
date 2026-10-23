@@ -307,6 +307,38 @@ function runMigrations(db) {
   `)
   db.exec(`CREATE INDEX IF NOT EXISTS idx_cp_areas_cp5 ON cp_areas(agencia_id, cp5)`)
 
+  // Agencias que no trabajan a portes debidos quedan fuera de la pantalla Debidos
+  if (!agCols.includes('admite_debidos')) {
+    db.prepare('ALTER TABLE agencias ADD COLUMN admite_debidos INTEGER NOT NULL DEFAULT 1').run()
+  }
+
+  // Registro de migraciones de datos puntuales (se aplican una sola vez)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS migraciones_aplicadas (
+      nombre TEXT PRIMARY KEY,
+      fecha  TEXT NOT NULL DEFAULT (datetime('now'))
+    )
+  `)
+  const yaAplicada = nombre => !!db.prepare('SELECT 1 FROM migraciones_aplicadas WHERE nombre = ?').get(nombre)
+  const marcarAplicada = nombre => db.prepare('INSERT OR IGNORE INTO migraciones_aplicadas (nombre) VALUES (?)').run(nombre)
+
+  // DSV 2026: importes según la calculadora del Excel y fuera de Debidos.
+  // Solo cambia valores que sigan siendo los sembrados originalmente; lo editado por el usuario no se toca.
+  // Se registra para no volver a aplicarse si el usuario los cambia después.
+  if (!yaAplicada('dsv_2026_calculadora')) {
+    db.transaction(() => {
+      const dsv = db.prepare("SELECT id FROM agencias WHERE nombre = 'DSV' AND motor = 'reglas'").get()
+      if (dsv) {
+        db.prepare("UPDATE recargos_agencia SET valor = 20, actualizado = datetime('now') WHERE agencia_id = ? AND codigo = 'priority_12' AND valor = 10").run(dsv.id)
+        db.prepare("UPDATE recargos_agencia SET valor = 40, actualizado = datetime('now') WHERE agencia_id = ? AND codigo = 'priority_10' AND valor = 20").run(dsv.id)
+        db.prepare("UPDATE recargos_agencia SET activo = 0, actualizado = datetime('now') WHERE agencia_id = ? AND codigo = 'mfr_baleares' AND activo = 1").run(dsv.id)
+        db.prepare('UPDATE agencias SET admite_debidos = 0 WHERE id = ?').run(dsv.id)
+        console.log('[migration] DSV: Priority 12/10 = 20/40 €, MFR Baleares inactivo, fuera de Debidos')
+      }
+      marcarAplicada('dsv_2026_calculadora')
+    })()
+  }
+
   // Desglose del cálculo guardado con la cotización (opcional)
   const cotCols2 = db.prepare("PRAGMA table_info(cotizaciones)").all().map(c => c.name)
   if (!cotCols2.includes('desglose_json')) {

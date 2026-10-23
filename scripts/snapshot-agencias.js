@@ -36,7 +36,7 @@ Module._load = function (request, ...rest) {
 // Hora fija (09:00) para que la regla horaria de Logística sea determinista
 Date.prototype.getHours = () => 9
 
-const { calcularTarifas } = require('../src/main/services/calculationService')
+const { calcularTarifas, calcularPesosDebidos } = require('../src/main/services/calculationService')
 
 const CPS = ['07', '08', '17', '28', '29', '35', '43', '46', '15', '51', '00']
 const ENVIOS = [
@@ -74,6 +74,14 @@ for (const envio of ENVIOS) {
       maxSumaDimCm: r.maxSumaDimCm,
     }))
   }
+  // Pantalla Debidos: peso por baremo, sin CP
+  snapshot[`debidos:${envio.id}`] = calcularPesosDebidos({ bultos: envio.bultos }).map(r => ({
+    agencia: r.agencia.nombre,
+    zona: null,
+    metrosCubicos: r.metrosCubicos,
+    peso: r.peso,
+    numeroBultos: r.numeroBultos,
+  }))
 }
 
 fs.writeFileSync(salida, JSON.stringify(snapshot, null, 2))

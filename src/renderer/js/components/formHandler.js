@@ -1,4 +1,4 @@
-import { formatPrice, formatWeight, formatVolume } from '../utils/formatters.js'
+import { formatPrice, formatWeight, formatVolume, formatKg } from '../utils/formatters.js'
 import { getSelectedAgenciaIds } from './agenciasView.js'
 import { confirmModal, alertModal, pickClienteModal, showFormModal } from '../utils/modals.js'
 
@@ -79,6 +79,14 @@ async function initOpcionesDsv() {
   document.getElementById('quote-form')?.addEventListener('reset', () => {
     document.querySelectorAll('[data-opcion-dsv]').forEach(cb => delete cb.dataset.touched)
   })
+  await refreshOpcionesDsv()
+}
+
+// Muestra u oculta el bloque según haya agencias activas con motor por reglas.
+// Se llama también al activar/desactivar o editar una agencia.
+export async function refreshOpcionesDsv() {
+  const details = document.getElementById('opciones-dsv')
+  if (!details || !window.api) return
   try {
     const agencias = await window.api.invoke('get-agencies')
     const reglas = (agencias || []).filter(a => a.motor === 'reglas' && a.activa)
@@ -87,7 +95,9 @@ async function initOpcionesDsv() {
     const recargos = await window.api.invoke('get-recargos', reglas[0].id)
     for (const r of recargos || []) {
       const cb = document.querySelector(`[data-opcion-dsv="${r.codigo}"]`)
-      if (cb) cb.checked = cb.defaultChecked = !!r.por_defecto
+      if (!cb) continue
+      cb.defaultChecked = !!r.por_defecto
+      if (!cb.dataset.touched) cb.checked = cb.defaultChecked
     }
   } catch (_) {}
 }
@@ -405,7 +415,10 @@ function renderCarrierCards(resultados, container, sortedAsc) {
       ? `<img src="file://${r.agencia.logo_path}" class="w-full h-full object-contain mix-blend-multiply" alt="${r.agencia.nombre}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" /><span class="material-symbols-outlined text-on-surface-variant hidden items-center justify-center" style="font-size:24px; opacity:0.4;">local_shipping</span>`
       : `<span class="material-symbols-outlined text-on-surface-variant flex items-center justify-center w-full h-full" style="font-size:24px; opacity:0.4;">local_shipping</span>`
 
-    const desgloseHtml = desgloseHtmlDe(r)
+    // Desglose y avisos solo en agencias con motor por reglas (DSV); el resto igual que en v2.0.0
+    const esReglas = r.agencia.motor === 'reglas'
+    const desgloseHtml = esReglas ? desgloseHtmlDe(r) : ''
+    const pesoTxt = esReglas ? formatKg(r.peso ?? 0) : `${r.peso ?? 0} kg`
 
     const card = document.createElement('div')
     card.className = `carrier-card ${isBest ? 'best-carrier' : ''}`
@@ -454,7 +467,7 @@ function renderCarrierCards(resultados, container, sortedAsc) {
                 ${shortcutHtml}
               </div>
               <p class="text-xs text-on-surface-variant mt-0.5" style="opacity:0.65;">Zona: ${r.zona?.nombre_zona || '—'} &nbsp;·&nbsp; <span class="font-semibold" style="opacity:1;">${formatVolume(r.metrosCubicos ?? 0)}</span>${r.numeroBultos > 1 ? ` &nbsp;·&nbsp; <span class="font-semibold text-primary" style="opacity:0.85;">${r.numeroBultos} bultos</span>` : ''}</p>
-              <p class="text-xl font-black text-primary mt-1 tracking-tight">${r.peso ?? 0} kg &nbsp;|&nbsp; ${formatPrice(r.precioFinal)}</p>
+              <p class="text-xl font-black text-primary mt-1 tracking-tight">${pesoTxt} &nbsp;|&nbsp; ${formatPrice(r.precioFinal)}</p>
             </div>
           </div>
           <div class="flex flex-col items-end gap-1.5 shrink-0">

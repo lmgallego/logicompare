@@ -810,25 +810,25 @@
    "codigo": "priority_12",
    "nombre": "Priority 12:00 (solo System Priority)",
    "tipo": "fijo",
-   "valor": 10.0,
-   "minimo": null,
-   "base": "envio",
-   "aplica": "opcional",
-   "activo": 1,
-   "fuente": "Opciones!E41 (nacional 10 €)",
-   "nota": "DISCREPANCIA: la calculadora usa 20 € para Priority 12 y 40 € para Priority 10 (importes que en Opciones son los INTERNACIONALES)."
-  },
-  {
-   "codigo": "priority_10",
-   "nombre": "Priority 10:00 (solo System Priority)",
-   "tipo": "fijo",
    "valor": 20.0,
    "minimo": null,
    "base": "envio",
    "aplica": "opcional",
    "activo": 1,
-   "fuente": "Opciones!E42 (nacional 20 €)",
-   "nota": "Ver discrepancia de priority_12."
+   "fuente": "Calculadora_NAC (20 €); Opciones!E41 dice 10 € nacional",
+   "nota": "Según la calculadora del Excel: Priority 12 = 20 €, Priority 10 = 40 €. Entra en la base del combustible."
+  },
+  {
+   "codigo": "priority_10",
+   "nombre": "Priority 10:00 (solo System Priority)",
+   "tipo": "fijo",
+   "valor": 40.0,
+   "minimo": null,
+   "base": "envio",
+   "aplica": "opcional",
+   "activo": 1,
+   "fuente": "Calculadora_NAC (40 €); Opciones!E42 dice 20 € nacional",
+   "nota": "Según la calculadora del Excel. Entra en la base del combustible."
   },
   {
    "codigo": "mfr_baleares",
@@ -838,9 +838,9 @@
    "minimo": 0.6,
    "base": "peso_tasable",
    "aplica": "zonas:9,10,11,12",
-   "activo": 1,
+   "activo": 0,
    "fuente": "Opciones!E19/E20",
-   "nota": "NO está en la calculadora del Excel, sí en la hoja de suplementos. Confirmar si se factura."
+   "nota": "Inactivo: la calculadora del Excel no lo suma. Activar si DSV lo factura."
   },
   {
    "codigo": "direccion_incorrecta",
