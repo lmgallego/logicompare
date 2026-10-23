@@ -203,6 +203,7 @@ app.whenReady().then(async () => {
     require('./ipcHandlers/cospelHandler')
     require('./ipcHandlers/clientesHandler')
     require('./ipcHandlers/medidasElmerHandler')
+    require('./ipcHandlers/recargosHandler')
     require('./ipcHandlers/supportHandler').init()
 
     ipcMain.removeHandler('get-app-version')

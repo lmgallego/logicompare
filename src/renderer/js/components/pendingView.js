@@ -56,7 +56,7 @@ function renderPendingCard(container, row) {
   const resultadosValidos = row.resultados.filter(r => r.precioFinal !== null)
     .sort((a, b) => a.precioFinal - b.precioFinal)
 
-  const opciones = resultadosValidos.map(r => `
+  const opciones = resultadosValidos.map((r, idx) => `
     <div class="flex items-center justify-between py-2 border-b border-surface-container last:border-0">
       <div>
         <span class="font-semibold text-sm">${r.agencia.nombre}</span>
@@ -77,6 +77,7 @@ function renderPendingCard(container, row) {
           data-largo="${row.bultos[0]?.largoCm ?? 0}"
           data-ancho="${row.bultos[0]?.anchoCm ?? 0}"
           data-alto="${row.bultos[0]?.altoCm ?? 0}"
+          data-idx="${idx}"
         >Elegir</button>
       </div>
     </div>
@@ -125,6 +126,7 @@ function renderPendingCard(container, row) {
         altoCm:        parseFloat(btn.dataset.alto),
         bultos:        row.bultos,
         clienteCodigo: row.cliente_codigo || null,
+        desglose:      resultadosValidos[parseInt(btn.dataset.idx)]?.desglose,
       })
       card.remove()
       // Refresh badge

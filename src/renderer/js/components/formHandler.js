@@ -56,6 +56,54 @@ function getBultosFromForm() {
   return bultos
 }
 
+// ── Opciones DSV (motor por reglas) ─────────────────────────────────────────
+// Solo se envían las casillas que el usuario ha tocado: sin tocar, el motor usa por_defecto.
+function getOpcionesDsv() {
+  const opciones = {}
+  document.querySelectorAll('[data-opcion-dsv]').forEach(cb => {
+    if (cb.dataset.touched) opciones[cb.dataset.opcionDsv] = cb.checked
+  })
+  for (const name of ['dsv-dia-fijo', 'dsv-priority-hora']) {
+    const elegido = document.querySelector(`input[name="${name}"]:checked`)?.value
+    if (elegido) opciones[elegido] = true
+  }
+  return opciones
+}
+
+async function initOpcionesDsv() {
+  const details = document.getElementById('opciones-dsv')
+  if (!details || !window.api) return
+  document.querySelectorAll('[data-opcion-dsv]').forEach(cb => {
+    cb.addEventListener('change', () => { cb.dataset.touched = '1' })
+  })
+  document.getElementById('quote-form')?.addEventListener('reset', () => {
+    document.querySelectorAll('[data-opcion-dsv]').forEach(cb => delete cb.dataset.touched)
+  })
+  try {
+    const agencias = await window.api.invoke('get-agencies')
+    const reglas = (agencias || []).filter(a => a.motor === 'reglas' && a.activa)
+    details.classList.toggle('hidden', reglas.length === 0)
+    if (reglas.length === 0) return
+    const recargos = await window.api.invoke('get-recargos', reglas[0].id)
+    for (const r of recargos || []) {
+      const cb = document.querySelector(`[data-opcion-dsv="${r.codigo}"]`)
+      if (cb) cb.checked = cb.defaultChecked = !!r.por_defecto
+    }
+  } catch (_) {}
+}
+
+function desgloseHtmlDe(r) {
+  const avisos = (r.avisos || []).map(a =>
+    `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold" style="background:rgba(217,119,6,0.12); color:#b45309;"><span class="material-symbols-outlined" style="font-size:10px;">info</span>${a}</span>`
+  ).join(' ')
+  const lineas = (r.desglose && r.desglose.length > 1)
+    ? `<div class="mt-3 pt-2 grid grid-cols-2 gap-x-6 gap-y-0.5 text-[11px] text-on-surface-variant" style="border-top:1px solid rgba(196,197,217,0.2);">
+        ${r.desglose.map(l => `<span style="opacity:0.75;">${l.nombre}</span><span class="text-right font-semibold">${formatPrice(l.valor)}</span>`).join('')}
+      </div>`
+    : ''
+  return (avisos ? `<div class="mt-2 flex flex-wrap gap-1">${avisos}</div>` : '') + lineas
+}
+
 function updateBultoBadge() {
   const count = 1 + document.querySelectorAll('.extra-bulto-row').length
   const badge = document.getElementById('bultos-badge')
@@ -207,6 +255,17 @@ export function initFormHandler() {
     }
   })
 
+  // CP completo opcional: rellena el CP de 2 dígitos si está vacío
+  document.getElementById('input-cp5')?.addEventListener('input', (e) => {
+    const cp5 = e.target.value.trim()
+    if (cp5.length >= 2 && !cpInput.value.trim()) {
+      cpInput.value = cp5.slice(0, 2)
+      cpInput.dispatchEvent(new Event('input'))
+    }
+  })
+
+  initOpcionesDsv()
+
   // Refresh banner on init
   refreshClienteBanner()
 
@@ -220,15 +279,28 @@ export function initFormHandler() {
 
     const bultos = getBultosFromForm()
     const primero = bultos[0]
+    const cpPrefix = document.getElementById('input-cp').value.trim()
+    const cp5 = document.getElementById('input-cp5')?.value.trim() || ''
+    if (cp5 && (!/^\d{5}$/.test(cp5) || cp5.slice(0, 2) !== cpPrefix)) {
+      showError(`El CP completo (${cp5}) debe tener 5 dígitos y empezar por ${cpPrefix}.`)
+      btn.disabled = false
+      btn.innerHTML = '<span class="material-symbols-outlined" style="font-size:16px;">calculate</span> Calcular y Comparar Precios'
+      return
+    }
 
     agenciaElegida = false
     lastFormDatos = {
       largoCm: primero.largoCm,
       anchoCm: primero.anchoCm,
       altoCm:  primero.altoCm,
-      cpPrefix: document.getElementById('input-cp').value.trim(),
+      cpPrefix,
       agenciaIds: getSelectedAgenciaIds(),
       bultos,
+      // Solo para agencias con motor por reglas (DSV); el resto los ignora
+      cp5: cp5 || null,
+      pesoBruto: parseFloat(document.getElementById('input-peso-bruto')?.value) || null,
+      opcionesDsv: getOpcionesDsv(),
+      producto: document.getElementById('dsv-priority')?.checked ? 'priority' : 'system',
     }
     const datos = lastFormDatos
 
@@ -333,7 +405,7 @@ function renderCarrierCards(resultados, container, sortedAsc) {
       ? `<img src="file://${r.agencia.logo_path}" class="w-full h-full object-contain mix-blend-multiply" alt="${r.agencia.nombre}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';" /><span class="material-symbols-outlined text-on-surface-variant hidden items-center justify-center" style="font-size:24px; opacity:0.4;">local_shipping</span>`
       : `<span class="material-symbols-outlined text-on-surface-variant flex items-center justify-center w-full h-full" style="font-size:24px; opacity:0.4;">local_shipping</span>`
 
-    const desgloseHtml = ''
+    const desgloseHtml = desgloseHtmlDe(r)
 
     const card = document.createElement('div')
     card.className = `carrier-card ${isBest ? 'best-carrier' : ''}`
@@ -461,6 +533,7 @@ function renderCarrierCards(resultados, container, sortedAsc) {
             bultos: lastFormDatos.bultos,
             clienteCodigo: activeCliente?.codigo || null,
             destinatario: activeDestinatario || null,
+            desglose: r.desglose,
           })
         }
       })

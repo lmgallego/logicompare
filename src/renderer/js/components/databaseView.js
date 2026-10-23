@@ -165,6 +165,8 @@ async function openAgencyModal(agencyId) {
   document.getElementById('logo-preview').innerHTML = `<span class="material-symbols-outlined text-on-surface-variant" style="font-size:20px; opacity:0.4;">image</span>`
   tarifasSection.classList.add('hidden')
   tarifasContent.innerHTML = ''
+  document.getElementById('agency-recargos-section').classList.add('hidden')
+  document.getElementById('agency-recargos-content').innerHTML = ''
 
   if (agencyId) {
     title.textContent = 'Editar Agencia'
@@ -186,6 +188,12 @@ async function openAgencyModal(agencyId) {
         if (detail.zonas && detail.zonas.length > 0) {
           tarifasSection.classList.remove('hidden')
           renderTarifasEditor(detail.agencia.id, detail.zonas)
+        }
+
+        // Recargos editables (motor por reglas, p. ej. DSV)
+        if (detail.agencia.motor === 'reglas') {
+          document.getElementById('agency-recargos-section').classList.remove('hidden')
+          renderRecargosEditor(detail.agencia.id)
         }
       }
     } catch (err) {
@@ -315,6 +323,85 @@ async function renderTarifasEditor(agenciaId, zonas) {
     }
   } catch (err) {
     container.innerHTML = `<p class="text-red-500 text-xs">Error cargando tarifas: ${err.message}</p>`
+  }
+}
+
+const TIPO_RECARGO = { porcentaje: '%', fijo: '€', por_100kg: '€/100 kg', por_bulto: '€/bulto' }
+
+function fechaCorta(str) {
+  if (!str) return '—'
+  return new Date(str.replace(' ', 'T') + 'Z').toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' })
+}
+
+async function renderRecargosEditor(agenciaId) {
+  const container = document.getElementById('agency-recargos-content')
+  container.innerHTML = '<p class="text-on-surface-variant opacity-60 text-xs">Cargando recargos...</p>'
+  try {
+    const recargos = await window.api.invoke('get-recargos', agenciaId)
+    const fuel = recargos.find(r => r.codigo === 'combustible')
+    const resto = recargos.filter(r => r !== fuel)
+    const inputCls = 'input-field text-right px-2'
+    const fila = (r) => `
+      <tr data-recargo-id="${r.id}" style="border-top:1px solid rgba(196,197,217,0.15);">
+        <td class="py-1.5 pr-2">
+          <div class="font-semibold">${r.nombre}</div>
+          <input type="text" data-f="nota" value="${(r.nota || '').replace(/"/g, '&quot;')}" placeholder="Nota" class="input-field px-2 mt-1 w-full" style="height:24px; font-size:10px; opacity:0.8;" />
+        </td>
+        <td class="py-1.5 px-1 text-center opacity-60 whitespace-nowrap">${TIPO_RECARGO[r.tipo] || r.tipo}</td>
+        <td class="py-1.5 px-1"><input type="number" step="0.01" min="0" data-f="valor" value="${r.valor}" class="${inputCls}" style="height:26px; width:68px; font-size:12px;" /></td>
+        <td class="py-1.5 px-1"><input type="number" step="0.01" min="0" data-f="minimo_aplicable" value="${r.minimo_aplicable ?? ''}" placeholder="—" class="${inputCls}" style="height:26px; width:60px; font-size:12px;" /></td>
+        <td class="py-1.5 px-1 text-center"><input type="checkbox" data-f="activo" ${r.activo ? 'checked' : ''} class="accent-primary" /></td>
+        <td class="py-1.5 px-1 text-center">${r.aplica === 'opcional' ? `<input type="checkbox" data-f="por_defecto" ${r.por_defecto ? 'checked' : ''} class="accent-primary" />` : ''}</td>
+      </tr>`
+    const cabecera = `
+      <thead><tr class="text-[9px] uppercase tracking-wider text-on-surface-variant opacity-60">
+        <th class="text-left font-bold pb-1">Recargo</th><th class="font-bold pb-1">Tipo</th><th class="font-bold pb-1">Valor</th>
+        <th class="font-bold pb-1">Mínimo</th><th class="font-bold pb-1">Activo</th><th class="font-bold pb-1">Por defecto</th>
+      </tr></thead>`
+
+    container.innerHTML = `
+      ${fuel ? `
+        <div class="rounded-lg p-3" style="background:rgba(0,64,224,0.06); border:1px solid rgba(0,64,224,0.2);">
+          <div class="flex items-center justify-between mb-1">
+            <span class="font-bold text-[11px] uppercase tracking-wide" style="color:#0040e0;">Combustible — revisar cada mes</span>
+            <span class="text-[10px] opacity-60">Actualizado: ${fechaCorta(fuel.actualizado)}</span>
+          </div>
+          <table class="w-full">${cabecera}<tbody>${fila(fuel)}</tbody></table>
+        </div>` : ''}
+      <table class="w-full">${cabecera}<tbody>${resto.map(fila).join('')}</tbody></table>
+      <button type="button" id="btn-save-recargos" class="btn-primary w-full mt-2 py-1.5 text-[11px] font-bold">Guardar recargos</button>
+    `
+
+    const leerFila = (tr) => {
+      const v = f => tr.querySelector(`[data-f="${f}"]`)
+      return {
+        id: parseInt(tr.dataset.recargoId),
+        valor: v('valor').value,
+        minimo_aplicable: v('minimo_aplicable').value,
+        activo: v('activo').checked,
+        por_defecto: v('por_defecto') ? v('por_defecto').checked : false,
+        nota: v('nota').value.trim(),
+      }
+    }
+    // Solo se guardan las filas cambiadas, para que "actualizado" refleje cambios reales
+    const original = new Map([...container.querySelectorAll('tr[data-recargo-id]')].map(tr => [tr.dataset.recargoId, JSON.stringify(leerFila(tr))]))
+
+    const saveBtn = container.querySelector('#btn-save-recargos')
+    saveBtn.addEventListener('click', async () => {
+      const cambiadas = [...container.querySelectorAll('tr[data-recargo-id]')]
+        .map(leerFila)
+        .filter(f => original.get(String(f.id)) !== JSON.stringify(f))
+      const res = await window.api.invoke('update-recargos', cambiadas)
+      if (!res?.ok) {
+        saveBtn.textContent = `Error: ${res?.error || 'desconocido'}`
+        return
+      }
+      saveBtn.textContent = cambiadas.length ? `✓ ${cambiadas.length} recargo(s) guardado(s)` : 'Sin cambios'
+      saveBtn.disabled = true
+      setTimeout(() => renderRecargosEditor(agenciaId), 1500)
+    })
+  } catch (err) {
+    container.innerHTML = `<p class="text-red-500 text-xs">Error cargando recargos: ${err.message}</p>`
   }
 }
 

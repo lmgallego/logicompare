@@ -161,6 +161,46 @@
                   <input id="input-cp" class="input-field" type="text" maxlength="2" placeholder="28" pattern="\d{2}" required />
                 </div>
                 <div id="cp-info" class="hidden text-xs text-on-surface-variant px-1"></div>
+
+                <!-- Campos opcionales (solo los usa DSV; vacíos = comportamiento actual) -->
+                <div class="grid grid-cols-2 gap-3">
+                  <div class="space-y-1.5">
+                    <label class="label-stencil block">CP completo (5 dígitos)</label>
+                    <input id="input-cp5" class="input-field" type="text" maxlength="5" placeholder="Opcional" pattern="\d{5}" />
+                  </div>
+                  <div class="space-y-1.5">
+                    <label class="label-stencil block">Peso bruto (kg)</label>
+                    <input id="input-peso-bruto" class="input-field" type="number" min="0" step="0.1" placeholder="Opcional" />
+                  </div>
+                </div>
+
+                <details id="opciones-dsv" class="rounded-lg px-3 py-2" style="border:1px solid rgba(196,197,217,0.25);">
+                  <summary class="label-stencil cursor-pointer select-none">Opciones DSV</summary>
+                  <div class="space-y-2 pt-3 text-xs">
+                    <label class="flex items-center gap-2"><input type="checkbox" class="accent-primary" data-opcion-dsv="incremento_responsabilidad" /> Incremento responsabilidad legal</label>
+                    <label class="flex items-center gap-2"><input type="checkbox" class="accent-primary" data-opcion-dsv="preaviso" /> Pre-aviso por teléfono</label>
+                    <label class="flex items-center gap-2"><input type="checkbox" class="accent-primary" data-opcion-dsv="adr" /> Mercancía peligrosa (ADR)</label>
+                    <label class="flex items-center gap-2"><input type="checkbox" class="accent-primary" data-opcion-dsv="reserva_manual" /> Reserva manual</label>
+                    <div class="pt-1">
+                      <span class="label-stencil block text-[9px] mb-1">Día fijo</span>
+                      <div class="flex flex-wrap gap-x-3 gap-y-1">
+                        <label class="flex items-center gap-1"><input type="radio" name="dsv-dia-fijo" value="" checked class="accent-primary" /> No</label>
+                        <label class="flex items-center gap-1"><input type="radio" name="dsv-dia-fijo" value="dia_fijo" class="accent-primary" /> Día fijo</label>
+                        <label class="flex items-center gap-1"><input type="radio" name="dsv-dia-fijo" value="dia_fijo_13" class="accent-primary" /> Antes 13:00</label>
+                        <label class="flex items-center gap-1"><input type="radio" name="dsv-dia-fijo" value="dia_fijo_10" class="accent-primary" /> Antes 10:00</label>
+                      </div>
+                    </div>
+                    <div class="pt-1">
+                      <label class="flex items-center gap-2"><input type="checkbox" id="dsv-priority" class="accent-primary" /> System Priority (+30 % flete)</label>
+                      <div class="flex flex-wrap gap-x-3 gap-y-1 mt-1 pl-5">
+                        <label class="flex items-center gap-1"><input type="radio" name="dsv-priority-hora" value="" checked class="accent-primary" /> Sin hora</label>
+                        <label class="flex items-center gap-1"><input type="radio" name="dsv-priority-hora" value="priority_12" class="accent-primary" /> Priority 12</label>
+                        <label class="flex items-center gap-1"><input type="radio" name="dsv-priority-hora" value="priority_10" class="accent-primary" /> Priority 10</label>
+                      </div>
+                    </div>
+                  </div>
+                </details>
+
                 <button class="btn-primary mt-2" type="submit" id="btn-calculate">
                   <span class="material-symbols-outlined" style="font-size:16px;">calculate</span>
                   Calcular y Comparar Precios
@@ -1142,6 +1182,15 @@
           <span class="text-[10px] text-on-surface-variant opacity-60">€ sin recargos · kg adicional para &gt;15 kg</span>
         </div>
         <div id="agency-tarifas-content" class="space-y-4 text-xs"></div>
+      </div>
+
+      <!-- Recargos editables (solo agencias con motor por reglas, p. ej. DSV) -->
+      <div id="agency-recargos-section" class="hidden mt-5 pt-5" style="border-top: 1px solid rgba(196,197,217,0.25);">
+        <div class="flex items-center justify-between mb-3">
+          <h4 class="text-sm font-bold">Recargos</h4>
+          <span class="text-[10px] text-on-surface-variant opacity-60">% sobre flete · € fijos · IVA no incluido</span>
+        </div>
+        <div id="agency-recargos-content" class="space-y-3 text-xs"></div>
       </div>
     </div>
   </div>
