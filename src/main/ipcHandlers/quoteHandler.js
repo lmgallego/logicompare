@@ -56,6 +56,12 @@ ipcMain.handle('get-agencies-simple', () => {
   return getDb().prepare('SELECT id, nombre FROM agencias ORDER BY nombre').all()
 })
 
+// Solo activas: selector de agencias del calculador (el historial sigue usando get-agencies-simple)
+ipcMain.removeHandler('get-agencies-active')
+ipcMain.handle('get-agencies-active', () => {
+  return getDb().prepare('SELECT id, nombre FROM agencias WHERE activa = 1 ORDER BY nombre').all()
+})
+
 // ── Cotizaciones pendientes (guardadas sin agencia elegida) ──────────────────
 
 ipcMain.handle('save-pending-quote', (event, { cpPrefix, bultos, resultados, clienteCodigo }) => {

@@ -12,15 +12,23 @@ export function getSelectedAgenciaIds() {
   return Array.from(selectedIds)
 }
 
+// Solo agencias activas: una agencia desactivada no participa en nuevas cotizaciones
 export async function initAgenciasView() {
   if (!window.api) return
   try {
-    const agencies = await window.api.invoke('get-agencies-simple')
+    const agencies = await window.api.invoke('get-agencies-active')
     allAgencias = agencies
+    // Si se desactivó alguna agencia del filtro, se quita de la selección
+    if (selectedIds !== null) {
+      const ids = new Set(agencies.map(a => a.id))
+      selectedIds = new Set([...selectedIds].filter(id => ids.has(id)))
+      if (selectedIds.size === allAgencias.length) selectedIds = null
+    }
   } catch (_) {}
 }
 
-export function loadAgenciasView() {
+export async function loadAgenciasView() {
+  await initAgenciasView()  // refresca por si se activó/desactivó alguna agencia
   renderPage()
 }
 

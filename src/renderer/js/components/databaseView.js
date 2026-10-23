@@ -1,3 +1,31 @@
+import { showToast } from '../app.js'
+import { showConfirmModal } from '../utils/modals.js'
+import { initAgenciasView } from './agenciasView.js'
+
+// Activa/desactiva conservando el resto de campos (update-agency no toca motor)
+async function toggleAgency(a) {
+  const activa = a.activa ? 0 : 1
+  try {
+    await window.api.invoke('update-agency', {
+      id: a.id,
+      data: {
+        nombre: a.nombre,
+        ambito: a.ambito,
+        baremo: a.baremo,
+        recargo_combustible: a.recargo_combustible,
+        recargo_seguro: a.recargo_seguro,
+        logo_path: a.logo_path,
+        activa,
+      },
+    })
+    await initAgenciasView()
+    showToast(activa ? `✓ ${a.nombre} activada` : `${a.nombre} desactivada: no saldrá en nuevas cotizaciones`, 'success')
+  } catch (err) {
+    showToast(`Error: ${err.message}`, 'warning')
+  }
+  loadAgencies()
+}
+
 function getBtnHtml() {
   const style = 'background:rgba(0,64,224,0.08); color:#0040e0; border:1px solid rgba(0,64,224,0.2);'
   return '<div class="flex justify-end" id="btn-new-agency-row">'
@@ -38,7 +66,7 @@ export async function loadAgencies() {
     }
 
     setContent(agencies.map(a => `
-      <div class="bg-surface-container-lowest rounded-xl p-5 flex items-center justify-between gap-4" style="box-shadow: 0px 4px 20px rgba(23,28,31,0.05); border: 1px solid rgba(196,197,217,0.12);">
+      <div class="bg-surface-container-lowest rounded-xl p-5 flex items-center justify-between gap-4" style="box-shadow: 0px 4px 20px rgba(23,28,31,0.05); border: 1px solid rgba(196,197,217,0.12);${a.activa ? '' : ' opacity:0.55;'}">
         <div class="flex items-center gap-4">
           <div class="w-12 h-12 bg-surface-container rounded-lg flex items-center justify-center overflow-hidden shrink-0">
             ${a.logo_path
@@ -57,6 +85,9 @@ export async function loadAgencies() {
           </div>
         </div>
         <div class="flex items-center gap-2 shrink-0">
+          <button class="p-2 rounded-lg bg-surface-container-high hover:bg-primary hover:text-white transition-all ${a.activa ? 'text-green-700' : 'text-on-surface-variant'} btn-toggle-agency" data-agency-id="${a.id}" title="${a.activa ? 'Desactivar: no saldrá en nuevas cotizaciones' : 'Activar: volverá a salir en nuevas cotizaciones'}">
+            <span class="material-symbols-outlined pointer-events-none" style="font-size:16px;">${a.activa ? 'toggle_on' : 'toggle_off'}</span>
+          </button>
           <button class="p-2 rounded-lg bg-surface-container-high hover:bg-primary hover:text-white transition-all text-on-surface-variant btn-edit-agency" data-agency-id="${a.id}" title="Editar">
             <span class="material-symbols-outlined pointer-events-none" style="font-size:16px;">edit</span>
           </button>
@@ -71,10 +102,31 @@ export async function loadAgencies() {
       btn.addEventListener('click', () => openAgencyModal(parseInt(btn.dataset.agencyId)))
     })
 
+    const byId = new Map(agencies.map(a => [a.id, a]))
+
+    container.querySelectorAll('.btn-toggle-agency').forEach(btn => {
+      btn.addEventListener('click', () => toggleAgency(byId.get(parseInt(btn.dataset.agencyId))))
+    })
+
     container.querySelectorAll('.btn-delete-agency').forEach(btn => {
       btn.addEventListener('click', async () => {
         if (confirm(`¿Eliminar la agencia "${btn.dataset.agencyNombre}"? Esta acción no se puede deshacer.`)) {
-          await window.api.invoke('delete-agency', parseInt(btn.dataset.agencyId))
+          const res = await window.api.invoke('delete-agency', parseInt(btn.dataset.agencyId))
+          if (res && res.ok === false) {
+            const agencia = byId.get(parseInt(btn.dataset.agencyId))
+            const action = await showConfirmModal({
+              title: `No se puede eliminar "${agencia.nombre}"`,
+              message: res.error,
+              buttons: agencia.activa
+                ? [
+                    { label: 'Desactivar agencia', style: 'background:rgba(0,64,224,0.15);', value: 'off' },
+                    { label: 'Cancelar', style: 'background:rgba(196,197,217,0.06);opacity:0.65;', value: 'cancel' },
+                  ]
+                : [{ label: 'Aceptar', style: 'background:rgba(196,197,217,0.12);', value: 'cancel' }],
+            })
+            if (action === 'off') await toggleAgency(agencia)
+            return
+          }
           loadAgencies()
         }
       })
@@ -147,6 +199,7 @@ export function initAgencyModal() {
       }
       closeModal()
       loadAgencies()
+      initAgenciasView()
     } catch (err) {
       alert(`Error al guardar: ${err.message}`)
     }

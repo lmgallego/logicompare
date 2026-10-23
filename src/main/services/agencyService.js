@@ -5,6 +5,7 @@ const agencyRepo = require('../repositories/agencyRepository')
 const zoneRepo = require('../repositories/zoneRepository')
 const rateRepo = require('../repositories/rateRepository')
 const surchargeRepo = require('../repositories/surchargeRepository')
+const { getDb } = require('../database/connection')
 
 function getAllAgencies() {
   return agencyRepo.getAll()
@@ -26,8 +27,12 @@ function updateAgency(id, data) {
   return agencyRepo.update(id, data)
 }
 
+// No se borra una agencia con cotizaciones: se perdería el historial. Se desactiva.
 function deleteAgency(id) {
-  return agencyRepo.remove(id)
+  const n = getDb().prepare('SELECT COUNT(*) AS n FROM cotizaciones WHERE agencia_id = ?').get(id).n
+  if (n > 0) return { ok: false, cotizaciones: n, error: `Tiene ${n} cotizaciones; desactívala en su lugar` }
+  agencyRepo.remove(id)
+  return { ok: true }
 }
 
 function saveLogoFile(agenciaId, srcPath, originalName) {

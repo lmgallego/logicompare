@@ -17,7 +17,7 @@ import { showConfirmModal, showFormModal, alertModal } from './utils/modals.js'
 const PAGES = ['new-quote', 'pending', 'debidos', 'parachoques', 'medidas-elmer', 'cajas', 'cospel', 'history', 'consultas', 'agencias', 'analytics', 'database', 'support']
 let currentPage = 'new-quote'
 
-function showToast(msg, type = 'info') {
+export function showToast(msg, type = 'info') {
   const existing = document.getElementById('app-toast')
   if (existing) existing.remove()
   const toast = document.createElement('div')
