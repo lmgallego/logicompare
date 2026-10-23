@@ -792,8 +792,8 @@
             <div id="parachoques-import-status" class="hidden"></div>
           </div>
 
-          <!-- Cospel import -->
-          <div class="card-surface rounded-2xl p-5 space-y-4">
+          <!-- Cospel import (legacy — incluido en Medidas.xlsx) -->
+          <div class="card-surface rounded-2xl p-5 space-y-4" style="display:none;">
             <div class="flex items-center justify-between">
               <p class="text-xs font-bold uppercase tracking-widest text-on-surface-variant" style="opacity:0.5;">Cospel — Importar/Actualizar medidas</p>
             </div>
@@ -882,11 +882,29 @@
           <div class="card-surface rounded-2xl p-5 space-y-5">
             <p class="text-xs font-bold uppercase tracking-widest text-on-surface-variant" style="opacity:0.5;">Historial de Versiones</p>
 
+            <!-- v2.0.0 -->
+            <div class="space-y-2">
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-black text-primary">v2.0.0</span>
+                <span class="bg-primary/10 text-primary text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-tight">Actual</span>
+                <span class="text-xs text-on-surface-variant" style="opacity:0.45;">Mayo 2026</span>
+              </div>
+              <ul class="space-y-1.5 text-xs text-on-surface-variant" style="padding-left:1rem;">
+                <li style="list-style:disc;"><strong class="text-on-surface">Medidas unificadas (Medidas Elmer)</strong> — nueva tabla <code>medidas_elmer</code> que sustituye a Parachoques y Cospel. Se importa desde un único fichero <code>Medidas.xlsx</code> con columnas: Referencia Elmer, Descripción, Proveedor, Largo, Ancho y Alto. Las medidas del Excel ya incluyen el +5 cm, por lo que no se añaden en la importación.</li>
+                <li style="list-style:disc;"><strong class="text-on-surface">Menú Medidas</strong> — nuevo apartado en el sidebar con buscador por referencia (autocompletado), código postal, y cálculo de precios por agencia. Incluye filtros automáticos: DHL nunca se muestra y GLS solo aparece si el largo es ≤ 110 cm.</li>
+                <li style="list-style:disc;"><strong class="text-on-surface">Menú Cajas</strong> — nueva sección para consultar precios de envío de cajas estándar. Selecciona el largo de caja disponible, introduce el código postal y obtén el listado de precios por agencia con las restricciones habituales.</li>
+                <li style="list-style:disc;"><strong class="text-on-surface">Importación Medidas.xlsx en Soporte</strong> — nueva sección en la página de Soporte para importar el fichero unificado de medidas. Muestra resumen de filas leídas, nuevas, actualizadas y eliminadas.</li>
+                <li style="list-style:disc;"><strong class="text-on-surface">Legacy Parachoques y Cospel ocultos</strong> — los menús Parachoques y Cospel se ocultan del sidebar pero se conservan internamente por compatibilidad. La tabla y los handlers siguen disponibles.</li>
+                <li style="list-style:disc;"><strong class="text-on-surface">Estadísticas BD ampliadas</strong> — la sección de estadísticas de la base de datos ahora incluye el recuento de registros de <code>medidas_elmer</code>, <code>cajas</code>, <code>cospel</code> y <code>clientes</code>.</li>
+              </ul>
+            </div>
+
+            <div style="border-top:1px solid rgba(196,197,217,0.15);"></div>
+
             <!-- v1.1.6 -->
             <div class="space-y-2">
               <div class="flex items-center gap-2">
-                <span class="text-sm font-black text-primary">v1.1.6</span>
-                <span class="bg-primary/10 text-primary text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-tight">Actual</span>
+                <span class="text-sm font-black text-on-surface-variant" style="opacity:0.7;">v1.1.6</span>
                 <span class="text-xs text-on-surface-variant" style="opacity:0.45;">Mayo 2026</span>
               </div>
               <ul class="space-y-1.5 text-xs text-on-surface-variant" style="padding-left:1rem;">
