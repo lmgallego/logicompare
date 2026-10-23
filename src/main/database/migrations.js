@@ -270,6 +270,49 @@ function runMigrations(db) {
   `)
   db.exec(`CREATE INDEX IF NOT EXISTS idx_medidas_elmer_proveedor ON medidas_elmer(proveedor)`)
 
+  // ── Motor por reglas (DSV) ────────────────────────────────────────────────
+  // Recargos editables por agencia. Las columnas originales se conservan.
+  const recCols = db.prepare("PRAGMA table_info(recargos_agencia)").all().map(c => c.name)
+  const recNuevas = [
+    ['codigo', 'TEXT'],
+    ['tipo', 'TEXT'],              // porcentaje | fijo | por_100kg | por_bulto
+    ['base', 'TEXT'],
+    ['aplica', 'TEXT'],
+    ['activo', 'INTEGER NOT NULL DEFAULT 1'],
+    ['por_defecto', 'INTEGER NOT NULL DEFAULT 0'],
+    ['orden', 'INTEGER NOT NULL DEFAULT 0'],
+    ['nota', 'TEXT'],
+    ['actualizado', 'TEXT'],
+  ]
+  for (const [col, def] of recNuevas) {
+    if (!recCols.includes(col)) db.prepare(`ALTER TABLE recargos_agencia ADD COLUMN ${col} ${def}`).run()
+  }
+  db.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_recargos_agencia_codigo ON recargos_agencia(agencia_id, codigo) WHERE codigo IS NOT NULL`)
+
+  // Motor de cálculo por agencia: 'estandar' (todas las existentes) o 'reglas' (DSV)
+  const agCols = db.prepare("PRAGMA table_info(agencias)").all().map(c => c.name)
+  if (!agCols.includes('motor')) {
+    db.prepare("ALTER TABLE agencias ADD COLUMN motor TEXT NOT NULL DEFAULT 'estandar'").run()
+  }
+
+  // CPs de 5 dígitos con suplemento de área (remota / metropolitana)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS cp_areas (
+      agencia_id INTEGER NOT NULL,
+      tipo       TEXT NOT NULL CHECK (tipo IN ('remota', 'metropolitana')),
+      cp5        TEXT NOT NULL,
+      PRIMARY KEY (agencia_id, tipo, cp5),
+      FOREIGN KEY (agencia_id) REFERENCES agencias(id) ON DELETE CASCADE
+    )
+  `)
+  db.exec(`CREATE INDEX IF NOT EXISTS idx_cp_areas_cp5 ON cp_areas(agencia_id, cp5)`)
+
+  // Desglose del cálculo guardado con la cotización (opcional)
+  const cotCols2 = db.prepare("PRAGMA table_info(cotizaciones)").all().map(c => c.name)
+  if (!cotCols2.includes('desglose_json')) {
+    db.prepare('ALTER TABLE cotizaciones ADD COLUMN desglose_json TEXT').run()
+  }
+
   seedProvincias(db)
 }
 
