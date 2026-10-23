@@ -8,3 +8,6 @@ release/builder-effective-config.yaml
 dist-installer/win-unpacked/
 dist-installer/*.exe
 dist-installer/*.blockmap
+
+# Config local de Claude Code
+.claude/settings.local.json
