@@ -188,6 +188,12 @@ app.whenReady().then(async () => {
       return
     }
 
+    if (process.argv.includes('--seed-dsv')) {
+      require('./database/seedDsv')
+      app.quit()
+      return
+    }
+
     require('./ipcHandlers/quoteHandler')
     require('./ipcHandlers/agencyHandler')
     require('./ipcHandlers/provinceHandler')
