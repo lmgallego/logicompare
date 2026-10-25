@@ -1,4 +1,4 @@
-import { formatPrice, formatDate, formatDimensions, formatVolume } from '../utils/formatters.js'
+import { formatPrice, formatDate, formatDimensions, formatVolume, toLocalSql } from '../utils/formatters.js'
 import { confirmModal, alertModal, showFormModal, pickClienteModal } from '../utils/modals.js'
 
 let currentRows = []
@@ -117,8 +117,9 @@ async function getAgenciesOptions() {
 
 async function openEditModal(row, tbody, colCount) {
   const agencyOptions = await getAgenciesOptions()
-  // ISO date slice for date picker (fecha stored as 'YYYY-MM-DD HH:MM:SS')
-  const fechaDate = (row.fecha || '').slice(0, 10)
+  // fecha se guarda en UTC; el selector y la hora conservada van en hora local
+  const fechaLocal = toLocalSql(row.fecha)
+  const fechaDate = fechaLocal.slice(0, 10)
 
   // Cliente seleccionable a través de un picker. Guardamos el actual aquí.
   let pickedCliente = row.cliente_codigo
@@ -153,7 +154,7 @@ async function openEditModal(row, tbody, colCount) {
   try {
     const res = await window.api.invoke('update-quote', {
       id: row.id,
-      fecha: result.fecha ? (result.fecha + ' ' + ((row.fecha || '').slice(11, 19) || '12:00:00')) : null,
+      fecha: result.fecha ? (result.fecha + ' ' + (fechaLocal.slice(11, 19) || '12:00:00')) : null,
       largoCm: parseFloat(result.largoCm),
       anchoCm: parseFloat(result.anchoCm),
       altoCm:  parseFloat(result.altoCm),
