@@ -1,6 +1,7 @@
 # Bug: exportar historial por rango de fechas no incluye todo
 
-Estado: **pendiente**. Diagnóstico hecho el 2026-08-05, sin aplicar cambios.
+Estado: **Resuelto** el 2026-10-25 en la rama `fix/export-fechas` (ver
+[Resolución](#resolución)). Diagnóstico hecho el 2026-08-05.
 Rama en la que se detectó: `feature/medidas-unificadas`.
 
 ## Síntoma
@@ -174,3 +175,25 @@ Falla con el `WHERE` actual, pasa con el corregido.
 Reescribir `fecha` a hora local con una migración. Toca todas las filas de
 todas las DBs instaladas, y los usuarios importan/exportan `.db` entre equipos:
 una DB migrada conviviendo con otra sin migrar es peor bug que el actual.
+
+## Resolución
+
+Resuelto el 2026-10-25. Commits en `fix/export-fechas`:
+
+| Causa | Commit | Qué se hizo |
+|-------|--------|-------------|
+| 1 | `db4a092` | `date(fecha,'localtime')` en get-history, get-quotes-by-cliente y delete-history (mismo commit); analytics en hora local. Manual: 12:00 hora local guardada en UTC. Edición: fecha local -> UTC. |
+| 2 | `648f9b1` | Sin límite con filtro de fechas; sin filtro, 500 más recientes + aviso en pantalla. Quitado el LIMIT 1000 de consultas por cliente. |
+| 3 | `7a3ba36` | `change` en fechas y agencia; Exportar recarga y exporta con consulta sin límite; el modal muestra rango y filas. |
+| 4 | `ea1806f` | Nombres de hoja únicos (`_2`, `_3`…, sin distinguir mayúsculas). `normalizeAgencia` sin cambios. |
+| 5 | `9edecaa` | Guard de `window.open` en el PDF del historial y del consolidado. |
+| — | `d01fc32` | Consolidado de Excels: hojas únicas. Analytics: hoja Agencias sin top 10. |
+| — | `8b29e3f` | `scripts/test-fechas.js`. |
+
+Verificación: `scripts/test-fechas.js` pasa (falla con el código anterior);
+sobre una copia de la BD real, mayo 2026 = 8 filas en SQL (fecha local) y 8 en
+el Excel exportado desde la app; 06/05/2026 = 4 y 4 (con el filtro UTC antiguo
+salía 1). `snapshot-agencias.js` idéntico y `test-dsv.js` en verde.
+
+Las filas antiguas no se migran: las manuales guardadas a las 12:00 UTC siguen
+cayendo el mismo día en España.
