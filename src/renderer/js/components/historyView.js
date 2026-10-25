@@ -403,6 +403,7 @@ function buildXLSX(simplificada) {
 function buildPDF(simplificada) {
   if (!exportRows.length) return
   const win = window.open('', '_blank', 'width=900,height=700')
+  if (!win) { alertModal('No se pudo abrir la ventana de impresión.', 'Error'); return }
 
   // Group rows by agency
   const groups = []

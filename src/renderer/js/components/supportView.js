@@ -437,6 +437,7 @@ function redondear5(precio) {
 function buildMergedPDF(simplificada) {
   if (!mergedRows || !mergedRows.length) return
   const win = window.open('', '_blank', 'width=900,height=700')
+  if (!win) { showToast('No se pudo abrir la ventana de impresión.', 'error'); return }
 
   // Group by agency, each sorted by date
   const groups = []
