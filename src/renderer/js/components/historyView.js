@@ -30,12 +30,13 @@ export async function loadHistory(desde, hasta, agenciaId) {
   }
 
   try {
-    const rows = await window.api.invoke('get-history', {
+    const { rows, truncado } = await window.api.invoke('get-history', {
       desde: desde || null,
       hasta: hasta || null,
       agenciaId: agenciaId ? parseInt(agenciaId) : null,
     })
     currentRows = rows || []
+    document.getElementById('history-limit-note')?.classList.toggle('hidden', !truncado)
     renderTable(tbody, colCount)
   } catch (err) {
     tbody.innerHTML = '<tr><td colspan="' + colCount + '" class="text-center py-8 text-red-500 text-xs">Error: ' + err.message + '</td></tr>'

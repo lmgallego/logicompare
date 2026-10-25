@@ -41,15 +41,22 @@ ipcMain.handle('save-quote', (event, { largoCm, anchoCm, altoCm, cpPrefix, metro
   }
 })
 
-ipcMain.handle('get-history', (event, { desde, hasta, agenciaId } = {}) => {
+// Sin filtro de fechas se cargan las 500 más recientes (truncado avisa al renderer);
+// con filtro de fechas o sinLimite (exportar) se devuelven todas
+const LIMITE_HISTORIAL = 500
+
+ipcMain.handle('get-history', (event, { desde, hasta, agenciaId, sinLimite } = {}) => {
   const conds = []
   const params = []
   if (desde) { conds.push("date(c.fecha,'localtime') >= date(?)"); params.push(desde) }
   if (hasta) { conds.push("date(c.fecha,'localtime') <= date(?)"); params.push(hasta) }
   if (agenciaId) { conds.push('c.agencia_id = ?'); params.push(agenciaId) }
   const where = conds.length ? ' WHERE ' + conds.join(' AND ') : ''
-  const sql = `SELECT c.*, a.nombre as agencia_nombre, cl.razon_social as cliente_razon_social FROM cotizaciones c LEFT JOIN agencias a ON a.id = c.agencia_id LEFT JOIN clientes cl ON cl.codigo = c.cliente_codigo${where} ORDER BY c.fecha DESC LIMIT 500`
-  return getDb().prepare(sql).all(...params)
+  const sql = `SELECT c.*, a.nombre as agencia_nombre, cl.razon_social as cliente_razon_social FROM cotizaciones c LEFT JOIN agencias a ON a.id = c.agencia_id LEFT JOIN clientes cl ON cl.codigo = c.cliente_codigo${where} ORDER BY c.fecha DESC`
+  const conLimite = !desde && !hasta && !sinLimite
+  const rows = getDb().prepare(conLimite ? sql + ` LIMIT ${LIMITE_HISTORIAL + 1}` : sql).all(...params)
+  const truncado = conLimite && rows.length > LIMITE_HISTORIAL
+  return { rows: truncado ? rows.slice(0, LIMITE_HISTORIAL) : rows, truncado }
 })
 
 ipcMain.handle('get-agencies-simple', () => {
@@ -126,7 +133,7 @@ ipcMain.handle('get-quotes-by-cliente', (event, { clienteCodigo, desde, hasta })
     LEFT JOIN agencias a ON a.id = c.agencia_id
     LEFT JOIN clientes cl ON cl.codigo = c.cliente_codigo
     ${where}
-    ORDER BY c.fecha DESC LIMIT 1000`
+    ORDER BY c.fecha DESC`
   return getDb().prepare(sql).all(...params)
 })
 
