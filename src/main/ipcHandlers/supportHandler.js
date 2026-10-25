@@ -248,9 +248,13 @@ function buildMergedXlsx(rows, simplificada) {
   const files = {}
   let sheetEls = '', wbRelEls = '', ctOverrides = ''
 
+  const usadas = new Set()  // Excel compara nombres de hoja sin distinguir mayúsculas
   groups.forEach((agName, i) => {
     const idx = i + 1
-    const sheetName = agName.replace(/[\\/*?:\[\]]/g, '').slice(0, 31)
+    const base = agName.replace(/[\\/*?:\[\]]/g, '').slice(0, 31) || 'Hoja'
+    let sheetName = base
+    for (let n = 2; usadas.has(sheetName.toLowerCase()); n++) sheetName = base.slice(0, 30 - String(n).length) + '_' + n
+    usadas.add(sheetName.toLowerCase())
     const agRows = groupMap[agName]
     let headers, numCols, dataRows
 

@@ -41,15 +41,22 @@ ipcMain.handle('save-quote', (event, { largoCm, anchoCm, altoCm, cpPrefix, metro
   }
 })
 
-ipcMain.handle('get-history', (event, { desde, hasta, agenciaId } = {}) => {
+// Sin filtro de fechas se cargan las 500 más recientes (truncado avisa al renderer);
+// con filtro de fechas o sinLimite (exportar) se devuelven todas
+const LIMITE_HISTORIAL = 500
+
+ipcMain.handle('get-history', (event, { desde, hasta, agenciaId, sinLimite } = {}) => {
   const conds = []
   const params = []
-  if (desde) { conds.push('date(c.fecha) >= date(?)'); params.push(desde) }
-  if (hasta) { conds.push('date(c.fecha) <= date(?)'); params.push(hasta) }
+  if (desde) { conds.push("date(c.fecha,'localtime') >= date(?)"); params.push(desde) }
+  if (hasta) { conds.push("date(c.fecha,'localtime') <= date(?)"); params.push(hasta) }
   if (agenciaId) { conds.push('c.agencia_id = ?'); params.push(agenciaId) }
   const where = conds.length ? ' WHERE ' + conds.join(' AND ') : ''
-  const sql = `SELECT c.*, a.nombre as agencia_nombre, cl.razon_social as cliente_razon_social FROM cotizaciones c LEFT JOIN agencias a ON a.id = c.agencia_id LEFT JOIN clientes cl ON cl.codigo = c.cliente_codigo${where} ORDER BY c.fecha DESC LIMIT 500`
-  return getDb().prepare(sql).all(...params)
+  const sql = `SELECT c.*, a.nombre as agencia_nombre, cl.razon_social as cliente_razon_social FROM cotizaciones c LEFT JOIN agencias a ON a.id = c.agencia_id LEFT JOIN clientes cl ON cl.codigo = c.cliente_codigo${where} ORDER BY c.fecha DESC`
+  const conLimite = !desde && !hasta && !sinLimite
+  const rows = getDb().prepare(conLimite ? sql + ` LIMIT ${LIMITE_HISTORIAL + 1}` : sql).all(...params)
+  const truncado = conLimite && rows.length > LIMITE_HISTORIAL
+  return { rows: truncado ? rows.slice(0, LIMITE_HISTORIAL) : rows, truncado }
 })
 
 ipcMain.handle('get-agencies-simple', () => {
@@ -118,15 +125,15 @@ ipcMain.handle('get-pending-count', () => {
 ipcMain.handle('get-quotes-by-cliente', (event, { clienteCodigo, desde, hasta }) => {
   const conds = ['c.cliente_codigo = ?']
   const params = [clienteCodigo]
-  if (desde) { conds.push('date(c.fecha) >= date(?)'); params.push(desde) }
-  if (hasta) { conds.push('date(c.fecha) <= date(?)'); params.push(hasta) }
+  if (desde) { conds.push("date(c.fecha,'localtime') >= date(?)"); params.push(desde) }
+  if (hasta) { conds.push("date(c.fecha,'localtime') <= date(?)"); params.push(hasta) }
   const where = ' WHERE ' + conds.join(' AND ')
   const sql = `SELECT c.*, a.nombre as agencia_nombre, cl.razon_social as cliente_razon_social
     FROM cotizaciones c
     LEFT JOIN agencias a ON a.id = c.agencia_id
     LEFT JOIN clientes cl ON cl.codigo = c.cliente_codigo
     ${where}
-    ORDER BY c.fecha DESC LIMIT 1000`
+    ORDER BY c.fecha DESC`
   return getDb().prepare(sql).all(...params)
 })
 
@@ -161,12 +168,12 @@ ipcMain.handle('update-quote', (event, { id, fecha, largoCm, anchoCm, altoCm, cp
     const cliente = clienteCodigo === undefined
       ? undefined
       : (clienteCodigo === null || clienteCodigo === '' ? null : String(clienteCodigo).trim())
-    // Only update fecha if provided (YYYY-MM-DD or full datetime)
+    // fecha llega en hora local ('YYYY-MM-DD HH:MM:SS'); se guarda en UTC como datetime('now')
     if (fecha) {
       if (cliente !== undefined) {
         db.prepare(`
           UPDATE cotizaciones
-             SET fecha = ?, largo_cm = ?, ancho_cm = ?, alto_cm = ?, cp_prefix = ?,
+             SET fecha = datetime(?, 'utc'), largo_cm = ?, ancho_cm = ?, alto_cm = ?, cp_prefix = ?,
                  metros_cubicos = ?, peso = ?, agencia_id = ?, precio_final = ?, precio_redondeado = ?,
                  cliente_codigo = ?
            WHERE id = ?
@@ -174,7 +181,7 @@ ipcMain.handle('update-quote', (event, { id, fecha, largoCm, anchoCm, altoCm, cp
       } else {
         db.prepare(`
           UPDATE cotizaciones
-             SET fecha = ?, largo_cm = ?, ancho_cm = ?, alto_cm = ?, cp_prefix = ?,
+             SET fecha = datetime(?, 'utc'), largo_cm = ?, ancho_cm = ?, alto_cm = ?, cp_prefix = ?,
                  metros_cubicos = ?, peso = ?, agencia_id = ?, precio_final = ?, precio_redondeado = ?
            WHERE id = ?
         `).run(fecha, largoCm, anchoCm, altoCm, cpPrefix, metrosCubicos || 0, peso || 0, agenciaId, precioFinal, precioRedondeado, id)
@@ -204,6 +211,7 @@ ipcMain.handle('update-quote', (event, { id, fecha, largoCm, anchoCm, altoCm, cp
 })
 
 // Save a manually-entered quote (with specific fecha)
+// fecha = día elegido ('YYYY-MM-DD'); se guarda como las 12:00 hora local, en UTC
 ipcMain.handle('save-quote-manual', (event, { fecha, largoCm, anchoCm, altoCm, cpPrefix, metrosCubicos, peso, agenciaId, precioFinal, clienteCodigo, destinatario }) => {
   try {
     const precioRedondeado = redondear5(precioFinal)
@@ -213,7 +221,7 @@ ipcMain.handle('save-quote-manual', (event, { fecha, largoCm, anchoCm, altoCm, c
     if (fecha) {
       db.prepare(`
         INSERT INTO cotizaciones (fecha, largo_cm, ancho_cm, alto_cm, cp_prefix, metros_cubicos, peso, agencia_id, precio_final, precio_redondeado, cliente_codigo, destinatario)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (datetime(date(?) || ' 12:00:00', 'utc'), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).run(fecha, largoCm, anchoCm, altoCm, cpPrefix, metrosCubicos || 0, peso || 0, agenciaId, precioFinal, precioRedondeado, cliente, dest)
     } else {
       db.prepare(`
@@ -231,13 +239,13 @@ ipcMain.handle('delete-history', (event, { desde, hasta } = {}) => {
   let sql = 'DELETE FROM cotizaciones'
   const params = []
   if (desde && hasta) {
-    sql += ' WHERE date(fecha) >= date(?) AND date(fecha) <= date(?)'
+    sql += " WHERE date(fecha,'localtime') >= date(?) AND date(fecha,'localtime') <= date(?)"
     params.push(desde, hasta)
   } else if (desde) {
-    sql += ' WHERE date(fecha) >= date(?)'
+    sql += " WHERE date(fecha,'localtime') >= date(?)"
     params.push(desde)
   } else if (hasta) {
-    sql += ' WHERE date(fecha) <= date(?)'
+    sql += " WHERE date(fecha,'localtime') <= date(?)"
     params.push(hasta)
   }
   const result = getDb().prepare(sql).run(...params)
@@ -262,23 +270,22 @@ ipcMain.handle('get-analytics', () => {
     LEFT JOIN agencias a ON a.id = c.agencia_id
     GROUP BY c.agencia_id
     ORDER BY total DESC
-    LIMIT 10
   `).all()
 
   // Quotes per day (last 30 days)
   const porDia = db.prepare(`
-    SELECT date(fecha) as dia, COUNT(*) as total, COALESCE(SUM(precio_final),0) as ingresos
+    SELECT date(fecha,'localtime') as dia, COUNT(*) as total, COALESCE(SUM(precio_final),0) as ingresos
     FROM cotizaciones
-    WHERE fecha >= date('now','-30 days')
+    WHERE date(fecha,'localtime') >= date('now','localtime','-30 days')
     GROUP BY dia
     ORDER BY dia ASC
   `).all()
 
   // Quotes per month (last 12 months)
   const porMes = db.prepare(`
-    SELECT strftime('%Y-%m', fecha) as mes, COUNT(*) as total, COALESCE(SUM(precio_final),0) as ingresos
+    SELECT strftime('%Y-%m', fecha,'localtime') as mes, COUNT(*) as total, COALESCE(SUM(precio_final),0) as ingresos
     FROM cotizaciones
-    WHERE fecha >= date('now','-12 months')
+    WHERE date(fecha,'localtime') >= date('now','localtime','-12 months')
     GROUP BY mes
     ORDER BY mes ASC
   `).all()
@@ -323,36 +330,36 @@ ipcMain.handle('get-analytics', () => {
   // This month vs last month
   const comparativa = db.prepare(`
     SELECT
-      SUM(CASE WHEN strftime('%Y-%m', fecha) = strftime('%Y-%m','now') THEN 1 ELSE 0 END) as mes_actual_n,
-      SUM(CASE WHEN strftime('%Y-%m', fecha) = strftime('%Y-%m','now','-1 month') THEN 1 ELSE 0 END) as mes_anterior_n,
-      SUM(CASE WHEN strftime('%Y-%m', fecha) = strftime('%Y-%m','now') THEN precio_final ELSE 0 END) as mes_actual_ingresos,
-      SUM(CASE WHEN strftime('%Y-%m', fecha) = strftime('%Y-%m','now','-1 month') THEN precio_final ELSE 0 END) as mes_anterior_ingresos
+      SUM(CASE WHEN strftime('%Y-%m', fecha,'localtime') = strftime('%Y-%m','now','localtime') THEN 1 ELSE 0 END) as mes_actual_n,
+      SUM(CASE WHEN strftime('%Y-%m', fecha,'localtime') = strftime('%Y-%m','now','localtime','start of month','-1 month') THEN 1 ELSE 0 END) as mes_anterior_n,
+      SUM(CASE WHEN strftime('%Y-%m', fecha,'localtime') = strftime('%Y-%m','now','localtime') THEN precio_final ELSE 0 END) as mes_actual_ingresos,
+      SUM(CASE WHEN strftime('%Y-%m', fecha,'localtime') = strftime('%Y-%m','now','localtime','start of month','-1 month') THEN precio_final ELSE 0 END) as mes_anterior_ingresos
     FROM cotizaciones
   `).get()
 
   // Today vs yesterday
   const comparativaDia = db.prepare(`
     SELECT
-      SUM(CASE WHEN date(fecha) = date('now') THEN 1 ELSE 0 END) as hoy_n,
-      SUM(CASE WHEN date(fecha) = date('now','-1 day') THEN 1 ELSE 0 END) as ayer_n,
-      COALESCE(SUM(CASE WHEN date(fecha) = date('now') THEN precio_final ELSE 0 END),0) as hoy_ingresos,
-      COALESCE(SUM(CASE WHEN date(fecha) = date('now','-1 day') THEN precio_final ELSE 0 END),0) as ayer_ingresos
+      SUM(CASE WHEN date(fecha,'localtime') = date('now','localtime') THEN 1 ELSE 0 END) as hoy_n,
+      SUM(CASE WHEN date(fecha,'localtime') = date('now','localtime','-1 day') THEN 1 ELSE 0 END) as ayer_n,
+      COALESCE(SUM(CASE WHEN date(fecha,'localtime') = date('now','localtime') THEN precio_final ELSE 0 END),0) as hoy_ingresos,
+      COALESCE(SUM(CASE WHEN date(fecha,'localtime') = date('now','localtime','-1 day') THEN precio_final ELSE 0 END),0) as ayer_ingresos
     FROM cotizaciones
   `).get()
 
   // Last 14 days detail for day-over-day chart (today + previous 13 days and the same 14 days before)
   const ultimos14 = db.prepare(`
-    SELECT date(fecha) as dia, COUNT(*) as total, COALESCE(SUM(precio_final),0) as ingresos
+    SELECT date(fecha,'localtime') as dia, COUNT(*) as total, COALESCE(SUM(precio_final),0) as ingresos
     FROM cotizaciones
-    WHERE fecha >= date('now','-13 days')
+    WHERE date(fecha,'localtime') >= date('now','localtime','-13 days')
     GROUP BY dia
     ORDER BY dia ASC
   `).all()
 
   const anteriores14 = db.prepare(`
-    SELECT date(fecha) as dia, COUNT(*) as total, COALESCE(SUM(precio_final),0) as ingresos
+    SELECT date(fecha,'localtime') as dia, COUNT(*) as total, COALESCE(SUM(precio_final),0) as ingresos
     FROM cotizaciones
-    WHERE fecha >= date('now','-27 days') AND fecha < date('now','-13 days')
+    WHERE date(fecha,'localtime') >= date('now','localtime','-27 days') AND date(fecha,'localtime') < date('now','localtime','-13 days')
     GROUP BY dia
     ORDER BY dia ASC
   `).all()

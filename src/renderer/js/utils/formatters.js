@@ -56,6 +56,16 @@ export function formatDate(isoString) {
 }
 
 /**
+ * Fecha UTC de la BD ('YYYY-MM-DD HH:MM:SS') a la misma forma en hora local.
+ * @param {string} isoString
+ * @returns {string}
+ */
+export function toLocalSql(isoString) {
+  if (!isoString) return ''
+  return new Date(isoString.replace(' ', 'T') + 'Z').toLocaleString('sv-SE')
+}
+
+/**
  * Formatea dimensiones como cadena legible.
  * @param {number} l @param {number} a @param {number} h
  * @returns {string}

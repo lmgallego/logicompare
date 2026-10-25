@@ -111,7 +111,7 @@ async function initApp() {
       agencyOptions = agencyOptions.concat(list.map(a => ({ value: String(a.id), label: a.nombre })))
     } catch (_) {}
 
-    const today = new Date().toISOString().slice(0, 10)
+    const today = new Date().toLocaleDateString('sv-SE') // YYYY-MM-DD en hora local
     // Prefill from current form if the user already typed something
     const largoEl = document.getElementById('input-largo')
     const anchoEl = document.getElementById('input-ancho')
@@ -146,7 +146,7 @@ async function initApp() {
 
     try {
       const res = await window.api.invoke('save-quote-manual', {
-        fecha: result.fecha ? (result.fecha + ' 12:00:00') : null,
+        fecha: result.fecha || null,
         largoCm: parseFloat(result.largoCm),
         anchoCm: parseFloat(result.anchoCm),
         altoCm:  parseFloat(result.altoCm),

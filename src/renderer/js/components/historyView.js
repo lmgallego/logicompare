@@ -1,7 +1,8 @@
-import { formatPrice, formatDate, formatDimensions, formatVolume } from '../utils/formatters.js'
+import { formatPrice, formatDate, formatDimensions, formatVolume, toLocalSql } from '../utils/formatters.js'
 import { confirmModal, alertModal, showFormModal, pickClienteModal } from '../utils/modals.js'
 
 let currentRows = []
+let exportRows = []  // lo que se exporta: filtros actuales, sin límite de 500
 let pendingExportFormat = null  // 'excel' | 'pdf'
 
 function normalizeAgencia(nombre) {
@@ -30,12 +31,13 @@ export async function loadHistory(desde, hasta, agenciaId) {
   }
 
   try {
-    const rows = await window.api.invoke('get-history', {
+    const { rows, truncado } = await window.api.invoke('get-history', {
       desde: desde || null,
       hasta: hasta || null,
       agenciaId: agenciaId ? parseInt(agenciaId) : null,
     })
     currentRows = rows || []
+    document.getElementById('history-limit-note')?.classList.toggle('hidden', !truncado)
     renderTable(tbody, colCount)
   } catch (err) {
     tbody.innerHTML = '<tr><td colspan="' + colCount + '" class="text-center py-8 text-red-500 text-xs">Error: ' + err.message + '</td></tr>'
@@ -117,8 +119,9 @@ async function getAgenciesOptions() {
 
 async function openEditModal(row, tbody, colCount) {
   const agencyOptions = await getAgenciesOptions()
-  // ISO date slice for date picker (fecha stored as 'YYYY-MM-DD HH:MM:SS')
-  const fechaDate = (row.fecha || '').slice(0, 10)
+  // fecha se guarda en UTC; el selector y la hora conservada van en hora local
+  const fechaLocal = toLocalSql(row.fecha)
+  const fechaDate = fechaLocal.slice(0, 10)
 
   // Cliente seleccionable a través de un picker. Guardamos el actual aquí.
   let pickedCliente = row.cliente_codigo
@@ -153,7 +156,7 @@ async function openEditModal(row, tbody, colCount) {
   try {
     const res = await window.api.invoke('update-quote', {
       id: row.id,
-      fecha: result.fecha ? (result.fecha + ' ' + ((row.fecha || '').slice(11, 19) || '12:00:00')) : null,
+      fecha: result.fecha ? (result.fecha + ' ' + (fechaLocal.slice(11, 19) || '12:00:00')) : null,
       largoCm: parseFloat(result.largoCm),
       anchoCm: parseFloat(result.anchoCm),
       altoCm:  parseFloat(result.altoCm),
@@ -204,10 +207,14 @@ export async function initHistoryControls() {
     agenciaId: selectAgencia?.value || null,
   })
 
-  btnFilter?.addEventListener('click', () => {
+  const reload = () => {
     const f = getFilters()
     loadHistory(f.desde, f.hasta, f.agenciaId)
-  })
+  }
+  btnFilter?.addEventListener('click', reload)
+  inputDesde?.addEventListener('change', reload)
+  inputHasta?.addEventListener('change', reload)
+  selectAgencia?.addEventListener('change', reload)
 
   btnReset?.addEventListener('click', () => {
     if (inputDesde) inputDesde.value = ''
@@ -217,8 +224,24 @@ export async function initHistoryControls() {
   })
 
   // Export buttons open modal
-  btnExcel?.addEventListener('click', () => openExportModal('excel'))
-  btnPdf?.addEventListener('click', () => openExportModal('pdf'))
+  const exportar = async (format) => {
+    const f = getFilters()
+    const agencia = f.agenciaId ? selectAgencia.selectedOptions[0]?.textContent : null
+    try {
+      // Recarga por si el usuario cambió filtros sin pulsar Filtrar
+      const [, res] = await Promise.all([
+        loadHistory(f.desde, f.hasta, f.agenciaId),
+        window.api.invoke('get-history', { ...f, agenciaId: f.agenciaId ? parseInt(f.agenciaId) : null, sinLimite: true }),
+      ])
+      exportRows = res.rows || []
+    } catch (err) {
+      alertModal('Error al cargar el historial: ' + err.message, 'Error')
+      return
+    }
+    openExportModal(format, f, agencia)
+  }
+  btnExcel?.addEventListener('click', () => exportar('excel'))
+  btnPdf?.addEventListener('click', () => exportar('pdf'))
 
   // Export modal buttons
   document.getElementById('btn-close-export-modal')?.addEventListener('click', closeExportModal)
@@ -255,11 +278,18 @@ export async function initHistoryControls() {
   })
 }
 
-function openExportModal(format) {
-  if (!currentRows.length) { alertModal('No hay datos para exportar.', 'Aviso'); return }
+const fechaEs = (iso) => iso.split('-').reverse().join('/')
+
+function openExportModal(format, { desde, hasta }, agencia) {
+  if (!exportRows.length) { alertModal('No hay datos para exportar.', 'Aviso'); return }
   pendingExportFormat = format
   const title = document.getElementById('modal-export-title')
   if (title) title.textContent = format === 'excel' ? 'Exportar a Excel' : 'Exportar a PDF'
+  const rango = desde || hasta
+    ? (desde ? fechaEs(desde) : '…') + ' – ' + (hasta ? fechaEs(hasta) : '…')
+    : 'Todo el historial'
+  const rangoEl = document.getElementById('modal-export-rango')
+  if (rangoEl) rangoEl.textContent = rango + (agencia ? ' · ' + agencia : '') + ' · ' + exportRows.length + ' fila' + (exportRows.length !== 1 ? 's' : '')
   document.getElementById('modal-export')?.classList.remove('hidden')
 }
 
@@ -270,14 +300,14 @@ function closeExportModal() {
 
 // ── XLSX ─────────────────────────────────────────────────────────────────────
 function buildXLSX(simplificada) {
-  if (!currentRows.length) return
+  if (!exportRows.length) return
 
   const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
   // Group rows by agency name (preserve insertion order)
   const groups = []
   const groupMap = {}
-  currentRows.forEach(r => {
+  exportRows.forEach(r => {
     const key = normalizeAgencia(r.agencia_nombre)
     if (!groupMap[key]) {
       groupMap[key] = []
@@ -307,9 +337,13 @@ function buildXLSX(simplificada) {
   let wbRelEls = ''
   let ctOverrides = ''
 
+  const usadas = new Set()  // Excel compara nombres de hoja sin distinguir mayúsculas
   groups.forEach((agName, i) => {
     const idx = i + 1
-    const sheetName = agName.replace(/[\\/*?:\[\]]/g, '').slice(0, 31)
+    const base = agName.replace(/[\\/*?:\[\]]/g, '').slice(0, 31) || 'Hoja'
+    let sheetName = base
+    for (let n = 2; usadas.has(sheetName.toLowerCase()); n++) sheetName = base.slice(0, 30 - String(n).length) + '_' + n
+    usadas.add(sheetName.toLowerCase())
     const rows = groupMap[agName]
     let headers, numCols, dataRows
 
@@ -367,13 +401,14 @@ function buildXLSX(simplificada) {
 
 // ── PDF ──────────────────────────────────────────────────────────────────────
 function buildPDF(simplificada) {
-  if (!currentRows.length) return
+  if (!exportRows.length) return
   const win = window.open('', '_blank', 'width=900,height=700')
+  if (!win) { alertModal('No se pudo abrir la ventana de impresión.', 'Error'); return }
 
   // Group rows by agency
   const groups = []
   const groupMap = {}
-  currentRows.forEach(r => {
+  exportRows.forEach(r => {
     const key = normalizeAgencia(r.agencia_nombre)
     if (!groupMap[key]) { groupMap[key] = []; groups.push(key) }
     groupMap[key].push(r)
