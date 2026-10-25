@@ -270,7 +270,6 @@ ipcMain.handle('get-analytics', () => {
     LEFT JOIN agencias a ON a.id = c.agencia_id
     GROUP BY c.agencia_id
     ORDER BY total DESC
-    LIMIT 10
   `).all()
 
   // Quotes per day (last 30 days)
