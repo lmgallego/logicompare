@@ -1,8 +1,8 @@
-version: 2.1.0
+version: 2.1.1
 files:
-  - url: LogiCompare-Setup-2.1.0.exe
-    sha512: BoNhatzhyQ9xifYfPHCKBl6hNYuowzofymXxMdpL2FMQxwsCDeEf6yUgW/vOvadSjMdcZFLGIxOlR6EhA5TpaQ==
-    size: 82664170
-path: LogiCompare-Setup-2.1.0.exe
-sha512: BoNhatzhyQ9xifYfPHCKBl6hNYuowzofymXxMdpL2FMQxwsCDeEf6yUgW/vOvadSjMdcZFLGIxOlR6EhA5TpaQ==
-releaseDate: '2026-10-25T18:37:57.699Z'
+  - url: LogiCompare-Setup-2.1.1.exe
+    sha512: 10vVjT/+6FNN5+cO8ZG/7ac8POwN1CJgbufqL07WgqLNcEqtQNtZHQCX7vhniag4cChNWaBALbqZDLKzhjyyAg==
+    size: 82672482
+path: LogiCompare-Setup-2.1.1.exe
+sha512: 10vVjT/+6FNN5+cO8ZG/7ac8POwN1CJgbufqL07WgqLNcEqtQNtZHQCX7vhniag4cChNWaBALbqZDLKzhjyyAg==
+releaseDate: '2026-10-26T13:37:51.263Z'
