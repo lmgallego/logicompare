@@ -73,3 +73,4 @@ Reglas de negocio particulares:
 - Los handlers usan `ipcMain.removeHandler(...)` antes de `handle(...)` para tolerar recargas.
 - Los importadores xlsx viven en su handler correspondiente, no en el renderer.
 - No hay tests ni linter configurados.
+- Git: `main` = última release. Las ramas nuevas salen de `main` y los tags de versión (`vX.Y.Z`, anotados) se ponen sobre commits de `main`.
