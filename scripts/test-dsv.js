@@ -1,11 +1,11 @@
 /**
  * Pruebas del motor DSV (recargosService, funciones puras). Sin BD.
  * Uso: node scripts/test-dsv.js
- * Recargos con los valores por defecto de csv/dsv_system_2026.json (como los siembra seedDsv).
+ * Recargos con los valores por defecto de src/main/data/dsv_system_2026.json (como los siembra seedDsv).
  */
 const assert = require('node:assert/strict')
 const { bandaDsv, clasificarLargo, calcularDsv } = require('../src/main/services/recargosService')
-const datos = require('../csv/dsv_system_2026.json')
+const datos = require('../src/main/data/dsv_system_2026.json')
 
 const nombrePorPosicion = Object.fromEntries(datos.zonas.map(z => [String(z.posicion), z.nombre]))
 const RECARGOS = datos.recargos.map((r, i) => ({

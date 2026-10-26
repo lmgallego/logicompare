@@ -1,7 +1,7 @@
 # Nueva agencia: DSV System Nacional 2026 — especificación de integración
 
 Fuente: `ELMER AUTOMOTION 1 m3 220 kilos Tarifa Nacional System.xlsx` (tarifa `NAC - PT 2026v1`, cliente ELMER AUTOMOTION S.L., origen **Tarragona**).
-Datos extraídos y listos para el seed: `csv/dsv_system_2026.json`.
+Datos extraídos y listos para el seed: `src/main/data/dsv_system_2026.json`.
 Estado: **solo preparación**, no se ha tocado código de la app.
 
 ## 1. Cómo calcula el Excel (hoja `Calculadora_NAC`)
@@ -39,7 +39,7 @@ Canarias (35, 38) no tiene tarifa en este Excel → "Sin cobertura".
 
 ## 2. Recargos y opciones (catálogo editable)
 
-Todos están en `csv/dsv_system_2026.json` → `recargos`, con importe, mínimo, base y celda de origen. Los marcados *manual* son sucesos puntuales que no se calculan en la cotización (activo=0).
+Todos están en `src/main/data/dsv_system_2026.json` → `recargos`, con importe, mínimo, base y celda de origen. Los marcados *manual* son sucesos puntuales que no se calculan en la cotización (activo=0).
 
 | Código | Regla | Cuándo |
 |---|---|---|
@@ -85,7 +85,7 @@ Ecotasas, Mobility Package, UK, ICS2, Ferry y aduanas son internacionales: fuera
    - `agencias` + `motor` (`estandar` por defecto, `reglas` para DSV): las otras 6 agencias siguen exactamente igual.
    - Tabla `cp_areas (agencia_id, tipo 'remota'|'metropolitana', cp5, PK compuesta)`.
    - `cotizaciones` + `desglose_json` (opcional, para histórico).
-2. **`seedDsv.js`** + script `seed:dsv`: lee `csv/dsv_system_2026.json`; crea agencia (baremo 220), zonas, bandas, prefijos y `cp_areas`. Los recargos se insertan con `INSERT OR IGNORE` por `codigo` y no se pisan en re-ejecuciones.
+2. **`seedDsv.js`** + script `seed:dsv`: lee `src/main/data/dsv_system_2026.json`; crea agencia (baremo 220), zonas, bandas, prefijos y `cp_areas`. Los recargos se insertan con `INSERT OR IGNORE` por `codigo` y no se pisan en re-ejecuciones.
 3. **`recargosService.js`** (función pura, sin BD, para poder probarla con `node`): recibe agencia, flete, bultos, peso tasable, zona, opciones, `cp5` y devuelve `{ total, desglose[] }`. `calcularPrecioBultos` la usa si `agencia.motor === 'reglas'`. Para DSV: peso = `max(m³ × baremo, pesoBruto)` sin redondeos intermedios, tope 5.000 kg / 20 m³, zonas de Baleares como `multiple_zones`.
 4. **UI**:
    - Base de datos → tabla editable de recargos de la agencia (valor, mínimo, activo, por defecto). El fuel destacado, porque cambia cada mes.

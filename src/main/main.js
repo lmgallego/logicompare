@@ -189,7 +189,7 @@ app.whenReady().then(async () => {
     }
 
     if (process.argv.includes('--seed-dsv')) {
-      require('./database/seedDsv')
+      require('./database/seedDsv').sembrarDsv(getDb())
       app.quit()
       return
     }
@@ -251,6 +251,9 @@ app.whenReady().then(async () => {
     })
 
     await checkFirstRun()
+
+    // Tras checkFirstRun: con la BD vacía debe seguir ofreciéndose importar una existente
+    require('./database/seedDsv').sembrarDsvSiFalta(getDb())
 
     createWindow()
 
