@@ -32,7 +32,11 @@ function sembrarDsv(db) {
 
     // ── Zonas, CPs y tarifas ─────────────────────────────────────────────────
     const getZona = db.prepare('SELECT id FROM zonas_agencia WHERE agencia_id = ? AND nombre_zona = ?')
-    const insZona = db.prepare('INSERT INTO zonas_agencia (agencia_id, nombre_zona, kg_adicional, solo_debidos, multiple_zones) VALUES (?, ?, 0, 0, ?)')
+    const insZona = db.prepare('INSERT INTO zonas_agencia (agencia_id, nombre_zona, kg_adicional, solo_debidos, multiple_zones, baremo) VALUES (?, ?, 0, 0, ?, ?)')
+    const updBaremoZona = db.prepare('UPDATE zonas_agencia SET baremo = ? WHERE id = ?')
+    // Baleares, Ceuta y Melilla tienen baremo propio (D62); el resto usa el de la agencia (NULL)
+    const { baremo_islas_kg_m3, zonas_baremo_islas } = datos.parametros
+    const baremoZona = nombre => zonas_baremo_islas.includes(nombre) ? baremo_islas_kg_m3 : null
     const insCp = db.prepare('INSERT OR IGNORE INTO zonas_provincias (agencia_id, zona_id, cp_prefix) VALUES (?, ?, ?)')
     const getTarifa = db.prepare('SELECT id FROM tarifas_agencia WHERE agencia_id = ? AND zona_id = ? AND kilos_desde = ? AND kilos_hasta = ?')
     const updTarifa = db.prepare('UPDATE tarifas_agencia SET precio_base = ? WHERE id = ?')
@@ -42,7 +46,9 @@ function sembrarDsv(db) {
     let nTarifas = 0
     for (const z of datos.zonas) {
       const precios = datos.tarifa_salidas[String(z.posicion)]
-      const zonaId = getZona.get(agId, z.nombre)?.id ?? insZona.run(agId, z.nombre, z.multiple_zones ? 1 : 0).lastInsertRowid
+      const existente = getZona.get(agId, z.nombre)
+      if (existente) updBaremoZona.run(baremoZona(z.nombre), existente.id)
+      const zonaId = existente?.id ?? insZona.run(agId, z.nombre, z.multiple_zones ? 1 : 0, baremoZona(z.nombre)).lastInsertRowid
       for (const cp of z.cp_prefix) insCp.run(agId, zonaId, cp)
       tramos.forEach((hasta, i) => {
         const desde = i === 0 ? 0 : tramos[i - 1]

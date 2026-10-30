@@ -20,6 +20,18 @@ function bandaDsv(pesoTasable) {
 }
 
 /**
+ * Peso tasable DSV en kg enteros, redondeado hacia arriba (Tarifa Domestico Salidas):
+ * ceil(max(m³ × baremo de la zona, peso bruto, peso mínimo)).
+ * Las bandas acaban en kg enteros, así que el redondeo no cambia de banda.
+ */
+function pesoTasableDsv({ bultos, baremo, pesoBruto, pesoMinimo = 0 }) {
+  const m3 = bultos.reduce((s, b) => s + b.largoCm * b.anchoCm * b.altoCm * 1e-6, 0)
+  const peso = Math.max(m3 * baremo, Number(pesoBruto) || 0, Number(pesoMinimo) || 0)
+  // Se quita el ruido de coma flotante (0,5 m³ × 220 = 110,00000000000001) antes del ceil
+  return Math.ceil(Math.round(peso * 1e6) / 1e6)
+}
+
+/**
  * Clasifica el envío por largos según el bulto más desfavorable.
  * Lados ordenados de mayor a menor (la orientación del bulto no importa).
  * Tipo 1: lado mayor >240 y ≤300, 2º lado ≤120, 3º ≤220, ≤1500 kg/bulto.
@@ -57,7 +69,7 @@ function importeRecargo(recargo, { base, peso, numBultos }) {
  * Calcula flete + opciones + suplementos DSV.
  * @param {object} p
  * @param {number} p.flete         precio de tarifa (banda × zona), sin incremento Priority
- * @param {number} p.pesoTasable   kg tasables, sin redondear
+ * @param {number} p.pesoTasable   kg tasables (pesoTasableDsv)
  * @param {object} p.zona          fila de zonas_agencia (usa nombre_zona)
  * @param {Array}  p.bultos        [{ largoCm, anchoCm, altoCm, pesoKg? }]
  * @param {object} [p.opciones]    { [codigo]: boolean }; si falta un código se usa su por_defecto
@@ -91,6 +103,8 @@ function calcularDsv({ flete: fleteTarifa, pesoTasable, zona, bultos, opciones =
 
   const areas = new Set(cpAreas)
   if (!cp5) avisos.push('Área remota/metropolitana sin verificar (CP incompleto)')
+  // Tarifa Domestico Salidas!E47: por encima de 2.500 kg se calcula, pero DSV pide cotizar
+  if (pesoTasable > 2500) avisos.push('Más de 2.500 kg: solicite cotización a su comercial DSV')
 
   const aplica = r => {
     if (r.aplica === 'siempre') return true
@@ -136,4 +150,4 @@ function calcularDsv({ flete: fleteTarifa, pesoTasable, zona, bultos, opciones =
   }
 }
 
-module.exports = { bandaDsv, clasificarLargo, calcularDsv, importeRecargo }
+module.exports = { bandaDsv, clasificarLargo, calcularDsv, importeRecargo, pesoTasableDsv }

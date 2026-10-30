@@ -14,10 +14,12 @@
   "baremo_kg_m3": 220,
   "peso_max_kg": 5000,
   "volumen_max_m3": 20,
-  "peso_tasable": "max(m3*baremo, peso_bruto_total)",
+  "baremo_islas_kg_m3": 333,
+  "zonas_baremo_islas": ["Mallorca", "Menorca", "Ibiza", "Formentera", "Ceuta", "Melilla"],
+  "peso_tasable": "ceil(max(m3*baremo_zona, peso_bruto_total, peso_minimo_kg))",
   "factor_llegadas": 1.2,
   "incremento_system_priority": 0.3,
-  "nota_baremo": "El Excel usa 220 kg/m3 (D15); la nota de Opciones habla de 1 m3 = 333 kg (genérico DSV). Prevalece 220 por el acuerdo comercial."
+  "nota_baremo": "Tarifa Domestico Salidas: Península 1 m3 = 220 kg (D61); Baleares, Ceuta y Melilla 1 m3 = 333 kg (D62). La calculadora usa 220 (D15) para todo, pero prevalecen las notas de la tarifa."
  },
  "tramos_kg_hasta": [
   30,
@@ -937,6 +939,18 @@
    "activo": 0,
    "fuente": "Opciones!E26",
    "nota": "15 €/día por palet o m3."
+  },
+  {
+   "codigo": "peso_minimo_kg",
+   "nombre": "Peso mínimo tasable (kg)",
+   "tipo": "parametro",
+   "valor": 0,
+   "minimo": null,
+   "base": "peso_tasable",
+   "aplica": "parametro",
+   "activo": 1,
+   "fuente": "Tarifa Domestico Salidas (filas 47-64)",
+   "nota": "No es un recargo: sube el peso tasable hasta este valor. Con 0 no tiene efecto; confirmado en el Excel que no hay mínimo de 100 kg."
   }
  ],
  "cp_remotas": {

@@ -385,7 +385,7 @@ async function renderTarifasEditor(agenciaId, zonas) {
   }
 }
 
-const TIPO_RECARGO = { porcentaje: '%', fijo: '€', por_100kg: '€/100 kg', por_bulto: '€/bulto' }
+const TIPO_RECARGO = { porcentaje: '%', fijo: '€', por_100kg: '€/100 kg', por_bulto: '€/bulto', parametro: 'kg' }
 
 function fechaCorta(str) {
   if (!str) return '—'
