@@ -308,7 +308,7 @@ function buildXLSX(simplificada) {
   const groups = []
   const groupMap = {}
   exportRows.forEach(r => {
-    const key = normalizeAgencia(r.agencia_nombre)
+    const key = simplificada ? (r.agencia_nombre || 'Sin agencia') : normalizeAgencia(r.agencia_nombre)  // el simplificado no tiene columna Agencia
     if (!groupMap[key]) {
       groupMap[key] = []
       groups.push(key)
@@ -409,7 +409,7 @@ function buildPDF(simplificada) {
   const groups = []
   const groupMap = {}
   exportRows.forEach(r => {
-    const key = normalizeAgencia(r.agencia_nombre)
+    const key = r.agencia_nombre || 'Sin agencia'  // sin columna Agencia: nombre completo (Bulto/Palet)
     if (!groupMap[key]) { groupMap[key] = []; groups.push(key) }
     groupMap[key].push(r)
   })
