@@ -339,6 +339,33 @@ function runMigrations(db) {
     })()
   }
 
+  // Baremo propio de la zona (kg/m³). NULL = se usa agencias.baremo. Solo lo usa el motor 'reglas'.
+  const zonaCols2 = db.prepare("PRAGMA table_info(zonas_agencia)").all().map(c => c.name)
+  if (!zonaCols2.includes('baremo')) {
+    db.prepare('ALTER TABLE zonas_agencia ADD COLUMN baremo REAL').run()
+  }
+
+  // DSV, notas de Tarifa Domestico Salidas: Baleares, Ceuta y Melilla 1 m³ = 333 kg (D62)
+  // y parámetro de peso mínimo editable (0 = sin mínimo). Solo rellena lo que falte.
+  if (!yaAplicada('dsv_baremo_islas_peso_minimo')) {
+    db.transaction(() => {
+      const dsv = db.prepare("SELECT id FROM agencias WHERE nombre = 'DSV' AND motor = 'reglas'").get()
+      if (dsv) {
+        db.prepare(`UPDATE zonas_agencia SET baremo = 333 WHERE agencia_id = ? AND baremo IS NULL
+                    AND nombre_zona IN ('Mallorca', 'Menorca', 'Ibiza', 'Formentera', 'Ceuta', 'Melilla')`).run(dsv.id)
+        db.prepare(`INSERT OR IGNORE INTO recargos_agencia
+                      (agencia_id, nombre, es_porcentaje, valor, minimo_aplicable, sobre_total,
+                       codigo, tipo, base, aplica, activo, por_defecto, orden, nota, actualizado)
+                    VALUES (?, 'Peso mínimo tasable (kg)', 0, 0, NULL, 0,
+                            'peso_minimo_kg', 'parametro', 'peso_tasable', 'parametro', 1, 0,
+                            (SELECT COALESCE(MAX(orden), 0) + 1 FROM recargos_agencia WHERE agencia_id = ?),
+                            'No es un recargo: sube el peso tasable hasta este valor. Con 0 no tiene efecto.', datetime('now'))`).run(dsv.id, dsv.id)
+        console.log('[migration] DSV: baremo 333 kg/m³ en Baleares, Ceuta y Melilla; parámetro peso mínimo = 0')
+      }
+      marcarAplicada('dsv_baremo_islas_peso_minimo')
+    })()
+  }
+
   // Desglose del cálculo guardado con la cotización (opcional)
   const cotCols2 = db.prepare("PRAGMA table_info(cotizaciones)").all().map(c => c.name)
   if (!cotCols2.includes('desglose_json')) {

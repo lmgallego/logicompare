@@ -9,7 +9,7 @@ Estado: **solo preparación**, no se ha tocado código de la app.
 | Paso | Regla | Celdas |
 |---|---|---|
 | 1. Volumen | m³ = Σ (largo×ancho×alto / 1e6 × nº bultos). Máx. 20 m³. Sin redondear. | D22:H22, D27 |
-| 2. Peso tasable | `max(m³ × 220, peso bruto total)`. Factor **220 kg/m³** (parámetro D15). Sin redondear. Máx. 5.000 kg. | D24, H27 |
+| 2. Peso tasable | `max(m³ × 220, peso bruto total)`. Factor **220 kg/m³** (parámetro D15). Sin redondear. Máx. 5.000 kg. La app aplica además las notas de la tarifa (ver 1.1): baremo 333 en islas, Ceuta y Melilla y redondeo a kg enteros. | D24, H27 |
 | 3. Zona | Origen fijo Tarragona; la provincia de destino da una zona (posición 1–16). | D41, `AN:AP` |
 | 4. Banda de peso | ≤30→30, ≤50→50, ≤70→70, ≤100→100, ≤300→múltiplo de 50, ≤1000→múltiplo de 100, ≤3000→múltiplo de 250, ≤5000→múltiplo de 500. Más de 5.000 kg → `NA`. | D43 |
 | 5. Flete | `tarifa[banda][zona]` × 1,30 si **System Priority** × 1,20 si es **Llegadas**. | D43 |
@@ -36,6 +36,33 @@ Mapeo de zonas desde Tarragona (prefijo CP → zona):
 | 15 / 16 | Gibraltar / Andorra (la app no tiene esos CP) |
 
 Canarias (35, 38) no tiene tarifa en este Excel → "Sin cobertura".
+
+### 1.1 Reglas de las notas de la hoja `Tarifa Domestico Salidas` (filas 47-64)
+
+La calculadora no las aplica, pero son las condiciones de la tarifa y la app las sigue (rama `fix/dsv-reglas-tarifa`).
+
+| Regla | En la app | Celda |
+|---|---|---|
+| Península: 1 m³ = 220 kg tasables | `agencias.baremo` = 220 (`parametros.baremo_kg_m3`) | D61 |
+| Baleares, Ceuta y Melilla: 1 m³ = 333 kg tasables | `zonas_agencia.baremo` = 333 en Mallorca, Menorca, Ibiza, Formentera, Ceuta y Melilla (`parametros.baremo_islas_kg_m3`, `parametros.zonas_baremo_islas`). NULL en el resto = baremo de la agencia. Solo lo usa el motor `reglas`. | D62 |
+| "Solicite a su comercial cotización para cargas superiores a 2.500 kg" | Entre 2.500 y 5.000 kg se calcula el precio y la tarjeta muestra el aviso "Más de 2.500 kg: solicite cotización a su comercial DSV". Más de 5.000 kg: error, como antes. | D47 (texto en E47) |
+| Peso tasable en kg enteros | `ceil(max(m³ × baremo de la zona, peso bruto, peso mínimo))` (`pesoTasableDsv`). Es el peso que se muestra en la tarjeta y en el desglose. Como las bandas acaban en kg enteros, ningún envío cambia de banda ni de precio. | D64 |
+| Peso mínimo | Parámetro `peso_minimo_kg` = 0 en los recargos de DSV (tipo `parametro`, editable; no genera línea en el desglose). Con 0 no tiene efecto: confirmado con el Excel que **no hay mínimo de 100 kg**. | D64 |
+
+BDs existentes: migración puntual `dsv_baremo_islas_peso_minimo` (registrada en `migraciones_aplicadas`) que pone 333 en las seis zonas si su baremo está a NULL y crea el parámetro si no existe. Instalaciones nuevas: lo hace el seed desde el JSON.
+
+Casos de `scripts/test-dsv.js`:
+
+| Caso | Peso tasable | Banda | Total |
+|---|---|---|---|
+| 1×(80×15×44), bruto 61, zona 2 (CP 46940) | 61 | 70 | **20,82** (Excel: flete 16,69 + fuel 2,13 + TTE 0,50 + resp. 1,50) |
+| Igual sin peso bruto | 11,6 → 12 | 30 | 17,00 (igual que sin redondeo) |
+| Mallorca o Ceuta 1×(60×40×40), 10 kg | 0,096 × 333 = 31,97 → 32 | 50 | |
+| V1 Málaga | 100 | 100 | 41,04 (sin cambios) |
+| V1 a Mallorca | 0,40635 × 333 = 135,3 → 136 | 150 | 106,61 (antes 92,37 con 220) |
+| 3.000 kg | 3000 | 3000 | precio + aviso de 2.500 kg |
+
+Bordes: 29,4→30 (banda 30), 30,2→31 (50), 99,9→100 (100), 100,1→101 (150), 5.000→5.000 (5.000), 5.000,1→error.
 
 ## 2. Recargos y opciones (catálogo editable)
 
@@ -66,7 +93,7 @@ Ecotasas, Mobility Package, UK, ICS2, Ferry y aduanas son internacionales: fuera
 2. **Área metropolitana**: la calculadora aplica `max(7 €, 25 % flete)` (igual que remota); la hoja de opciones dice 5 € fijos por envío. En el JSON he dejado la fórmula de la calculadora.
 3. **Fuel**: la hoja de opciones dice "12,75 % sobre el porte. Se cobraría el 50 % del fuel normal". La calculadora usa 12,75 % entero. No sé si 12,75 % ya es ese 50 %.
 4. ~~**MFR Baleares**~~ **Resuelta según la calculadora del Excel**: no se suma. Queda en `recargos_agencia` con `activo = 0`, editable si DSV lo factura.
-5. **Factor 220** (acuerdo Elmer) frente a la nota genérica "1 m³ = 333 kg". Prevalece 220.
+5. ~~**Factor 220**~~ **Resuelta con las notas de la tarifa** (D61/D62): 220 en península y 333 en Baleares, Ceuta y Melilla (ver 1.1).
 
 ## 4. Qué choca con la app actual
 

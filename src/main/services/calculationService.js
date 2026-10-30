@@ -3,7 +3,7 @@ const { getZoneForCp, getZonesForCp } = require('../repositories/zoneRepository'
 const { getRateForWeight, getRateForWeight15 } = require('../repositories/rateRepository')
 const { getDb } = require('../database/connection')
 const { getActiveRulesByAgency, getCpAreas } = require('../repositories/surchargeRepository')
-const { bandaDsv, calcularDsv } = require('./recargosService')
+const { bandaDsv, calcularDsv, pesoTasableDsv } = require('./recargosService')
 
 /**
  * Calcula los metros cúbicos a partir de las dimensiones en cm.
@@ -168,9 +168,16 @@ const DSV_VOLUMEN_MAX_M3 = 20
 
 function calcularPrecioReglas(agencia, zona, bultos, { cp5, pesoBruto, opcionesDsv, producto } = {}) {
   const m3 = bultos.reduce((s, b) => s + b.largoCm * b.anchoCm * b.altoCm * 0.000001, 0)
-  const peso = Math.max(m3 * agencia.baremo, Number(pesoBruto) || 0)
+  const recargos = getActiveRulesByAgency(agencia.id)
+  // Baremo por zona (islas, Ceuta y Melilla 333) o el de la agencia; peso en kg enteros hacia arriba
+  const peso = pesoTasableDsv({
+    bultos,
+    baremo: zona.baremo ?? agencia.baremo,
+    pesoBruto,
+    pesoMinimo: recargos.find(r => r.codigo === 'peso_minimo_kg')?.valor,
+  })
   const base = { precioFinal: null, precioBase: null, desglose: [], avisos: [],
-    peso: Math.round(peso * 100) / 100, metrosCubicos: Math.round(m3 * 1000) / 1000 }
+    peso, metrosCubicos: Math.round(m3 * 1000) / 1000 }
 
   if (peso > DSV_PESO_MAX_KG || m3 > DSV_VOLUMEN_MAX_M3) return { ...base, error: 'Excede peso/volumen máximo DSV' }
 
@@ -186,7 +193,7 @@ function calcularPrecioReglas(agencia, zona, bultos, { cp5, pesoBruto, opcionesD
     bultos: bultos.map(b => ({ ...b, pesoKg: pesoBulto })),
     opciones: opcionesDsv || {},
     cp5,
-    recargos: getActiveRulesByAgency(agencia.id),
+    recargos,
     cpAreas: cp5 ? getCpAreas(agencia.id, cp5) : [],
     producto,
   })
