@@ -64,7 +64,8 @@ function renderTable(tbody, colCount) {
           : '<span class="text-xs" style="opacity:0.35;">—</span>')
     tr.innerHTML = '<td class="px-2 py-2 text-on-surface-variant" style="font-size:10px;">' + formatDate(row.fecha) + '</td>'
       + '<td class="px-2 py-2" style="font-size:10px;">' + clienteCell + '</td>'
-      + '<td class="px-2 py-2 font-medium" style="font-size:10px;">' + formatDimensions(row.largo_cm, row.ancho_cm, row.alto_cm) + '</td>'
+      + '<td class="px-2 py-2 font-medium" style="font-size:10px;">' + formatDimensions(row.largo_cm, row.ancho_cm, row.alto_cm)
+      + (row.num_bultos > 1 ? ' <span class="text-[10px] font-black px-1.5 py-0.5 rounded-full whitespace-nowrap inline-block" style="background:rgba(0,64,224,0.08);color:#0040e0;margin-left:4px;">' + row.num_bultos + ' bultos</span>' : '') + '</td>'
       + '<td class="px-2 py-2 font-medium" style="font-size:10px;">' + row.cp_prefix + '</td>'
       + '<td class="px-2 py-2" style="font-size:10px;">' + formatVolume(row.metros_cubicos) + '</td>'
       + '<td class="px-2 py-2 font-bold text-primary" style="font-size:10px;">' + (row.peso != null ? row.peso + ' kg' : '—') + '</td>'
@@ -348,21 +349,21 @@ function buildXLSX(simplificada) {
     let headers, numCols, dataRows
 
     if (simplificada) {
-      headers = ['Fecha', 'Cliente', 'Destinatario', 'Precio Final (€)', 'Precio Redondeado (€)']
-      numCols = [3, 4]
+      headers = ['Fecha', 'Cliente', 'Destinatario', 'Precio Final (€)', 'Precio Redondeado (€)', 'Bultos']
+      numCols = [3, 4, 5]
       dataRows = rows.map(r => {
         const red = r.precio_redondeado != null ? r.precio_redondeado : redondear5(r.precio_final)
-        return [formatDate(r.fecha), r.cliente_razon_social || '', r.destinatario || '', (r.precio_final ?? 0).toFixed(2), (red ?? 0).toFixed(2)]
+        return [formatDate(r.fecha), r.cliente_razon_social || '', r.destinatario || '', (r.precio_final ?? 0).toFixed(2), (red ?? 0).toFixed(2), r.num_bultos ?? 1]
       })
     } else {
-      headers = ['Fecha', 'Cód. Cliente', 'Cliente', 'Destinatario', 'Medidas (cm)', 'CP', 'Metros Cúbicos', 'Peso (kg)', 'Agencia', 'Precio Final (€)', 'Precio Redondeado (€)']
-      numCols = [7, 9, 10]
+      headers = ['Fecha', 'Cód. Cliente', 'Cliente', 'Destinatario', 'Medidas (cm)', 'CP', 'Metros Cúbicos', 'Peso (kg)', 'Agencia', 'Precio Final (€)', 'Precio Redondeado (€)', 'Bultos']
+      numCols = [7, 9, 10, 11]
       dataRows = rows.map(r => {
         const red = r.precio_redondeado != null ? r.precio_redondeado : redondear5(r.precio_final)
         return [formatDate(r.fecha), r.cliente_codigo || '', r.cliente_razon_social || '', r.destinatario || '',
           r.largo_cm + 'x' + r.ancho_cm + 'x' + r.alto_cm, r.cp_prefix,
           (r.metros_cubicos ?? 0).toFixed(6), r.peso ?? 0, r.agencia_nombre || '',
-          (r.precio_final ?? 0).toFixed(2), (red ?? 0).toFixed(2)]
+          (r.precio_final ?? 0).toFixed(2), (red ?? 0).toFixed(2), r.num_bultos ?? 1]
       })
     }
 
@@ -419,7 +420,7 @@ function buildPDF(simplificada) {
   const renderGroup = (agName, rows) => {
     let head, body
     if (simplificada) {
-      head = '<tr><th>Fecha</th><th>Cliente</th><th>Destinatario</th><th style="text-align:right">Precio Final</th><th style="text-align:right">Precio Redondeado</th></tr>'
+      head = '<tr><th>Fecha</th><th>Cliente</th><th>Destinatario</th><th style="text-align:right">Precio Final</th><th style="text-align:right">Precio Redondeado</th><th style="text-align:right">Bultos</th></tr>'
       body = rows.map((r, i) => {
         const red = r.precio_redondeado != null ? r.precio_redondeado : redondear5(r.precio_final)
         return '<tr style="background:' + (i % 2 === 0 ? '#f8f9fb' : '#fff') + '">' 
@@ -428,10 +429,11 @@ function buildPDF(simplificada) {
           + '<td>' + (r.destinatario || '') + '</td>'
           + '<td style="text-align:right"><strong>' + formatPrice(r.precio_final) + '</strong></td>'
           + '<td style="text-align:right"><strong style="color:#15803d">' + formatPrice(red) + '</strong></td>'
+          + '<td style="text-align:right">' + (r.num_bultos ?? 1) + '</td>'
           + '</tr>'
       }).join('')
     } else {
-      head = '<tr><th>Fecha</th><th>Cliente</th><th>Destinatario</th><th>Medidas</th><th>CP</th><th>m³</th><th>Peso</th><th style="text-align:right">Precio Final</th><th style="text-align:right">P. Redondeado</th></tr>'
+      head = '<tr><th>Fecha</th><th>Cliente</th><th>Destinatario</th><th>Medidas</th><th>CP</th><th>m³</th><th>Peso</th><th style="text-align:right">Precio Final</th><th style="text-align:right">P. Redondeado</th><th style="text-align:right">Bultos</th></tr>'
       body = rows.map((r, i) => {
         const red = r.precio_redondeado != null ? r.precio_redondeado : redondear5(r.precio_final)
         const clienteHtml = r.cliente_razon_social
@@ -447,6 +449,7 @@ function buildPDF(simplificada) {
           + '<td><strong>' + (r.peso ?? 0) + ' kg</strong></td>'
           + '<td style="text-align:right"><strong>' + formatPrice(r.precio_final) + '</strong></td>'
           + '<td style="text-align:right"><strong style="color:#15803d">' + formatPrice(red) + '</strong></td>'
+          + '<td style="text-align:right">' + (r.num_bultos ?? 1) + '</td>'
           + '</tr>'
       }).join('')
     }

@@ -372,6 +372,11 @@ function runMigrations(db) {
     db.prepare('ALTER TABLE cotizaciones ADD COLUMN desglose_json TEXT').run()
   }
 
+  // Bultos de la cotización (JSON {bultos, cp5, pesoBruto, ...}), NULL en las antiguas
+  if (!cotCols2.includes('bultos_json')) {
+    db.prepare('ALTER TABLE cotizaciones ADD COLUMN bultos_json TEXT').run()
+  }
+
   seedProvincias(db)
 }
 

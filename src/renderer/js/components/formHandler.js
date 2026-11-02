@@ -547,6 +547,10 @@ function renderCarrierCards(resultados, container, sortedAsc) {
             clienteCodigo: activeCliente?.codigo || null,
             destinatario: activeDestinatario || null,
             desglose: r.desglose,
+            cp5: lastFormDatos.cp5,
+            pesoBruto: lastFormDatos.pesoBruto,
+            opcionesDsv: lastFormDatos.opcionesDsv,
+            producto: lastFormDatos.producto,
           })
         }
       })
