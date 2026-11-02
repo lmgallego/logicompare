@@ -47,7 +47,7 @@ function showPage(pageId) {
   if (currentPage === 'new-quote' && pageId !== 'new-quote') {
     const resultsList = document.getElementById('results-list')
     const hasResults = resultsList && !resultsList.classList.contains('hidden')
-    if (hasResults) {
+    if (hasResults && !wasAgenciaElegida()) {
       showToast('⚠️ Has salido sin seleccionar ninguna agencia para este envío', 'warning')
     }
   }
