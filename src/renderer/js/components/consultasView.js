@@ -112,7 +112,7 @@ async function loadConsulta() {
       return `<tr class="hover:bg-surface-container-high/40 transition-colors">
         <td class="px-3 py-2 text-xs whitespace-nowrap">${formatDate(r.fecha)}</td>
         <td class="px-3 py-2 text-xs">${r.agencia_nombre || '—'}</td>
-        <td class="px-3 py-2 text-xs font-mono">${r.largo_cm}×${r.ancho_cm}×${r.alto_cm}${r.num_bultos > 1 ? `<span class="text-[10px] font-black px-1.5 py-0.5 rounded-full" style="background:rgba(0,64,224,0.08);color:#0040e0;margin-left:4px;">${r.num_bultos} bultos</span>` : ''}</td>
+        <td class="px-3 py-2 text-xs font-mono">${r.largo_cm}×${r.ancho_cm}×${r.alto_cm}${r.num_bultos > 1 ? `<span class="text-[10px] font-black px-1.5 py-0.5 rounded-full whitespace-nowrap" style="background:rgba(0,64,224,0.08);color:#0040e0;margin-left:4px;">${r.num_bultos} bultos</span>` : ''}</td>
         <td class="px-3 py-2 text-xs text-center">${r.cp_prefix}</td>
         <td class="px-3 py-2 text-xs text-right">${(r.metros_cubicos ?? 0).toFixed(3)}</td>
         <td class="px-3 py-2 text-xs text-right font-semibold">${r.peso ?? 0} kg</td>
