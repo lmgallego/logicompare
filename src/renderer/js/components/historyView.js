@@ -65,7 +65,7 @@ function renderTable(tbody, colCount) {
     tr.innerHTML = '<td class="px-2 py-2 text-on-surface-variant" style="font-size:10px;">' + formatDate(row.fecha) + '</td>'
       + '<td class="px-2 py-2" style="font-size:10px;">' + clienteCell + '</td>'
       + '<td class="px-2 py-2 font-medium" style="font-size:10px;">' + formatDimensions(row.largo_cm, row.ancho_cm, row.alto_cm)
-      + (row.num_bultos > 1 ? '<span class="text-[10px] font-black px-1.5 py-0.5 rounded-full whitespace-nowrap" style="background:rgba(0,64,224,0.08);color:#0040e0;margin-left:4px;">' + row.num_bultos + ' bultos</span>' : '') + '</td>'
+      + (row.num_bultos > 1 ? ' <span class="text-[10px] font-black px-1.5 py-0.5 rounded-full whitespace-nowrap inline-block" style="background:rgba(0,64,224,0.08);color:#0040e0;margin-left:4px;">' + row.num_bultos + ' bultos</span>' : '') + '</td>'
       + '<td class="px-2 py-2 font-medium" style="font-size:10px;">' + row.cp_prefix + '</td>'
       + '<td class="px-2 py-2" style="font-size:10px;">' + formatVolume(row.metros_cubicos) + '</td>'
       + '<td class="px-2 py-2 font-bold text-primary" style="font-size:10px;">' + (row.peso != null ? row.peso + ' kg' : '—') + '</td>'
