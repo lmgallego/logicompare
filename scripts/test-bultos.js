@@ -93,6 +93,17 @@ caso('resolve con pendingId inexistente usa los bultos del payload', () => {
   assert.equal(ultima().num_bultos, 2)
 })
 
+caso('resolve que falla no guarda nada y deja la pendiente', () => {
+  call('save-pending-quote', { cpPrefix: '08', bultos: b2, resultados: [] })
+  const pendingId = call('get-pending-quotes')[0].id
+  db.prepare("UPDATE cotizaciones_pendientes SET bultos_json = 'xx' WHERE id = ?").run(pendingId)
+  const res = call('resolve-pending-quote', { ...base, pendingId, bultos: b2 })
+  assert.equal(res.ok, false)
+  assert.ok(res.error)
+  assert.equal(filas().length, 0)
+  assert.equal(db.prepare('SELECT COUNT(*) n FROM cotizaciones_pendientes WHERE id = ?').get(pendingId).n, 1)
+})
+
 caso('manual conserva su bulto', () => {
   assert.equal(call('save-quote-manual', { ...base, fecha: '2026-08-15', largoCm: 50, anchoCm: 40, altoCm: 30 }).ok, true)
   const r = ultima()

@@ -1,4 +1,5 @@
 import { formatPrice, formatWeight, formatVolume } from '../utils/formatters.js'
+import { alertModal } from '../utils/modals.js'
 
 function formatDate(str) {
   if (!str) return '—'
@@ -122,7 +123,7 @@ function renderPendingCard(container, row) {
     btn.addEventListener('click', async () => {
       btn.disabled = true
       btn.textContent = '✓ Guardando...'
-      await window.api.invoke('resolve-pending-quote', {
+      const res = await window.api.invoke('resolve-pending-quote', {
         pendingId:     parseInt(btn.dataset.pendingId),
         agenciaId:     parseInt(btn.dataset.agenciaId),
         metrosCubicos: parseFloat(btn.dataset.metros),
@@ -135,7 +136,14 @@ function renderPendingCard(container, row) {
         bultos:        row.bultos,
         clienteCodigo: row.cliente_codigo || null,
         desglose:      resultadosValidos[parseInt(btn.dataset.idx)]?.desglose,
-      })
+      }).catch(e => ({ ok: false, error: e.message }))
+      // Si no se ha guardado, la pendiente se queda para reintentar
+      if (!res?.ok) {
+        btn.disabled = false
+        btn.textContent = 'Elegir'
+        alertModal('No se pudo guardar la cotización: ' + (res?.error || 'error desconocido'), 'Error')
+        return
+      }
       card.remove()
       // Refresh badge
       const remaining = document.querySelectorAll('#pending-list > div').length
