@@ -24,14 +24,20 @@ Module._load = function (request, ...rest) {
   return loadOriginal.call(this, request, ...rest)
 }
 
-// Con BD de origen: copia y recuento previo de cotizaciones
+// Con BD de origen: copia y recuento previo de cotizaciones (y de las que ya tenían bultos_json)
 let previas = null
+let previasConBultos = 0
 if (process.argv[2]) {
   const copia = path.join(tmpDir, 'logicompare.db')
   fs.copyFileSync(process.argv[2], copia)
   const Database = require('better-sqlite3')
   const d = new Database(copia)
-  if (d.prepare("SELECT 1 FROM sqlite_master WHERE name = 'cotizaciones'").get()) previas = d.prepare('SELECT COUNT(*) n FROM cotizaciones').get().n
+  if (d.prepare("SELECT 1 FROM sqlite_master WHERE name = 'cotizaciones'").get()) {
+    previas = d.prepare('SELECT COUNT(*) n FROM cotizaciones').get().n
+    if (d.prepare('PRAGMA table_info(cotizaciones)').all().some(c => c.name === 'bultos_json')) {
+      previasConBultos = d.prepare('SELECT COUNT(*) n FROM cotizaciones WHERE bultos_json IS NOT NULL').get().n
+    }
+  }
   d.close()
 }
 
@@ -62,8 +68,9 @@ caso('migración: existe bultos_json y es idempotente', () => {
   runMigrations(db)
   if (previas !== null) {
     assert.equal(db.prepare('SELECT COUNT(*) n FROM cotizaciones').get().n, previas)
-    assert.equal(db.prepare('SELECT COUNT(*) n FROM cotizaciones WHERE bultos_json IS NOT NULL').get().n, 0)
-    assert.ok(filas().every(r => r.num_bultos === 1))
+    // La migración no rellena bultos_json en ninguna fila existente
+    assert.equal(db.prepare('SELECT COUNT(*) n FROM cotizaciones WHERE bultos_json IS NOT NULL').get().n, previasConBultos)
+    assert.ok(filas().filter(r => r.bultos_json === null).every(r => r.num_bultos === 1))
   }
 })
 
