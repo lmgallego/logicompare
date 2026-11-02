@@ -1,6 +1,6 @@
 {
   "name": "logicompare",
-  "version": "2.1.2",
+  "version": "2.1.3",
   "description": "LogiCompare - Aplicación de escritorio para calcular y comparar tarifas logísticas",
   "main": "src/main/main.js",
   "scripts": {
