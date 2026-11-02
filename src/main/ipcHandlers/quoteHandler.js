@@ -29,6 +29,23 @@ function bultosJson({ bultos, cp5, pesoBruto, opcionesDsv, producto }) {
   return JSON.stringify(datos)
 }
 
+// bultos_json leído como objeto; null si es NULL, corrupto o no tiene el array bultos
+function parseBultosJson(texto) {
+  try {
+    const datos = JSON.parse(texto)
+    return Array.isArray(datos?.bultos) ? datos : null
+  } catch { return null }
+}
+
+// Una versión antigua puede editar largo/ancho/alto sin tocar bultos_json: para el primer bulto mandan las columnas
+function conPrimerBultoDeColumnas(row) {
+  const datos = parseBultosJson(row.bultos_json)
+  const b0 = datos?.bultos[0]
+  if (!b0 || (b0.largoCm === row.largo_cm && b0.anchoCm === row.ancho_cm && b0.altoCm === row.alto_cm)) return row
+  datos.bultos[0] = { ...b0, largoCm: row.largo_cm, anchoCm: row.ancho_cm, altoCm: row.alto_cm }
+  return { ...row, bultos_json: JSON.stringify(datos) }
+}
+
 // Nº de bultos en SQL: las antiguas (NULL) o con JSON corrupto cuentan como 1
 const NUM_BULTOS_SQL = "COALESCE(CASE WHEN json_valid(c.bultos_json) THEN json_array_length(c.bultos_json, '$.bultos') END, 1) AS num_bultos"
 
@@ -68,7 +85,7 @@ ipcMain.handle('get-history', (event, { desde, hasta, agenciaId, sinLimite } = {
   const where = conds.length ? ' WHERE ' + conds.join(' AND ') : ''
   const sql = `SELECT c.*, ${NUM_BULTOS_SQL}, a.nombre as agencia_nombre, cl.razon_social as cliente_razon_social FROM cotizaciones c LEFT JOIN agencias a ON a.id = c.agencia_id LEFT JOIN clientes cl ON cl.codigo = c.cliente_codigo${where} ORDER BY c.fecha DESC`
   const conLimite = !desde && !hasta && !sinLimite
-  const rows = getDb().prepare(conLimite ? sql + ` LIMIT ${LIMITE_HISTORIAL + 1}` : sql).all(...params)
+  const rows = getDb().prepare(conLimite ? sql + ` LIMIT ${LIMITE_HISTORIAL + 1}` : sql).all(...params).map(conPrimerBultoDeColumnas)
   const truncado = conLimite && rows.length > LIMITE_HISTORIAL
   return { rows: truncado ? rows.slice(0, LIMITE_HISTORIAL) : rows, truncado }
 })
@@ -151,7 +168,7 @@ ipcMain.handle('get-quotes-by-cliente', (event, { clienteCodigo, desde, hasta })
     LEFT JOIN clientes cl ON cl.codigo = c.cliente_codigo
     ${where}
     ORDER BY c.fecha DESC`
-  return getDb().prepare(sql).all(...params)
+  return getDb().prepare(sql).all(...params).map(conPrimerBultoDeColumnas)
 })
 
 ipcMain.handle('get-cliente-stats', (event, { clienteCodigo }) => {
@@ -182,18 +199,15 @@ ipcMain.handle('update-quote', (event, { id, fecha, largoCm, anchoCm, altoCm, cp
   try {
     const precioRedondeado = redondear5(precioFinal)
     const db = getDb()
-    // Con bultos en el payload se reescriben; si no, solo cambia el primero (el que edita el modal). Antigua o corrupta: se deja como está
-    let bultosJ
-    if (Array.isArray(bultos) && bultos.length > 0) bultosJ = bultosJson({ bultos })
-    else {
-      bultosJ = db.prepare('SELECT bultos_json FROM cotizaciones WHERE id = ?').get(id)?.bultos_json ?? null
-      try {
-        const datos = JSON.parse(bultosJ)
-        if (Array.isArray(datos?.bultos) && datos.bultos.length > 0) {
-          datos.bultos[0] = { ...datos.bultos[0], largoCm, anchoCm, altoCm }
-          bultosJ = JSON.stringify(datos)
-        }
-      } catch { /* sin JSON válido: se deja tal cual */ }
+    // Con bultos en el payload se reescriben conservando cp5/pesoBruto/opcionesDsv/producto;
+    // si no, solo cambia el primero (el que edita el modal). Antigua o corrupta: se deja como está
+    const actual = db.prepare('SELECT bultos_json FROM cotizaciones WHERE id = ?').get(id)?.bultos_json ?? null
+    const datos = parseBultosJson(actual)
+    let bultosJ = actual
+    if (Array.isArray(bultos) && bultos.length > 0) bultosJ = bultosJson({ ...datos, bultos })
+    else if (datos?.bultos.length > 0) {
+      datos.bultos[0] = { ...datos.bultos[0], largoCm, anchoCm, altoCm }
+      bultosJ = JSON.stringify(datos)
     }
     const cliente = clienteCodigo === undefined
       ? undefined

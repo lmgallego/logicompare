@@ -130,6 +130,26 @@ caso('update con bultos en el payload los reescribe', () => {
   assert.equal(ultima().num_bultos, 3)
 })
 
+caso('update con bultos en el payload conserva cp5, peso bruto, opciones y producto', () => {
+  const { id } = guardar2()
+  const b3 = [b2[1], b2[0], { largoCm: 10, anchoCm: 10, altoCm: 10 }]
+  assert.equal(call('update-quote', { ...base, id, largoCm: 60, anchoCm: 40, altoCm: 40, bultos: b3 }).ok, true)
+  assert.deepEqual(JSON.parse(ultima().bultos_json), { bultos: b3, ...extras })
+})
+
+caso('editada por una versión antigua: el primer bulto sale de las columnas', () => {
+  const { id } = guardar2()
+  // La versión antigua solo actualiza largo/ancho/alto, no bultos_json
+  db.prepare("UPDATE cotizaciones SET largo_cm = 140, ancho_cm = 90, alto_cm = 110, cliente_codigo = 'T2' WHERE id = ?").run(id)
+  for (const r of [ultima(), call('get-quotes-by-cliente', { clienteCodigo: 'T2' })[0]]) {
+    const j = JSON.parse(r.bultos_json)
+    assert.deepEqual(j.bultos[0], { largoCm: 140, anchoCm: 90, altoCm: 110 })
+    assert.deepEqual(j.bultos[1], b2[1])
+    assert.equal(j.cp5, '08001')
+    assert.equal(r.num_bultos, 2)
+  }
+})
+
 caso('antigua sin bultos_json se lee como 1 bulto y update no la migra', () => {
   const { lastInsertRowid: id } = db.prepare("INSERT INTO cotizaciones (largo_cm, ancho_cm, alto_cm, cp_prefix, precio_final, cliente_codigo) VALUES (10, 10, 10, '29', 1, 'T1')").run()
   assert.equal(ultima().num_bultos, 1)
