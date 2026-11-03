@@ -102,9 +102,12 @@ function ordenarFilas(filas) {
     || b.m3 - a.m3)
 }
 
+// Descarta fechas imposibles como 2026-02-31 (Date las desplaza al mes siguiente)
+const fechaReal = f => { const d = new Date(f + 'T00:00:00Z'); return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === f }
+
 /** Cotizaciones de un día local y una agencia, recalculadas y ordenadas. Lanza Error si fecha/agencia no son válidas. */
 function obtenerOrdenCarga({ fecha, agenciaId }) {
-  if (typeof fecha !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(fecha) || Number.isNaN(Date.parse(fecha))) throw new Error('Fecha no válida')
+  if (typeof fecha !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(fecha) || !fechaReal(fecha)) throw new Error('Fecha no válida')
   if (!Number.isInteger(agenciaId)) throw new Error('Agencia no válida')
   const { getDb } = require('../database/connection')
   const db = getDb()
