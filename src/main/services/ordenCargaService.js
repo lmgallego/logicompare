@@ -1,7 +1,6 @@
 // Orden de carga: dadas las cotizaciones de una agencia en un día, ordena de "más caro de mover
-// a otra agencia" a "más barato". Aquí solo hay funciones puras; obtenerOrdenCarga (BD) llega después.
+// a otra agencia" a "más barato". Las funciones puras no tocan la BD; obtenerOrdenCarga sí.
 const { motivoFueraDeNorma } = require('./elegibilidad')
-
 const EPS = 0.005
 const r2 = n => Math.round(n * 100) / 100
 
@@ -103,6 +102,42 @@ function ordenarFilas(filas) {
     || b.m3 - a.m3)
 }
 
-function obtenerOrdenCarga() { throw new Error('Pendiente') }
+/** Cotizaciones de un día local y una agencia, recalculadas y ordenadas. Lanza Error si fecha/agencia no son válidas. */
+function obtenerOrdenCarga({ fecha, agenciaId }) {
+  if (typeof fecha !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(fecha) || Number.isNaN(Date.parse(fecha))) throw new Error('Fecha no válida')
+  if (!Number.isInteger(agenciaId)) throw new Error('Agencia no válida')
+  const { getDb } = require('../database/connection')
+  const db = getDb()
+  const calculo = require('./calculationService') // al llamar, para respetar un espía en los tests
+  const { parseBultosJson, conPrimerBultoDeColumnas } = require('./bultosCotizacion')
+
+  const rows = db.prepare(`SELECT c.*, cl.razon_social AS cliente_razon_social FROM cotizaciones c
+    LEFT JOIN clientes cl ON cl.codigo = c.cliente_codigo
+    WHERE date(c.fecha, 'localtime') = date(?) AND c.agencia_id = ?`).all(fecha, agenciaId)
+
+  const filas = rows.map(r => {
+    const row = conPrimerBultoDeColumnas(r)
+    const datos = parseBultosJson(row.bultos_json)
+    const soloPrimerBulto = !datos
+    const bultos = datos ? datos.bultos : [{ largoCm: row.largo_cm, anchoCm: row.ancho_cm, altoCm: row.alto_cm }]
+    const extras = { cp5: datos?.cp5, pesoBruto: datos?.pesoBruto, opcionesDsv: datos?.opcionesDsv, producto: datos?.producto }
+    const resultados = calculo.calcularTarifas({ cpPrefix: row.cp_prefix, bultos, ...extras })
+    const cot = {
+      ...row, soloPrimerBulto, zonaId: datos?.zonaId ?? null,
+      bultos: bultos.map(b => ({ largo_cm: b.largoCm, ancho_cm: b.anchoCm, alto_cm: b.altoCm })),
+    }
+
+    // Logística en Cataluña: la zona depende de la hora; se calcula también la otra franja
+    let precioOtraFranja
+    const propia = recalculoPropio(resultados, { agenciaId, precioGuardado: row.precio_final, zonaId: cot.zonaId }).resultado
+    const otraFranja = { 'Matí-Tarda': 'Tarda-Matí', 'Tarda-Matí': 'Matí-Tarda' }[propia?.zona.nombre_zona]
+    if (otraFranja) {
+      const otra = db.prepare('SELECT * FROM zonas_agencia WHERE agencia_id = ? AND nombre_zona = ?').get(agenciaId, otraFranja)
+      if (otra) precioOtraFranja = calculo.calcularPrecioBultos(propia.agencia, otra, bultos, extras).precioFinal
+    }
+    return construirFila(cot, resultados, { precioOtraFranja })
+  })
+  return ordenarFilas(filas)
+}
 
 module.exports = { islaDeZona, motivoNoElegible, recalculoPropio, elegirAlternativa, construirFila, ordenarFilas, obtenerOrdenCarga }
