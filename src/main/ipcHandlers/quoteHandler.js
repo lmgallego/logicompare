@@ -1,6 +1,7 @@
 const { ipcMain, dialog } = require('electron')
 const { calcularTarifas, calcularPesosDebidos } = require('../services/calculationService')
 const { getDb } = require('../database/connection')
+const { bultosJson, parseBultosJson, conPrimerBultoDeColumnas } = require('../services/bultosCotizacion')
 const fs = require('fs')
 const path = require('path')
 const zlib = require('zlib')
@@ -18,34 +19,6 @@ function desgloseJson(desglose) {
   return Array.isArray(desglose) && desglose.length > 0 ? JSON.stringify(desglose) : null
 }
 
-// Bultos de la cotización: { bultos, cp5?, pesoBruto?, opcionesDsv?, producto? }; solo se guardan los extras con valor
-function bultosJson({ bultos, cp5, pesoBruto, opcionesDsv, producto }) {
-  if (!Array.isArray(bultos) || bultos.length === 0) return null
-  const datos = { bultos }
-  if (cp5) datos.cp5 = cp5
-  if (pesoBruto) datos.pesoBruto = pesoBruto
-  if (opcionesDsv && Object.keys(opcionesDsv).length > 0) datos.opcionesDsv = opcionesDsv
-  if (producto && producto !== 'system') datos.producto = producto
-  return JSON.stringify(datos)
-}
-
-// bultos_json leído como objeto; null si es NULL, corrupto o no tiene el array bultos
-function parseBultosJson(texto) {
-  try {
-    const datos = JSON.parse(texto)
-    return Array.isArray(datos?.bultos) ? datos : null
-  } catch { return null }
-}
-
-// Una versión antigua puede editar largo/ancho/alto sin tocar bultos_json: para el primer bulto mandan las columnas
-function conPrimerBultoDeColumnas(row) {
-  const datos = parseBultosJson(row.bultos_json)
-  const b0 = datos?.bultos[0]
-  if (!b0 || (b0.largoCm === row.largo_cm && b0.anchoCm === row.ancho_cm && b0.altoCm === row.alto_cm)) return row
-  datos.bultos[0] = { ...b0, largoCm: row.largo_cm, anchoCm: row.ancho_cm, altoCm: row.alto_cm }
-  return { ...row, bultos_json: JSON.stringify(datos) }
-}
-
 // Nº de bultos en SQL: las antiguas (NULL) o con JSON corrupto cuentan como 1
 const NUM_BULTOS_SQL = "COALESCE(CASE WHEN json_valid(c.bultos_json) THEN json_array_length(c.bultos_json, '$.bultos') END, 1) AS num_bultos"
 
@@ -54,7 +27,7 @@ function redondear5(precio) {
   return Math.ceil(precio * 20) / 20
 }
 
-ipcMain.handle('save-quote', (event, { largoCm, anchoCm, altoCm, cpPrefix, metrosCubicos, peso, agenciaId, precioFinal, bultos, clienteCodigo, destinatario, desglose, cp5, pesoBruto, opcionesDsv, producto }) => {
+ipcMain.handle('save-quote', (event, { largoCm, anchoCm, altoCm, cpPrefix, metrosCubicos, peso, agenciaId, precioFinal, bultos, clienteCodigo, destinatario, desglose, cp5, pesoBruto, opcionesDsv, producto, zonaId, zonaNombre }) => {
   try {
     const precioRedondeado = redondear5(precioFinal)
     const primerBulto = (bultos && bultos.length > 0) ? bultos[0] : { largoCm, anchoCm, altoCm }
@@ -65,7 +38,7 @@ ipcMain.handle('save-quote', (event, { largoCm, anchoCm, altoCm, cpPrefix, metro
         INSERT INTO cotizaciones (largo_cm, ancho_cm, alto_cm, cp_prefix, metros_cubicos, peso, agencia_id, precio_final, precio_redondeado, cliente_codigo, destinatario, desglose_json, bultos_json)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `)
-      .run(primerBulto.largoCm, primerBulto.anchoCm, primerBulto.altoCm, cpPrefix, metrosCubicos || 0, peso || 0, agenciaId, precioFinal, precioRedondeado, cliente, dest, desgloseJson(desglose), bultosJson({ bultos, cp5, pesoBruto, opcionesDsv, producto }))
+      .run(primerBulto.largoCm, primerBulto.anchoCm, primerBulto.altoCm, cpPrefix, metrosCubicos || 0, peso || 0, agenciaId, precioFinal, precioRedondeado, cliente, dest, desgloseJson(desglose), bultosJson({ bultos, cp5, pesoBruto, opcionesDsv, producto, zonaId, zonaNombre }))
     return { ok: true }
   } catch (e) {
     return { ok: false, error: e.message }
@@ -125,7 +98,7 @@ ipcMain.handle('get-pending-quotes', () => {
     }))
 })
 
-ipcMain.handle('resolve-pending-quote', (event, { pendingId, agenciaId, metrosCubicos, peso, precioFinal, cpPrefix, largoCm, anchoCm, altoCm, bultos, clienteCodigo, desglose }) => {
+ipcMain.handle('resolve-pending-quote', (event, { pendingId, agenciaId, metrosCubicos, peso, precioFinal, cpPrefix, largoCm, anchoCm, altoCm, bultos, clienteCodigo, desglose, zonaId, zonaNombre }) => {
   try {
     const db = getDb()
     const precioRedondeado = redondear5(precioFinal)
@@ -137,7 +110,7 @@ ipcMain.handle('resolve-pending-quote', (event, { pendingId, agenciaId, metrosCu
     db.prepare(`
       INSERT INTO cotizaciones (largo_cm, ancho_cm, alto_cm, cp_prefix, metros_cubicos, peso, agencia_id, precio_final, precio_redondeado, cliente_codigo, desglose_json, bultos_json)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(primerBulto.largoCm, primerBulto.anchoCm, primerBulto.altoCm, cpPrefix, metrosCubicos || 0, peso || 0, agenciaId, precioFinal, precioRedondeado, cliente, desgloseJson(desglose), bultosJson({ bultos }))
+    `).run(primerBulto.largoCm, primerBulto.anchoCm, primerBulto.altoCm, cpPrefix, metrosCubicos || 0, peso || 0, agenciaId, precioFinal, precioRedondeado, cliente, desgloseJson(desglose), bultosJson({ bultos, zonaId, zonaNombre }))
     db.prepare('DELETE FROM cotizaciones_pendientes WHERE id = ?').run(pendingId)
     return { ok: true }
   } catch (e) {

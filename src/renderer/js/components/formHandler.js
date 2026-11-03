@@ -551,6 +551,8 @@ function renderCarrierCards(resultados, container, sortedAsc) {
             pesoBruto: lastFormDatos.pesoBruto,
             opcionesDsv: lastFormDatos.opcionesDsv,
             producto: lastFormDatos.producto,
+            zonaId: r.zona?.id ?? null,
+            zonaNombre: r.zona?.nombre_zona ?? null,
           })
         }
       })

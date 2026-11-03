@@ -144,6 +144,38 @@ caso('update con bultos en el payload conserva cp5, peso bruto, opciones y produ
   assert.deepEqual(JSON.parse(ultima().bultos_json), { bultos: b3, ...extras })
 })
 
+caso('save-quote guarda la zona', () => {
+  call('save-quote', { ...base, bultos: b2, zonaId: 127, zonaNombre: 'Mallorca' })
+  const j = JSON.parse(ultima().bultos_json)
+  assert.equal(j.zonaId, 127)
+  assert.equal(j.zonaNombre, 'Mallorca')
+})
+
+caso('sin zona no hay claves zonaId/zonaNombre', () => {
+  call('save-quote', { ...base, bultos: b2, zonaId: null, zonaNombre: null })
+  assert.deepEqual(Object.keys(JSON.parse(ultima().bultos_json)), ['bultos'])
+})
+
+caso('resolve guarda la zona del resultado elegido', () => {
+  call('save-pending-quote', { cpPrefix: '07', bultos: b2, resultados: [] })
+  const pendingId = call('get-pending-quotes')[0].id
+  assert.equal(call('resolve-pending-quote', { ...base, pendingId, zonaId: 5, zonaNombre: 'Menorca' }).ok, true)
+  const j = JSON.parse(ultima().bultos_json)
+  assert.equal(j.zonaId, 5)
+  assert.equal(j.zonaNombre, 'Menorca')
+  assert.equal(j.bultos.length, 2)
+})
+
+caso('update con bultos conserva la zona', () => {
+  call('save-quote', { ...base, bultos: b2, zonaId: 127, zonaNombre: 'Mallorca' })
+  const { id } = ultima()
+  assert.equal(call('update-quote', { ...base, id, largoCm: 120, anchoCm: 80, altoCm: 100, bultos: [b2[0]] }).ok, true)
+  const j = JSON.parse(ultima().bultos_json)
+  assert.equal(j.zonaId, 127)
+  assert.equal(j.zonaNombre, 'Mallorca')
+  assert.equal(j.bultos.length, 1)
+})
+
 caso('editada por una versión antigua: el primer bulto sale de las columnas', () => {
   const { id } = guardar2()
   // La versión antigua solo actualiza largo/ancho/alto, no bultos_json

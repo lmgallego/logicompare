@@ -136,6 +136,8 @@ function renderPendingCard(container, row) {
         bultos:        row.bultos,
         clienteCodigo: row.cliente_codigo || null,
         desglose:      resultadosValidos[parseInt(btn.dataset.idx)]?.desglose,
+        zonaId:        resultadosValidos[parseInt(btn.dataset.idx)]?.zona?.id ?? null,
+        zonaNombre:    resultadosValidos[parseInt(btn.dataset.idx)]?.zona?.nombre_zona ?? null,
       }).catch(e => ({ ok: false, error: e.message }))
       // Si no se ha guardado, la pendiente se queda para reintentar
       if (!res?.ok) {
