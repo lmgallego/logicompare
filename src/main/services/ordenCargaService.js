@@ -56,7 +56,7 @@ function elegirAlternativa(resultados, { agenciaId, isla }) {
 function construirFila(cot, resultados, { precioOtraFranja } = {}) {
   const avisos = []
   const precioGuardado = cot.precio_final
-  const m3 = Math.round(cot.bultos.reduce((s, b) => s + b.largo_cm * b.ancho_cm * b.alto_cm * 1e-6, 0) * 1000) / 1000
+  const m3 = Math.round(cot.bultos.reduce((s, b) => s + (Number(b.largo_cm) || 0) * (Number(b.ancho_cm) || 0) * (Number(b.alto_cm) || 0) * 1e-6, 0) * 1000) / 1000
   if (cot.soloPrimerBulto) avisos.push('Solo medidas del 1er bulto')
 
   const propia = recalculoPropio(resultados, { agenciaId: cot.agencia_id, precioGuardado, zonaId: cot.zonaId })
@@ -81,9 +81,10 @@ function construirFila(cot, resultados, { precioOtraFranja } = {}) {
     sobrecoste = r2(a.precioFinal - precioGuardado)
     sobrecostePorM3 = m3 > 0 ? r2(sobrecoste / m3) : null
     if (sobrecoste < 0) avisos.push(`Más barato con ${a.agencia.nombre}`)
-    if (alt.islaSinConfirmar) avisos.push('Isla sin confirmar')
     for (const av of a.avisos || []) avisos.push(`${a.agencia.nombre}: ${av}`)
   }
+
+  if (alt?.islaSinConfirmar || propia.islaSinConfirmar) avisos.push('Isla sin confirmar')
 
   return {
     id: cot.id, clienteCodigo: cot.cliente_codigo, cliente: cot.cliente_razon_social, destinatario: cot.destinatario,

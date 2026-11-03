@@ -149,6 +149,19 @@ caso('m³ sumados de todos los bultos', () => {
   assert.equal(f.m3, 1.056)
 })
 
+caso('isla propia sin confirmar con alternativa de una sola zona', () => {
+  const rs = [res(1, 'Propia', 10, zon(101, 'Mallorca')), res(1, 'Propia', 10, zon(102, 'Ibiza')),
+    res(2, 'Seur', 20, { zona: { id: 201, nombre_zona: 'Baleares', multiple_zones: 0 } })]
+  const f = construirFila(cot(), rs)
+  assert.equal(f.avisos.filter(a => a === 'Isla sin confirmar').length, 1)
+})
+
+caso('bulto con medida null no da NaN', () => {
+  const f = construirFila(cot({ bultos: [bulto(100, 100, null)] }), [res(1, 'Propia', 10)])
+  assert.equal(f.m3, 0)
+  assert.equal(ordenarFilas([f, filaPorM3(2, 1, 1)]).length, 2)
+})
+
 caso('recalculoPropio con una sola zona', () => {
   const r = recalculoPropio([res(1, 'P', 10)], { agenciaId: 1, precioGuardado: 10, zonaId: null })
   assert.equal(r.resultado.precioFinal, 10)
