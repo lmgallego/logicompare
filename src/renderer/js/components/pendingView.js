@@ -1,11 +1,5 @@
-import { formatPrice, formatWeight, formatVolume } from '../utils/formatters.js'
+import { formatPrice, formatWeight, formatVolume, formatDate } from '../utils/formatters.js'
 import { alertModal } from '../utils/modals.js'
-
-function formatDate(str) {
-  if (!str) return '—'
-  const d = new Date(str)
-  return d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })
-}
 
 let inactivas = new Set()
 
