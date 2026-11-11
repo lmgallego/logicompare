@@ -53,9 +53,10 @@ caso('empate por m³', () => {
   assert.deepEqual(o.map(f => f.id), [2, 1])
 })
 
-caso('porM3 null va tras las que tienen valor', () => {
-  const o = ordenarFilas([filaPorM3(1, 0, null), filaPorM3(2, 1, 1)])
-  assert.deepEqual(o.map(f => f.id), [2, 1])
+caso('porM3 null (0 m³) va tras las sin alternativa y antes del resto', () => {
+  const sin = { id: 3, m3: 1, sobrecostePorM3: null, alternativa: null }
+  const o = ordenarFilas([filaPorM3(2, 1, 1), filaPorM3(1, 0, null), sin])
+  assert.deepEqual(o.map(f => f.id), [3, 1, 2])
 })
 
 caso('sobrecoste negativo marcado', () => {
@@ -162,6 +163,46 @@ caso('bulto con medida null no da NaN', () => {
   assert.equal(ordenarFilas([f, filaPorM3(2, 1, 1)]).length, 2)
 })
 
+const sinNaN = f => Object.values(f).every(v => typeof v !== 'number' || Number.isFinite(v))
+
+caso('bulto con alto vacío: Medidas incompletas y m³ solo del válido', () => {
+  const f = construirFila(cot({ bultos: [bulto(100, 100, 100), bulto(50, 50, '')] }), [res(1, 'Propia', 10), res(2, 'Alt', 30)])
+  assert.ok(f.avisos.includes('Medidas incompletas (1 de 2 bultos)'))
+  assert.ok(!f.avisos.includes('Sin medidas'))
+  assert.equal(f.m3, 1)
+  assert.equal(f.sobrecostePorM3, 20)
+})
+
+caso('medidas no válidas: null, 0, negativa, NaN', () => {
+  const malos = [bulto(null, 1, 1), bulto(10, 0, 10), bulto(10, 10, -5), bulto('x', 10, 10), bulto(10, NaN, 10)]
+  const f = construirFila(cot({ bultos: [...malos, bulto(100, 100, 100)] }), [res(1, 'Propia', 10)])
+  assert.ok(f.avisos.includes('Medidas incompletas (5 de 6 bultos)'))
+  assert.equal(f.m3, 1)
+})
+
+caso('todos los bultos vacíos: Sin medidas, porM3 null y tras las sin alternativa', () => {
+  const rs = [res(1, 'Propia', 10), res(2, 'Alt', 30)]
+  const vacia = construirFila(cot({ id: 2, bultos: [bulto('', '', ''), bulto(null, null, null)] }), rs)
+  assert.ok(vacia.avisos.includes('Sin medidas'))
+  assert.ok(!vacia.avisos.some(a => a.startsWith('Medidas incompletas')))
+  assert.equal(vacia.m3, 0)
+  assert.equal(vacia.sobrecoste, 20)
+  assert.equal(vacia.sobrecostePorM3, null)
+  const sinAlt = construirFila(cot({ id: 1 }), [res(1, 'Propia', 10)])
+  const normal = construirFila(cot({ id: 3 }), [res(1, 'Propia', 10), res(2, 'Alt', 1000)])
+  const o = ordenarFilas([normal, vacia, sinAlt])
+  assert.deepEqual(o.map(f => f.id), [1, 2, 3])
+  assert.ok(o.every(sinNaN))
+})
+
+caso('antigua con una medida a 0: los dos avisos', () => {
+  const f = construirFila(cot({ soloPrimerBulto: true, bultos: [bulto(100, 0, 100)] }), [res(1, 'Propia', 10), res(2, 'Alt', 30)])
+  assert.ok(f.avisos.includes('Solo medidas del 1er bulto'))
+  assert.ok(f.avisos.includes('Sin medidas'))
+  assert.equal(f.sobrecostePorM3, null)
+  assert.ok(sinNaN(f))
+})
+
 caso('recalculoPropio con una sola zona', () => {
   const r = recalculoPropio([res(1, 'P', 10)], { agenciaId: 1, precioGuardado: 10, zonaId: null })
   assert.equal(r.resultado.precioFinal, 10)
@@ -239,6 +280,19 @@ caso('antigua sin bultos_json: un bulto y aviso', () => {
   const f = pedir()[0]
   assert.equal(f.numBultos, 1)
   assert.ok(f.avisos.includes('Solo medidas del 1er bulto'))
+})
+
+caso('BD: antigua con medida a 0 y JSON con alto vacío', () => {
+  limpiar()
+  db.prepare("INSERT INTO cotizaciones (fecha, largo_cm, ancho_cm, alto_cm, cp_prefix, agencia_id, precio_final) VALUES (?, 100, 0, 100, '46', ?, 20)").run(hoy, A.id)
+  ins(A.id, hoy, { json: JSON.stringify({ bultos: [cub, { largoCm: 50, anchoCm: 50, altoCm: '' }] }) })
+  const filas = pedir()
+  assert.ok(filas.every(sinNaN))
+  const antigua = filas.find(f => f.avisos.includes('Solo medidas del 1er bulto'))
+  assert.ok(antigua.avisos.includes('Sin medidas'))
+  const nueva = filas.find(f => f !== antigua)
+  assert.ok(nueva.avisos.includes('Medidas incompletas (1 de 2 bultos)'))
+  assert.equal(nueva.m3, 1)
 })
 
 caso('bultos_json corrupto no rompe la lista', () => {

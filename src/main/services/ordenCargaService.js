@@ -52,11 +52,19 @@ function elegirAlternativa(resultados, { agenciaId, isla }) {
   return mejor
 }
 
+const medidaValida = v => v !== '' && v != null && Number.isFinite(Number(v)) && Number(v) > 0
+const bultoConMedidas = b => medidaValida(b.largo_cm) && medidaValida(b.ancho_cm) && medidaValida(b.alto_cm)
+
 function construirFila(cot, resultados, { precioOtraFranja } = {}) {
   const avisos = []
   const precioGuardado = cot.precio_final
-  const m3 = Math.round(cot.bultos.reduce((s, b) => s + (Number(b.largo_cm) || 0) * (Number(b.ancho_cm) || 0) * (Number(b.alto_cm) || 0) * 1e-6, 0) * 1000) / 1000
+  // Bulto con alguna medida vacía, null, 0, negativa o no numérica: cuenta 0 m³ (no se inventan medidas)
+  const validos = cot.bultos.filter(bultoConMedidas)
+  const m3 = Math.round(validos.reduce((s, b) => s + b.largo_cm * b.ancho_cm * b.alto_cm * 1e-6, 0) * 1000) / 1000
   if (cot.soloPrimerBulto) avisos.push('Solo medidas del 1er bulto')
+  const invalidos = cot.bultos.length - validos.length
+  if (invalidos === cot.bultos.length) avisos.push('Sin medidas')
+  else if (invalidos) avisos.push(`Medidas incompletas (${invalidos} de ${cot.bultos.length} bultos)`)
 
   const propia = recalculoPropio(resultados, { agenciaId: cot.agencia_id, precioGuardado, zonaId: cot.zonaId })
   const precioRecalculado = propia.resultado ? propia.resultado.precioFinal : null
@@ -93,12 +101,12 @@ function construirFila(cot, resultados, { precioOtraFranja } = {}) {
   }
 }
 
-/** Sin alternativa primero (m³ desc); luego sobrecoste/m³ desc (null al final); empate por m³ desc. */
+/** Sin alternativa primero (m³ desc); luego sin sobrecoste/m³ (0 m³); luego sobrecoste/m³ desc; empate por m³ desc. */
 function ordenarFilas(filas) {
-  const grupo = f => (!f.alternativa ? 0 : f.sobrecostePorM3 == null ? 2 : 1)
+  const grupo = f => (!f.alternativa ? 0 : f.sobrecostePorM3 == null ? 1 : 2)
   return [...filas].sort((a, b) =>
     grupo(a) - grupo(b)
-    || (grupo(a) === 1 ? b.sobrecostePorM3 - a.sobrecostePorM3 : 0)
+    || (grupo(a) === 2 ? b.sobrecostePorM3 - a.sobrecostePorM3 : 0)
     || b.m3 - a.m3)
 }
 
