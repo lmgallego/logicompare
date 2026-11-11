@@ -176,6 +176,20 @@ caso('update con bultos conserva la zona', () => {
   assert.equal(j.bultos.length, 1)
 })
 
+caso('update de 3 bultos con zona: solo cambia el primero', () => {
+  const b3 = [b2[0], b2[1], { largoCm: 10, anchoCm: 20, altoCm: 30, pesoKg: 2 }]
+  call('save-quote', { ...base, bultos: b3, ...extras, zonaId: 127, zonaNombre: 'Mallorca' })
+  const { id } = ultima()
+  assert.equal(call('update-quote', { ...base, id, largoCm: 77, anchoCm: 66, altoCm: 55 }).ok, true)
+  const r = ultima()
+  const j = JSON.parse(r.bultos_json)
+  assert.deepEqual(j.bultos[0], { ...b3[0], largoCm: 77, anchoCm: 66, altoCm: 55 })
+  assert.deepEqual(j.bultos.slice(1), b3.slice(1))
+  assert.deepEqual({ ...j, bultos: undefined }, { ...extras, zonaId: 127, zonaNombre: 'Mallorca', bultos: undefined })
+  assert.deepEqual([r.largo_cm, r.ancho_cm, r.alto_cm], [77, 66, 55])
+  assert.equal(r.num_bultos, 3)
+})
+
 caso('editada por una versión antigua: el primer bulto sale de las columnas', () => {
   const { id } = guardar2()
   // La versión antigua solo actualiza largo/ancho/alto, no bultos_json
@@ -195,6 +209,7 @@ caso('antigua sin bultos_json se lee como 1 bulto y update no la migra', () => {
   assert.equal(call('get-quotes-by-cliente', { clienteCodigo: 'T1' })[0].num_bultos, 1)
   assert.equal(call('update-quote', { ...base, id, largoCm: 11, anchoCm: 10, altoCm: 10 }).ok, true)
   assert.equal(ultima().bultos_json, null)
+  assert.equal(ultima().largo_cm, 11)
 })
 
 caso('bultos_json corrupto no rompe update', () => {
