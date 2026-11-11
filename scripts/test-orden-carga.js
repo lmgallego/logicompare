@@ -227,6 +227,7 @@ const db = getDb()
 const calc = require('../src/main/services/calculationService')
 const { obtenerOrdenCarga } = require('../src/main/services/ordenCargaService')
 require('../src/main/ipcHandlers/ordenCargaHandler')
+require('../src/main/ipcHandlers/agenciasDelDiaHandler')
 
 db.prepare('UPDATE agencias SET activa = 0').run()
 function agencia(nombre, { admiteDebidos = 1, soloDebidos = 0, cp = '46', zona = 'Z', precios = [[0, 1000, 10]] } = {}) {
@@ -347,6 +348,19 @@ caso('handler: validación y resultado', () => {
   limpiar(); ins(A.id, hoy)
   const bien = handlers['get-orden-carga'](null, { fecha: '2026-11-03', agenciaId: A.id })
   assert.equal(bien.ok, true); assert.equal(bien.filas.length, 1)
+})
+
+caso('agencias del día: solo las de esa fecha local, sin repetir y por nombre', () => {
+  limpiar()
+  ins(B.id, hoy); ins(A.id, hoy); ins(A.id, '2026-11-02 23:30:00') // 00:30 local del 03
+  ins(B.id, '2026-11-02 12:00:00')
+  const r = handlers['get-agencias-del-dia'](null, { fecha: '2026-11-03' })
+  assert.equal(r.ok, true)
+  assert.deepEqual(r.agencias, [{ id: A.id, nombre: 'AgA' }, { id: B.id, nombre: 'AgB' }])
+  assert.deepEqual(handlers['get-agencias-del-dia'](null, { fecha: '2026-11-04' }).agencias, [])
+  assert.equal(handlers['get-agencias-del-dia'](null, { fecha: 'x' }).ok, false)
+  assert.equal(handlers['get-agencias-del-dia'](null, null).ok, false)
+  assert.equal(db.prepare('SELECT COUNT(*) n FROM cotizaciones').get().n, 4)
 })
 
 console.log(fallos ? `\n${fallos} fallos` : '\nTodo ok')

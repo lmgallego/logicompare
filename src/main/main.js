@@ -205,6 +205,7 @@ app.whenReady().then(async () => {
     require('./ipcHandlers/medidasElmerHandler')
     require('./ipcHandlers/recargosHandler')
     require('./ipcHandlers/ordenCargaHandler')
+    require('./ipcHandlers/agenciasDelDiaHandler')
     require('./ipcHandlers/supportHandler').init()
 
     ipcMain.removeHandler('get-app-version')
