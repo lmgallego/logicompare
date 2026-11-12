@@ -200,4 +200,51 @@ caso('3.000 kg: calcula precio y avisa de cotización a partir de 2.500 kg', () 
   assert.equal(hasta2500.avisos.length, 0)
 })
 
+// ---- Seguridad: el pesoKg guardado en bultos_json (peso volumétrico por bulto) no cambia la regla de Largos ----
+// Necesita BD (better-sqlite3 compilado para Electron): solo corre con el binario de Electron
+if (process.versions.electron) {
+  console.log('pesoKg guardado no altera el motor (BD temporal)')
+  const fs = require('fs'), os = require('os'), path = require('path'), Module = require('module')
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'logicompare-dsv-'))
+  const loadOriginal = Module._load
+  Module._load = function (request, ...rest) {
+    return request === 'electron' ? { app: { getPath: () => tmpDir } } : loadOriginal.call(this, request, ...rest)
+  }
+  const db = require('../src/main/database/connection').getDb()
+  require('../src/main/database/seedDsv').sembrarDsvSiFalta(db)
+  const { calcularTarifas } = require('../src/main/services/calculationService')
+  const { conPesos } = require('../src/main/services/bultosCotizacion')
+  const dsv = extra => calcularTarifas({ cpPrefix: '46', cp5: '46001', ...extra }).find(r => r.agencia.nombre === 'DSV')
+  const t2 = [{ largoCm: 350, anchoCm: 30, altoCm: 30 }]
+  const t2Guardado = conPesos(t2, 220) // como queda en bultos_json: pesoKg volumétrico = 70 kg (> 30)
+  const igual = (a, b) => assert.deepEqual(
+    { precio: a.precioFinal, base: a.precioBase, peso: a.peso, desglose: a.desglose, error: a.error },
+    { precio: b.precioFinal, base: b.precioBase, peso: b.peso, desglose: b.desglose, error: b.error })
+  const esT2 = r => r.desglose.some(l => l.codigo === 'largo_tipo2')
+
+  caso('Largo T2 (350×30×30, 20 kg): mismo precio y recargo con y sin pesoKg guardado', () => {
+    assert.equal(t2Guardado[0].pesoKg, 70)
+    const sin = dsv({ bultos: t2, pesoBruto: 20 }), con = dsv({ bultos: t2Guardado, pesoBruto: 20 })
+    assert.ok(sin.precioFinal > 0)
+    assert.ok(esT2(sin))
+    igual(sin, con)
+  })
+  caso('Largo T2 sin peso bruto: el pesoKg guardado (70 kg) no lo saca de T2', () => {
+    const sin = dsv({ bultos: t2 }), con = dsv({ bultos: t2Guardado })
+    assert.ok(esT2(sin))
+    igual(sin, con)
+  })
+  caso('No cumple T2 por peso (40 kg): mismo resultado con y sin pesoKg guardado', () => {
+    const sin = dsv({ bultos: t2, pesoBruto: 40 }), con = dsv({ bultos: t2Guardado, pesoBruto: 40 })
+    assert.ok(!esT2(sin))
+    igual(sin, con)
+    // un pesoKg guardado pequeño tampoco lo "arregla"
+    igual(sin, dsv({ bultos: [{ ...t2[0], pesoKg: 5 }], pesoBruto: 40 }))
+  })
+  db.close()
+  fs.rmSync(tmpDir, { recursive: true, force: true })
+} else {
+  console.log('(pruebas con BD omitidas: ejecutar con el binario de Electron)')
+}
+
 if (!process.exitCode) console.log('\nTodo OK')
