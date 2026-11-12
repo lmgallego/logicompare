@@ -1,7 +1,10 @@
 const { ipcMain, dialog } = require('electron')
 const { calcularTarifas, calcularPesosDebidos } = require('../services/calculationService')
 const { getDb } = require('../database/connection')
-const { bultosJson, parseBultosJson, conPrimerBultoDeColumnas } = require('../services/bultosCotizacion')
+const { bultosJson, parseBultosJson, conPrimerBultoDeColumnas, baremoDe, conPesos, pesosDeFila } = require('../services/bultosCotizacion')
+
+// Fila de historial/consultas lista para el renderer: primer bulto de las columnas y pesos por bulto
+const filaConBultos = r => { const row = conPrimerBultoDeColumnas(r); return { ...row, pesos_bultos: pesosDeFila(getDb(), row) } }
 const fs = require('fs')
 const path = require('path')
 const zlib = require('zlib')
@@ -33,12 +36,13 @@ ipcMain.handle('save-quote', (event, { largoCm, anchoCm, altoCm, cpPrefix, metro
     const primerBulto = (bultos && bultos.length > 0) ? bultos[0] : { largoCm, anchoCm, altoCm }
     const cliente = clienteCodigo ? String(clienteCodigo).trim() : null
     const dest = destinatario ? String(destinatario).trim() : null
+    const baremo = baremoDe(getDb(), agenciaId, zonaId)
     getDb()
       .prepare(`
         INSERT INTO cotizaciones (largo_cm, ancho_cm, alto_cm, cp_prefix, metros_cubicos, peso, agencia_id, precio_final, precio_redondeado, cliente_codigo, destinatario, desglose_json, bultos_json)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `)
-      .run(primerBulto.largoCm, primerBulto.anchoCm, primerBulto.altoCm, cpPrefix, metrosCubicos || 0, peso || 0, agenciaId, precioFinal, precioRedondeado, cliente, dest, desgloseJson(desglose), bultosJson({ bultos, cp5, pesoBruto, opcionesDsv, producto, zonaId, zonaNombre }))
+      .run(primerBulto.largoCm, primerBulto.anchoCm, primerBulto.altoCm, cpPrefix, metrosCubicos || 0, peso || 0, agenciaId, precioFinal, precioRedondeado, cliente, dest, desgloseJson(desglose), bultosJson({ bultos: conPesos(bultos, baremo), cp5, pesoBruto, opcionesDsv, producto, zonaId, zonaNombre, baremoKgM3: baremo }))
     return { ok: true }
   } catch (e) {
     return { ok: false, error: e.message }
@@ -58,7 +62,7 @@ ipcMain.handle('get-history', (event, { desde, hasta, agenciaId, sinLimite } = {
   const where = conds.length ? ' WHERE ' + conds.join(' AND ') : ''
   const sql = `SELECT c.*, ${NUM_BULTOS_SQL}, a.nombre as agencia_nombre, cl.razon_social as cliente_razon_social FROM cotizaciones c LEFT JOIN agencias a ON a.id = c.agencia_id LEFT JOIN clientes cl ON cl.codigo = c.cliente_codigo${where} ORDER BY c.fecha DESC`
   const conLimite = !desde && !hasta && !sinLimite
-  const rows = getDb().prepare(conLimite ? sql + ` LIMIT ${LIMITE_HISTORIAL + 1}` : sql).all(...params).map(conPrimerBultoDeColumnas)
+  const rows = getDb().prepare(conLimite ? sql + ` LIMIT ${LIMITE_HISTORIAL + 1}` : sql).all(...params).map(filaConBultos)
   const truncado = conLimite && rows.length > LIMITE_HISTORIAL
   return { rows: truncado ? rows.slice(0, LIMITE_HISTORIAL) : rows, truncado }
 })
@@ -107,10 +111,11 @@ ipcMain.handle('resolve-pending-quote', (event, { pendingId, agenciaId, metrosCu
     if (pendiente) bultos = JSON.parse(pendiente.bultos_json)
     const primerBulto = (bultos && bultos.length > 0) ? bultos[0] : { largoCm, anchoCm, altoCm }
     const cliente = clienteCodigo ? String(clienteCodigo).trim() : null
+    const baremo = baremoDe(db, agenciaId, zonaId)
     db.prepare(`
       INSERT INTO cotizaciones (largo_cm, ancho_cm, alto_cm, cp_prefix, metros_cubicos, peso, agencia_id, precio_final, precio_redondeado, cliente_codigo, desglose_json, bultos_json)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(primerBulto.largoCm, primerBulto.anchoCm, primerBulto.altoCm, cpPrefix, metrosCubicos || 0, peso || 0, agenciaId, precioFinal, precioRedondeado, cliente, desgloseJson(desglose), bultosJson({ bultos, zonaId, zonaNombre }))
+    `).run(primerBulto.largoCm, primerBulto.anchoCm, primerBulto.altoCm, cpPrefix, metrosCubicos || 0, peso || 0, agenciaId, precioFinal, precioRedondeado, cliente, desgloseJson(desglose), bultosJson({ bultos: conPesos(bultos, baremo), zonaId, zonaNombre, baremoKgM3: baremo }))
     db.prepare('DELETE FROM cotizaciones_pendientes WHERE id = ?').run(pendingId)
     return { ok: true }
   } catch (e) {
@@ -141,7 +146,7 @@ ipcMain.handle('get-quotes-by-cliente', (event, { clienteCodigo, desde, hasta })
     LEFT JOIN clientes cl ON cl.codigo = c.cliente_codigo
     ${where}
     ORDER BY c.fecha DESC`
-  return getDb().prepare(sql).all(...params).map(conPrimerBultoDeColumnas)
+  return getDb().prepare(sql).all(...params).map(filaConBultos)
 })
 
 ipcMain.handle('get-cliente-stats', (event, { clienteCodigo }) => {
@@ -176,10 +181,16 @@ ipcMain.handle('update-quote', (event, { id, fecha, largoCm, anchoCm, altoCm, cp
     // si no, solo cambia el primero (el que edita el modal). Antigua o corrupta: se deja como está
     const actual = db.prepare('SELECT bultos_json FROM cotizaciones WHERE id = ?').get(id)?.bultos_json ?? null
     const datos = parseBultosJson(actual)
+    // Pesos: se recalculan los bultos con medidas nuevas; si cambia el baremo (otra agencia), todos
+    const baremo = baremoDe(db, agenciaId, datos?.zonaId)
+    const previos = datos?.baremoKgM3 === baremo ? datos.bultos : []
     let bultosJ = actual
-    if (Array.isArray(bultos) && bultos.length > 0) bultosJ = bultosJson({ ...datos, bultos })
+    if (Array.isArray(bultos) && bultos.length > 0) bultosJ = bultosJson({ ...datos, bultos: conPesos(bultos, baremo, previos), baremoKgM3: baremo ?? datos?.baremoKgM3 })
     else if (datos?.bultos.length > 0) {
-      datos.bultos[0] = { ...datos.bultos[0], largoCm, anchoCm, altoCm }
+      // pesoKg del primero fuera: conPesos lo recupera de previos si sus medidas no cambian
+      const nuevos = [{ ...datos.bultos[0], largoCm, anchoCm, altoCm, pesoKg: undefined }, ...datos.bultos.slice(1)]
+      datos.bultos = conPesos(nuevos, baremo, previos)
+      if (baremo != null) datos.baremoKgM3 = baremo
       bultosJ = JSON.stringify(datos)
     }
     const cliente = clienteCodigo === undefined
@@ -233,7 +244,8 @@ ipcMain.handle('save-quote-manual', (event, { fecha, largoCm, anchoCm, altoCm, c
   try {
     const precioRedondeado = redondear5(precioFinal)
     const db = getDb()
-    const bultosJ = bultosJson({ bultos: bultos?.length ? bultos : [{ largoCm, anchoCm, altoCm }] })
+    const baremo = baremoDe(db, agenciaId, null)
+    const bultosJ = bultosJson({ bultos: conPesos(bultos?.length ? bultos : [{ largoCm, anchoCm, altoCm }], baremo), baremoKgM3: baremo })
     const cliente = clienteCodigo ? String(clienteCodigo).trim() : null
     const dest = destinatario ? String(destinatario).trim() : null
     if (fecha) {

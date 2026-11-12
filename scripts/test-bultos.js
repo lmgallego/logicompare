@@ -220,5 +220,110 @@ caso('bultos_json corrupto no rompe update', () => {
   assert.equal(ultima().num_bultos, 1)
 })
 
-db.close()
-fs.rmSync(tmpDir, { recursive: true, force: true })
+// ---- Peso por bulto (volumétrico: m³ × baremo de la agencia, kg enteros hacia arriba) ----
+const { pesoBulto } = require('../src/main/services/bultosCotizacion')
+const nuevaAgencia = (nombre, baremo, motor = 'estandar') => db.prepare(
+  "INSERT INTO agencias (nombre, baremo, recargo_combustible, recargo_seguro, activa, motor) VALUES (?, ?, 0, 0, 1, ?)").run(nombre, baremo, motor).lastInsertRowid
+const dsvId = nuevaAgencia('DSV prueba', 220, 'reglas')
+const otraId = nuevaAgencia('Otra prueba', 270)
+const zonaIslas = db.prepare("INSERT INTO zonas_agencia (agencia_id, nombre_zona, baremo) VALUES (?, 'Baleares prueba', 333)").run(dsvId).lastInsertRowid
+// 0,96 m³ · 0,096 m³ · 0,006 m³
+const b3p = [{ largoCm: 120, anchoCm: 80, altoCm: 100 }, { largoCm: 60, anchoCm: 40, altoCm: 40 }, { largoCm: 10, anchoCm: 20, altoCm: 30 }]
+const pesos = r => JSON.parse(r.bultos_json).bultos.map(b => b.pesoKg)
+
+caso('peso por bulto: 3 bultos con DSV (220)', () => {
+  call('save-quote', { ...base, agenciaId: dsvId, bultos: b3p, zonaId: null })
+  const j = JSON.parse(ultima().bultos_json)
+  assert.deepEqual(pesos(ultima()), [212, 22, 2]) // 211,2 · 21,12 · 1,32 hacia arriba
+  assert.equal(j.baremoKgM3, 220)
+  assert.deepEqual(j.bultos.map(({ pesoKg, ...b }) => b), b3p)
+})
+
+caso('peso por bulto: la misma con otra agencia usa su baremo (270)', () => {
+  call('save-quote', { ...base, agenciaId: otraId, bultos: b3p })
+  assert.deepEqual(pesos(ultima()), [260, 26, 2])
+  assert.equal(JSON.parse(ultima().bultos_json).baremoKgM3, 270)
+})
+
+caso('peso por bulto: DSV en zona con baremo propio (islas 333)', () => {
+  call('save-quote', { ...base, agenciaId: dsvId, bultos: b3p, zonaId: zonaIslas })
+  assert.deepEqual(pesos(ultima()), [320, 32, 2])
+})
+
+caso('peso por bulto: manual y resolve-pending también lo guardan', () => {
+  call('save-quote-manual', { ...base, agenciaId: otraId, largoCm: 60, anchoCm: 40, altoCm: 40 })
+  assert.deepEqual(pesos(ultima()), [26])
+  call('save-pending-quote', { cpPrefix: '08', bultos: b3p, resultados: [] })
+  const pendingId = call('get-pending-quotes')[0].id
+  call('resolve-pending-quote', { ...base, pendingId, agenciaId: dsvId })
+  assert.deepEqual(pesos(ultima()), [212, 22, 2])
+})
+
+caso('peso por bulto: update del bulto 1 recalcula solo ese peso', () => {
+  call('save-quote', { ...base, agenciaId: dsvId, bultos: b3p })
+  const { id } = ultima()
+  // Peso del bulto 2 alterado a mano: si se conserva, no se ha recalculado
+  const j = JSON.parse(ultima().bultos_json); j.bultos[1].pesoKg = 999
+  db.prepare('UPDATE cotizaciones SET bultos_json = ? WHERE id = ?').run(JSON.stringify(j), id)
+  assert.equal(call('update-quote', { ...base, id, agenciaId: dsvId, largoCm: 130, anchoCm: 80, altoCm: 100 }).ok, true)
+  assert.deepEqual(pesos(ultima()), [229, 999, 2]) // 1,04 m³ × 220 = 228,8
+  // Mismas medidas: el peso del bulto 1 se conserva tal cual
+  assert.equal(call('update-quote', { ...base, id, agenciaId: dsvId, largoCm: 130, anchoCm: 80, altoCm: 100 }).ok, true)
+  assert.deepEqual(pesos(ultima()), [229, 999, 2])
+  // Otra agencia (otro baremo): se recalculan todos
+  assert.equal(call('update-quote', { ...base, id, agenciaId: otraId, largoCm: 130, anchoCm: 80, altoCm: 100 }).ok, true)
+  assert.deepEqual(pesos(ultima()), [281, 26, 2])
+})
+
+caso('peso por bulto: antigua sin pesoKg se calcula al vuelo, sin migrar', () => {
+  const json = JSON.stringify({ bultos: b3p })
+  const { lastInsertRowid: id } = db.prepare("INSERT INTO cotizaciones (largo_cm, ancho_cm, alto_cm, cp_prefix, precio_final, agencia_id, bultos_json, cliente_codigo) VALUES (120, 80, 100, '08', 1, ?, ?, 'T3')").run(dsvId, json)
+  assert.deepEqual(ultima().pesos_bultos, [212, 22, 2])
+  assert.deepEqual(call('get-quotes-by-cliente', { clienteCodigo: 'T3' })[0].pesos_bultos, [212, 22, 2])
+  assert.equal(db.prepare('SELECT bultos_json FROM cotizaciones WHERE id = ?').get(id).bultos_json, json)
+  // Editada por una versión antigua (columnas distintas al JSON): el peso guardado del bulto 1 ya no vale
+  call('save-quote', { ...base, agenciaId: dsvId, bultos: b3p })
+  db.prepare('UPDATE cotizaciones SET largo_cm = 130 WHERE id = ?').run(ultima().id)
+  assert.deepEqual(ultima().pesos_bultos, [229, 22, 2])
+})
+
+caso('peso por bulto: con 1 bulto no hay pesos (columna vacía)', () => {
+  call('save-quote', { ...base, agenciaId: dsvId, bultos: [b3p[0]] })
+  assert.equal(ultima().pesos_bultos, null)
+  db.prepare("INSERT INTO cotizaciones (largo_cm, ancho_cm, alto_cm, cp_prefix, precio_final, agencia_id) VALUES (10, 10, 10, '08', 1, ?)").run(dsvId)
+  assert.equal(ultima().pesos_bultos, null)
+})
+
+caso('peso por bulto: sin agencia no se guarda peso', () => {
+  call('save-quote', { ...base, bultos: b3p })
+  const j = JSON.parse(ultima().bultos_json)
+  assert.ok(j.bultos.every(b => b.pesoKg === undefined))
+  assert.equal(j.baremoKgM3, undefined)
+})
+
+// El renderer (ESM) tiene su gemelo de pesoBulto y el texto de la columna del informe
+async function pruebasRenderer() {
+  // Node de Electron trata los .js como CommonJS: se importa como módulo data: (siempre ESM)
+  const src = fs.readFileSync(path.join(__dirname, '../src/renderer/js/utils/pesoBulto.js'), 'utf8')
+  const r = await import('data:text/javascript,' + encodeURIComponent(src))
+  caso('renderer: pesoBulto igual que en main', () => {
+    for (const b of [...b3p, { largoCm: 50, anchoCm: 50, altoCm: 40 }, { largoCm: 33.3, anchoCm: 21, altoCm: 7 }])
+      for (const baremo of [220, 270, 333, 167]) assert.equal(r.pesoBulto(b, baremo), pesoBulto(b, baremo))
+  })
+  caso('renderer: texto "Pesos por bulto" (vacío con 1 bulto)', () => {
+    assert.equal(r.pesosTexto([21, 21, 35]), '21 + 21 + 35 kg')
+    assert.equal(r.pesosTexto([21]), '')
+    assert.equal(r.pesosTexto(null), '')
+    assert.equal(r.pesosTexto([21, null]), '')
+  })
+  caso('renderer: baremo del resultado (DSV usa el de la zona)', () => {
+    assert.equal(r.baremoDeResultado({ agencia: { motor: 'reglas', baremo: 220 }, zona: { baremo: 333 } }), 333)
+    assert.equal(r.baremoDeResultado({ agencia: { motor: 'reglas', baremo: 220 }, zona: { baremo: null } }), 220)
+    assert.equal(r.baremoDeResultado({ agencia: { motor: 'estandar', baremo: 270 }, zona: { baremo: 333 } }), 270)
+  })
+}
+
+pruebasRenderer().finally(() => {
+  db.close()
+  fs.rmSync(tmpDir, { recursive: true, force: true })
+})
