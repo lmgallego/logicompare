@@ -301,6 +301,18 @@ caso('peso por bulto: sin agencia no se guarda peso', () => {
   assert.equal(j.baremoKgM3, undefined)
 })
 
+caso('Excel consolidado: columna final "Pesos por bulto", vacía con 1 bulto o si el origen no la trae', () => {
+  const { parseXlsxBuffer, buildMergedXlsx } = require('../src/main/ipcHandlers/supportHandler')
+  const fila = extra => ({ fecha: '12/11/2026, 14:45', medidas: '120x80x100', cp_prefix: '08', metros_cubicos: 1.156, peso: 255, agencia_nombre: 'DSV', precio_final: 46.13, precio_redondeado: 46.15, ...extra })
+  const filas = [fila({ pesos_bultos: '212 + 22 + 22 kg' }), fila({ fecha: '11/11/2026, 10:00', pesos_bultos: '' }), fila({ fecha: '10/11/2026, 10:00' })]
+  for (const simplificada of [false, true]) {
+    const leidas = parseXlsxBuffer(buildMergedXlsx(filas, simplificada))
+    assert.deepEqual(leidas.map(r => r.pesos_bultos).sort(), ['', '', '212 + 22 + 22 kg'])
+    // "Pesos por bulto" no se confunde con la columna "Peso (kg)"
+    assert.ok(leidas.every(r => r.peso === (simplificada ? 0 : 255)))
+  }
+})
+
 // El renderer (ESM) tiene su gemelo de pesoBulto y el texto de la columna del informe
 async function pruebasRenderer() {
   // Node de Electron trata los .js como CommonJS: se importa como módulo data: (siempre ESM)

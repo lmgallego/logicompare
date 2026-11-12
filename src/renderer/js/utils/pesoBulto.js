@@ -24,13 +24,14 @@ export function detalleBultosHtml(bultos, pesos, pesoTotal, estilo = '') {
     + `<li style="font-weight:700;">Peso tasable total: ${pesoTotal ?? '—'} kg</li></ul>`
 }
 
-// Historial y consultas: la etiqueta "N bultos" se despliega (details nativo) con la lista de bultos y pesos
+// Historial y consultas: la etiqueta "N bultos" se despliega (details nativo) con la lista de bultos y pesos.
+// La lista va en el flujo (la fila crece): flotante la recortaba el overflow-hidden de las tablas
 export function etiquetaBultosHtml(row) {
   if (!(row.num_bultos > 1)) return ''
   let bultos = []
   try { bultos = JSON.parse(row.bultos_json).bultos } catch (_) {}
-  const popover = 'position:absolute;top:100%;left:0;z-index:20;background:#fff;color:#171c1f;font-weight:400;white-space:nowrap;padding:8px 10px;border-radius:8px;box-shadow:0 4px 16px rgba(23,28,31,0.18);border:1px solid rgba(196,197,217,0.4);'
-  return '<details style="position:relative;display:inline-block;vertical-align:top;margin-left:4px;">'
+  const popover = 'position:relative;z-index:20;width:max-content;margin-top:4px;background:#fff;color:#171c1f;font-weight:400;white-space:nowrap;padding:8px 10px;border-radius:8px;box-shadow:0 4px 16px rgba(23,28,31,0.18);border:1px solid rgba(196,197,217,0.4);'
+  return '<details style="display:inline-block;vertical-align:top;margin-left:4px;">'
     + '<summary class="text-[10px] font-black px-1.5 py-0.5 rounded-full whitespace-nowrap" style="display:inline-block;cursor:pointer;list-style:none;background:rgba(0,64,224,0.08);color:#0040e0;" title="Ver bultos y pesos">'
     + row.num_bultos + ' bultos</summary>'
     + detalleBultosHtml(bultos, row.pesos_bultos, row.peso, popover) + '</details>'

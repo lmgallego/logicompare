@@ -19,7 +19,8 @@ function parseXlsxBuffer(buf) {
     const iMed   = headers.findIndex(h => h.includes('medidas'))
     const iCp    = headers.findIndex(h => h === 'cp')
     const iM3    = headers.findIndex(h => h.includes('metros') || h.includes('m³'))
-    const iPeso  = headers.findIndex(h => h.includes('peso'))
+    const iPeso  = headers.findIndex(h => h.includes('peso') && !h.includes('pesos por bulto'))
+    const iPesos = headers.findIndex(h => h.includes('pesos por bulto'))
     const iAg    = headers.findIndex(h => h.includes('agencia'))
     const iPF    = headers.findIndex(h => h.includes('precio final') || h.includes('precio final (€)'))
     const iPR    = headers.findIndex(h => h.includes('redondeado') || h.includes('precio redondeado'))
@@ -39,6 +40,7 @@ function parseXlsxBuffer(buf) {
         agencia_nombre:  iAg >= 0   ? r[iAg]   : sheetName,
         precio_final:    iPF >= 0   ? parseFloat(r[iPF])  || 0 : 0,
         precio_redondeado: iPR >= 0 ? parseFloat(r[iPR])  || 0 : 0,
+        pesos_bultos:    iPesos >= 0 ? r[iPesos] || '' : '',  // texto ya calculado por el export de origen
       })
     }
   }
@@ -213,7 +215,7 @@ function init() {
   })
 }
 
-module.exports = { init }
+module.exports = { init, parseXlsxBuffer, buildMergedXlsx }
 
 function buildMergedXlsx(rows, simplificada) {
   const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
@@ -259,19 +261,19 @@ function buildMergedXlsx(rows, simplificada) {
     let headers, numCols, dataRows
 
     if (simplificada) {
-      headers = ['Fecha', 'Precio Final (€)', 'Precio Redondeado (€)']
+      headers = ['Fecha', 'Precio Final (€)', 'Precio Redondeado (€)', 'Pesos por bulto']
       numCols = [1, 2]
       dataRows = agRows.map(r => {
         const red = r.precio_redondeado || redondear5(r.precio_final) || 0
-        return [r.fecha, r.precio_final.toFixed(2), red.toFixed(2)]
+        return [r.fecha, r.precio_final.toFixed(2), red.toFixed(2), r.pesos_bultos || '']
       })
     } else {
-      headers = ['Fecha', 'Medidas (cm)', 'CP', 'Metros Cúbicos', 'Peso (kg)', 'Agencia', 'Precio Final (€)', 'Precio Redondeado (€)']
+      headers = ['Fecha', 'Medidas (cm)', 'CP', 'Metros Cúbicos', 'Peso (kg)', 'Agencia', 'Precio Final (€)', 'Precio Redondeado (€)', 'Pesos por bulto']
       numCols = [3, 4, 6, 7]
       dataRows = agRows.map(r => {
         const red = r.precio_redondeado || redondear5(r.precio_final) || 0
         return [r.fecha, r.medidas || '', r.cp_prefix || '', r.metros_cubicos.toFixed(6),
-          r.peso || 0, r.agencia_nombre || '', r.precio_final.toFixed(2), red.toFixed(2)]
+          r.peso || 0, r.agencia_nombre || '', r.precio_final.toFixed(2), red.toFixed(2), r.pesos_bultos || '']
       })
     }
 
