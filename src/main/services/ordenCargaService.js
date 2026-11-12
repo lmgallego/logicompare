@@ -55,7 +55,8 @@ function elegirAlternativa(resultados, { agenciaId, isla }) {
 const medidaValida = v => v !== '' && v != null && Number.isFinite(Number(v)) && Number(v) > 0
 const bultoConMedidas = b => medidaValida(b.largo_cm) && medidaValida(b.ancho_cm) && medidaValida(b.alto_cm)
 
-function construirFila(cot, resultados, { precioOtraFranja } = {}) {
+/** destino = { id, nombre }: el otro camión, al que va el sobrante. */
+function construirFila(cot, resultados, { precioOtraFranja, destino }) {
   const avisos = []
   const precioGuardado = cot.precio_final
   // Bulto con alguna medida vacía, null, 0, negativa o no numérica: cuenta 0 m³ (no se inventan medidas)
@@ -78,15 +79,15 @@ function construirFila(cot, resultados, { precioOtraFranja } = {}) {
     if (tarifaCambiada) avisos.push('Tarifa cambiada')
   }
 
-  const alt = elegirAlternativa(resultados, { agenciaId: cot.agencia_id, isla: propia.isla })
-  let alternativa = null, sobrecoste = null, sobrecostePorM3 = null
+  // La alternativa es siempre el camión destino (si es elegible, activo y con precio)
+  const alt = elegirAlternativa(resultados.filter(r => r.agencia.id === destino.id), { agenciaId: cot.agencia_id, isla: propia.isla })
+  let alternativa = null, sobrecoste = null
   if (!alt) {
-    avisos.push('Sin alternativa: cargar sí o sí')
+    avisos.push(`No se puede pasar a ${destino.nombre}`)
   } else {
     const a = alt.resultado
     alternativa = { agenciaId: a.agencia.id, agencia: a.agencia.nombre, zona: a.zona.nombre_zona, precio: a.precioFinal }
     sobrecoste = r2(a.precioFinal - precioGuardado)
-    sobrecostePorM3 = m3 > 0 ? r2(sobrecoste / m3) : null
     if (sobrecoste < 0) avisos.push(`Más barato con ${a.agencia.nombre}`)
     for (const av of a.avisos || []) avisos.push(`${a.agencia.nombre}: ${av}`)
   }
@@ -97,28 +98,87 @@ function construirFila(cot, resultados, { precioOtraFranja } = {}) {
     id: cot.id, clienteCodigo: cot.cliente_codigo, cliente: cot.cliente_razon_social, destinatario: cot.destinatario,
     cp: cot.cp_prefix, zona: propia.resultado ? propia.resultado.zona.nombre_zona : null,
     numBultos: cot.bultos.length, m3, precioGuardado, precioRecalculado, tarifaCambiada,
-    alternativa, sobrecoste, sobrecostePorM3, avisos,
+    agenciaDestino: destino.nombre, alternativa, sobrecoste, avisos,
   }
 }
 
-/** Sin alternativa primero (m³ desc); luego sin sobrecoste/m³ (0 m³); luego sobrecoste/m³ desc; empate por m³ desc. */
+/** No pasables primero; luego sobrecoste en euros de mayor a menor; empate: más bultos antes. */
 function ordenarFilas(filas) {
-  const grupo = f => (!f.alternativa ? 0 : f.sobrecostePorM3 == null ? 1 : 2)
+  const grupo = f => (f.alternativa ? 1 : 0)
   return [...filas].sort((a, b) =>
     grupo(a) - grupo(b)
-    || (grupo(a) === 2 ? b.sobrecostePorM3 - a.sobrecostePorM3 : 0)
-    || b.m3 - a.m3)
+    || (grupo(a) ? b.sobrecoste - a.sobrecoste : 0)
+    || b.numBultos - a.numBultos)
+}
+
+const MAX_EXACTO = 20
+
+/**
+ * Qué cotizaciones pasar al otro camión si solo caben capacidadBultos.
+ * Se pasan enteras; mínima Σ sobrecoste con Σ bultos ≥ sobran; desempate: menos bultos de más, menos cotizaciones.
+ * Devuelve { sobran, opciones: [{ ids, bultos, sobrecoste }] (hasta 3), recomendadas, metodo, avisos }.
+ */
+function proponerPaso({ filas, capacidadBultos }) {
+  const pasables = filas.filter(f => f.alternativa)
+  const recomendadas = pasables.filter(f => f.sobrecoste < 0).map(f => f.id)
+  const total = filas.reduce((s, f) => s + f.numBultos, 0)
+  const sobran = Number.isFinite(capacidadBultos) && capacidadBultos >= 0 ? total - capacidadBultos : 0
+  const res = { sobran: Math.max(0, sobran), opciones: [], recomendadas, metodo: null, avisos: [] }
+  if (sobran <= 0) return res
+
+  const opcion = sel => ({ ids: sel.map(f => f.id), bultos: sel.reduce((s, f) => s + f.numBultos, 0), sobrecoste: r2(sel.reduce((s, f) => s + f.sobrecoste, 0)) })
+  const maxPasable = pasables.reduce((s, f) => s + f.numBultos, 0)
+  if (maxPasable < sobran) {
+    const destino = filas[0].agenciaDestino
+    res.metodo = 'parcial'
+    res.opciones = [opcion(pasables)]
+    res.avisos.push(`Faltan ${sobran - maxPasable} bultos por mover que no se pueden pasar a ${destino}`)
+    return res
+  }
+
+  if (pasables.length > MAX_EXACTO) {
+    // ponytail: voraz por €/bulto, una sola opción; no garantiza el óptimo
+    res.metodo = 'voraz'
+    res.avisos.push(`Más de ${MAX_EXACTO} cotizaciones pasables: propuesta aproximada`)
+    const orden = [...pasables].sort((a, b) => a.sobrecoste / a.numBultos - b.sobrecoste / b.numBultos || b.numBultos - a.numBultos)
+    const sel = []
+    let b = 0
+    for (const f of orden) { if (b >= sobran) break; sel.push(f); b += f.numBultos }
+    res.opciones = [opcion(sel)]
+    return res
+  }
+
+  // Fuerza bruta: sumas por máscara a partir de la máscara sin su bit más bajo (céntimos enteros para comparar)
+  res.metodo = 'exacto'
+  const n = pasables.length, N = 1 << n
+  const bul = new Int32Array(N), cts = new Float64Array(N), cnt = new Uint8Array(N)
+  const mejor = (a, b) => cts[a] - cts[b] || bul[a] - bul[b] || cnt[a] - cnt[b] // bul: menos bultos de más
+  const top = []
+  for (let m = 1; m < N; m++) {
+    const i = 31 - Math.clz32(m & -m), prev = m & (m - 1)
+    bul[m] = bul[prev] + pasables[i].numBultos
+    cts[m] = cts[prev] + Math.round(pasables[i].sobrecoste * 100)
+    cnt[m] = cnt[prev] + 1
+    if (bul[m] < sobran) continue
+    if (top.length === 3 && mejor(m, top[2]) >= 0) continue
+    top.push(m); top.sort(mejor); if (top.length > 3) top.pop()
+  }
+  res.opciones = top.map(m => opcion(pasables.filter((_, i) => m & (1 << i))))
+  return res
 }
 
 // Descarta fechas imposibles como 2026-02-31 (Date las desplaza al mes siguiente)
 const fechaReal = f => { const d = new Date(f + 'T00:00:00Z'); return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === f }
 
 /** Cotizaciones de un día local y una agencia, recalculadas y ordenadas. Lanza Error si fecha/agencia no son válidas. */
-function obtenerOrdenCarga({ fecha, agenciaId }) {
+function obtenerOrdenCarga({ fecha, agenciaId, agenciaDestinoId }) {
   if (typeof fecha !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(fecha) || !fechaReal(fecha)) throw new Error('Fecha no válida')
   if (!Number.isInteger(agenciaId)) throw new Error('Agencia no válida')
+  if (!Number.isInteger(agenciaDestinoId) || agenciaDestinoId === agenciaId) throw new Error('Agencia destino no válida')
   const { getDb } = require('../database/connection')
   const db = getDb()
+  const destino = db.prepare('SELECT id, nombre FROM agencias WHERE id = ?').get(agenciaDestinoId)
+  if (!destino) throw new Error('Agencia destino no válida')
   const calculo = require('./calculationService') // al llamar, para respetar un espía en los tests
   const { parseBultosJson, conPrimerBultoDeColumnas } = require('./bultosCotizacion')
 
@@ -146,9 +206,9 @@ function obtenerOrdenCarga({ fecha, agenciaId }) {
       const otra = db.prepare('SELECT * FROM zonas_agencia WHERE agencia_id = ? AND nombre_zona = ?').get(agenciaId, otraFranja)
       if (otra) precioOtraFranja = calculo.calcularPrecioBultos(propia.agencia, otra, bultos, extras).precioFinal
     }
-    return construirFila(cot, resultados, { precioOtraFranja })
+    return construirFila(cot, resultados, { precioOtraFranja, destino })
   })
   return ordenarFilas(filas)
 }
 
-module.exports = { islaDeZona, motivoNoElegible, recalculoPropio, elegirAlternativa, construirFila, ordenarFilas, obtenerOrdenCarga }
+module.exports = { islaDeZona, motivoNoElegible, recalculoPropio, elegirAlternativa, construirFila, ordenarFilas, proponerPaso, obtenerOrdenCarga }
