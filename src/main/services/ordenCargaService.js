@@ -132,7 +132,8 @@ function proponerPaso({ filas, capacidadBultos }) {
     const destino = filas[0].agenciaDestino
     res.metodo = 'parcial'
     res.opciones = [opcion(pasables)]
-    res.avisos.push(`Faltan ${sobran - maxPasable} bultos por mover que no se pueden pasar a ${destino}`)
+    const faltan = sobran - maxPasable
+    res.avisos.push(`${faltan === 1 ? 'Falta 1 bulto' : `Faltan ${faltan} bultos`} por mover que no se ${faltan === 1 ? 'puede' : 'pueden'} pasar a ${destino}`)
     return res
   }
 

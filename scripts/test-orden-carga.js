@@ -232,6 +232,8 @@ caso('paso: pasables insuficientes -> parcial y aviso', () => {
   assert.equal(p.metodo, 'parcial')
   assert.deepEqual(p.opciones, [{ ids: [2, 3], bultos: 2, sobrecoste: 13 }])
   assert.deepEqual(p.avisos, ['Faltan 2 bultos por mover que no se pueden pasar a DSV'])
+  // singular
+  assert.deepEqual(paso([f(1, null, 1, 'DSV'), f(2, 5, 1, 'DSV')], 0).avisos, ['Falta 1 bulto por mover que no se puede pasar a DSV'])
 })
 
 caso('paso: sobrecoste negativo se recomienda aunque quepa', () => {

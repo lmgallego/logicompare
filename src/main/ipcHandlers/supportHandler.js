@@ -136,6 +136,19 @@ function redondear5(precio) {
   return Math.ceil(precio * 20) / 20
 }
 
+// Duplicados: misma fecha + agencia + precio + medidas + CP. Se queda la primera fila; si esa viene de un
+// Excel antiguo (sin "Pesos por bulto") y un duplicado posterior sí lo trae, se conserva el dato
+function deduplicar(rows) {
+  const vistos = new Map()
+  for (const r of rows) {
+    const key = [r.fecha, r.agencia_nombre, r.precio_final, r.medidas || '', r.cp_prefix || ''].join('|')
+    const previa = vistos.get(key)
+    if (!previa) vistos.set(key, r)
+    else if (!previa.pesos_bultos && r.pesos_bultos) previa.pesos_bultos = r.pesos_bultos
+  }
+  return [...vistos.values()]
+}
+
 // ── Register all IPC handlers (called from main.js after app.whenReady) ────────
 function init() {
   const { ipcMain, dialog } = require('electron')
@@ -170,19 +183,7 @@ function init() {
     // Deduplicate: fecha exacta + agencia + precio + medidas + CP
     // This safely handles repeated measurements (same dims/price but different time)
     // while correctly removing identical rows exported from multiple machines
-    const seen = new Set()
-    allRows = allRows.filter(r => {
-      const key = [
-        r.fecha,
-        r.agencia_nombre,
-        r.precio_final,
-        r.medidas || '',
-        r.cp_prefix || '',
-      ].join('|')
-      if (seen.has(key)) return false
-      seen.add(key)
-      return true
-    })
+    allRows = deduplicar(allRows)
 
     // Sort by date ASC, then agency
     allRows.sort((a, b) => {
@@ -215,7 +216,7 @@ function init() {
   })
 }
 
-module.exports = { init, parseXlsxBuffer, buildMergedXlsx }
+module.exports = { init, parseXlsxBuffer, buildMergedXlsx, deduplicar }
 
 function buildMergedXlsx(rows, simplificada) {
   const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')

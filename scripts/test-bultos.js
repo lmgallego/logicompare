@@ -313,6 +313,19 @@ caso('Excel consolidado: columna final "Pesos por bulto", vacía con 1 bulto o s
   }
 })
 
+caso('Excel consolidado: un duplicado de un Excel antiguo (sin pesos) no pierde "Pesos por bulto"', () => {
+  const { deduplicar } = require('../src/main/ipcHandlers/supportHandler')
+  const fila = extra => ({ fecha: '12/11/2026, 14:45', medidas: '120x80x100', cp_prefix: '08', agencia_nombre: 'DSV', precio_final: 46.13, pesos_bultos: '', ...extra })
+  const nueva = { pesos_bultos: '212 + 22 kg' }
+  for (const filas of [[fila(), fila(nueva)], [fila(nueva), fila()]]) {
+    const r = deduplicar(filas)
+    assert.equal(r.length, 1)
+    assert.equal(r[0].pesos_bultos, '212 + 22 kg')
+  }
+  // Otra hora u otro precio: no es duplicado
+  assert.equal(deduplicar([fila(), fila({ fecha: '12/11/2026, 14:46' }), fila({ precio_final: 50 })]).length, 3)
+})
+
 // El renderer (ESM) tiene su gemelo de pesoBulto y el texto de la columna del informe
 async function pruebasRenderer() {
   // Node de Electron trata los .js como CommonJS: se importa como módulo data: (siempre ESM)
