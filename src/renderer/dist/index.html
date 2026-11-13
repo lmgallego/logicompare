@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LogiCompare | Industrial Precision Engine</title>
-  <script type="module" crossorigin src="./assets/index-CP7Xn423.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-JnT4UJUT.css">
+  <title>LogiCompare | Industrial Precision Engine</title>
+  <script type="module" crossorigin src="./assets/index-DjrXEz5x.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-DIJBw7uY.css">
 </head>
 <body class="bg-background font-body text-on-surface antialiased flex flex-col h-screen overflow-hidden">
 
@@ -73,6 +73,10 @@
         <a class="nav-item" data-page="history">
           <span class="material-symbols-outlined text-xl">history</span>
           <span class="nav-label">Historial</span>
+        </a>
+        <a class="nav-item" data-page="orden-carga">
+          <span class="material-symbols-outlined text-xl">format_list_numbered</span>
+          <span class="nav-label">Orden de carga</span>
         </a>
         <a class="nav-item" data-page="consultas">
           <span class="material-symbols-outlined text-xl">person_search</span>
@@ -625,6 +629,29 @@
         </div>
       </div>
 
+      <!-- ════ PAGE: ORDEN DE CARGA (solo lectura) ════ -->
+      <div id="page-orden-carga" class="page flex-1 overflow-y-auto p-6">
+        <div class="max-w-7xl mx-auto w-full space-y-4">
+          <h2 class="text-xl font-bold tracking-tight">Orden de carga</h2>
+          <div class="bg-surface-container-lowest rounded-xl px-4 py-3 flex flex-wrap items-center gap-3" style="border: 1px solid rgba(196,197,217,0.12);">
+            <span class="label-stencil text-[10px] shrink-0">Fecha</span>
+            <input type="date" id="orden-fecha" class="input-field py-1 px-2 text-xs" style="height:32px; width:140px;" />
+            <span class="label-stencil text-[10px] shrink-0">Camión</span>
+            <select id="orden-agencia" class="input-field py-1 px-2 text-xs" style="height:32px; width:auto; min-width:160px;"></select>
+            <span class="label-stencil text-[10px] shrink-0">El sobrante va a</span>
+            <select id="orden-destino" class="input-field py-1 px-2 text-xs" style="height:32px; width:auto; min-width:160px;"></select>
+            <label class="flex items-center gap-2 text-xs shrink-0">Solo caben
+              <input type="number" id="orden-capacidad" min="0" step="1" class="input-field py-1 px-2 text-xs" style="height:32px; width:70px;" />
+              bultos</label>
+          </div>
+          <p class="text-xs px-3 py-2 rounded-lg" style="background:rgba(0,64,224,0.06); border:1px solid rgba(0,64,224,0.15);">
+            Carga en este orden. Si el camión se llena, lo que quede al final es lo más barato de mandar con otra agencia. Los bultos de una misma cotización van siempre juntos.
+          </p>
+          <div id="orden-propuesta"></div>
+          <div id="orden-resultado"></div>
+        </div>
+      </div>
+
       <!-- ════ PAGE: AGENCIAS ════ -->
       <div id="page-agencias" class="page flex-1 overflow-y-auto p-6">
         <div class="max-w-3xl mx-auto space-y-6">
@@ -925,11 +952,29 @@
           <div class="card-surface rounded-2xl p-5 space-y-5">
             <p class="text-xs font-bold uppercase tracking-widest text-on-surface-variant" style="opacity:0.5;">Historial de Versiones</p>
 
+            <!-- v2.2.0 -->
+            <div class="space-y-2">
+              <div class="flex items-center gap-2">
+                <span class="text-sm font-black text-primary">v2.2.0</span>
+                <span class="bg-primary/10 text-primary text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-tight">Actual</span>
+                <span class="text-xs text-on-surface-variant" style="opacity:0.45;">Noviembre 2026</span>
+              </div>
+              <ul class="space-y-1.5 text-xs text-on-surface-variant" style="padding-left:1rem;">
+                <li style="list-style:disc;"><strong class="text-on-surface">Nueva pantalla Orden de carga</strong> — por fecha y camión, con el sobrecoste en euros de pasar cada cotización al otro camión (Transabadell ↔ DSV por defecto). Con "Solo caben N bultos" propone hasta 3 opciones de qué pasar. Avisa de medidas incompletas, tarifa cambiada e isla sin confirmar. Solo lectura.</li>
+                <li style="list-style:disc;"><strong class="text-on-surface">Agencias inactivas</strong> — se pueden consultar en Orden de carga, pero nunca salen como destino del sobrante.</li>
+                <li style="list-style:disc;"><strong class="text-on-surface">Peso por bulto</strong> — con 2 o más bultos se muestra el peso volumétrico de cada uno en Pagados, Débidos, Historial y Consultas, y en la columna "Pesos por bulto" de los Excel y PDF. Las cotizaciones antiguas se calculan al mostrarlas.</li>
+                <li style="list-style:disc;"><strong class="text-on-surface">Cotizaciones</strong> — se guarda la zona elegida.</li>
+                <li style="list-style:disc;"><strong class="text-on-surface">Soporte</strong> — el consolidado nombra las hojas por agencia, incluye "Pesos por bulto" y avisa al mezclar Excel simplificados.</li>
+                <li style="list-style:disc;"><strong class="text-on-surface">Corregido</strong> — la hora de Pendientes se muestra en hora local.</li>
+              </ul>
+            </div>
+
+            <div style="border-top:1px solid rgba(196,197,217,0.15);"></div>
+
             <!-- v2.1.3 -->
             <div class="space-y-2">
               <div class="flex items-center gap-2">
-                <span class="text-sm font-black text-primary">v2.1.3</span>
-                <span class="bg-primary/10 text-primary text-[9px] font-black px-1.5 py-0.5 rounded-full uppercase tracking-tight">Actual</span>
+                <span class="text-sm font-black text-on-surface-variant" style="opacity:0.7;">v2.1.3</span>
                 <span class="text-xs text-on-surface-variant" style="opacity:0.45;">Noviembre 2026</span>
               </div>
               <ul class="space-y-1.5 text-xs text-on-surface-variant" style="padding-left:1rem;">
@@ -1266,6 +1311,6 @@
       </div>
     </div>
   </div>
-
+
 </body>
 </html>
