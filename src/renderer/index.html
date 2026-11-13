@@ -73,6 +73,10 @@
           <span class="material-symbols-outlined text-xl">history</span>
           <span class="nav-label">Historial</span>
         </a>
+        <a class="nav-item" data-page="orden-carga">
+          <span class="material-symbols-outlined text-xl">format_list_numbered</span>
+          <span class="nav-label">Orden de carga</span>
+        </a>
         <a class="nav-item" data-page="consultas">
           <span class="material-symbols-outlined text-xl">person_search</span>
           <span class="nav-label">Consultas</span>
@@ -621,6 +625,29 @@
               </tbody>
             </table>
           </div>
+        </div>
+      </div>
+
+      <!-- ════ PAGE: ORDEN DE CARGA (solo lectura) ════ -->
+      <div id="page-orden-carga" class="page flex-1 overflow-y-auto p-6">
+        <div class="max-w-7xl mx-auto w-full space-y-4">
+          <h2 class="text-xl font-bold tracking-tight">Orden de carga</h2>
+          <div class="bg-surface-container-lowest rounded-xl px-4 py-3 flex flex-wrap items-center gap-3" style="border: 1px solid rgba(196,197,217,0.12);">
+            <span class="label-stencil text-[10px] shrink-0">Fecha</span>
+            <input type="date" id="orden-fecha" class="input-field py-1 px-2 text-xs" style="height:32px; width:140px;" />
+            <span class="label-stencil text-[10px] shrink-0">Camión</span>
+            <select id="orden-agencia" class="input-field py-1 px-2 text-xs" style="height:32px; width:auto; min-width:160px;"></select>
+            <span class="label-stencil text-[10px] shrink-0">El sobrante va a</span>
+            <select id="orden-destino" class="input-field py-1 px-2 text-xs" style="height:32px; width:auto; min-width:160px;"></select>
+            <label class="flex items-center gap-2 text-xs shrink-0">Solo caben
+              <input type="number" id="orden-capacidad" min="0" step="1" class="input-field py-1 px-2 text-xs" style="height:32px; width:70px;" />
+              bultos</label>
+          </div>
+          <p class="text-xs px-3 py-2 rounded-lg" style="background:rgba(0,64,224,0.06); border:1px solid rgba(0,64,224,0.15);">
+            Carga en este orden. Si el camión se llena, lo que quede al final es lo más barato de mandar con otra agencia. Los bultos de una misma cotización van siempre juntos.
+          </p>
+          <div id="orden-propuesta"></div>
+          <div id="orden-resultado"></div>
         </div>
       </div>
 

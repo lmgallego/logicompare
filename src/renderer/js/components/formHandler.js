@@ -1,6 +1,7 @@
 import { formatPrice, formatWeight, formatVolume, formatKg } from '../utils/formatters.js'
 import { getSelectedAgenciaIds } from './agenciasView.js'
 import { confirmModal, alertModal, pickClienteModal, showFormModal } from '../utils/modals.js'
+import { pesoBulto, baremoDeResultado, detalleBultosHtml } from '../utils/pesoBulto.js'
 
 let sortedAsc = true
 let sortAbortController = null
@@ -419,6 +420,7 @@ function renderCarrierCards(resultados, container, sortedAsc) {
     const esReglas = r.agencia.motor === 'reglas'
     const desgloseHtml = esReglas ? desgloseHtmlDe(r) : ''
     const pesoTxt = esReglas ? formatKg(r.peso ?? 0) : `${r.peso ?? 0} kg`
+    const bultosForm = lastFormDatos?.bultos || []  // con 2 o más: peso de cada bulto debajo
 
     const card = document.createElement('div')
     card.className = `carrier-card ${isBest ? 'best-carrier' : ''}`
@@ -468,6 +470,7 @@ function renderCarrierCards(resultados, container, sortedAsc) {
               </div>
               <p class="text-xs text-on-surface-variant mt-0.5" style="opacity:0.65;">Zona: ${r.zona?.nombre_zona || '—'} &nbsp;·&nbsp; <span class="font-semibold" style="opacity:1;">${formatVolume(r.metrosCubicos ?? 0)}</span>${r.numeroBultos > 1 ? ` &nbsp;·&nbsp; <span class="font-semibold text-primary" style="opacity:0.85;">${r.numeroBultos} bultos</span>` : ''}</p>
               <p class="text-xl font-black text-primary mt-1 tracking-tight">${pesoTxt} &nbsp;|&nbsp; ${formatPrice(r.precioFinal)}</p>
+              ${detalleBultosHtml(bultosForm, bultosForm.map(b => pesoBulto(b, baremoDeResultado(r))), r.peso)}
             </div>
           </div>
           <div class="flex flex-col items-end gap-1.5 shrink-0">
@@ -551,6 +554,8 @@ function renderCarrierCards(resultados, container, sortedAsc) {
             pesoBruto: lastFormDatos.pesoBruto,
             opcionesDsv: lastFormDatos.opcionesDsv,
             producto: lastFormDatos.producto,
+            zonaId: r.zona?.id ?? null,
+            zonaNombre: r.zona?.nombre_zona ?? null,
           })
         }
       })

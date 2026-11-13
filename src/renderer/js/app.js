@@ -12,9 +12,10 @@ import { initMedidasElmerView, loadMedidasElmerView } from './components/medidas
 import { initCajasView, loadCajasView } from './components/cajasView.js'
 import { initCospelView, loadCospelView } from './components/cospelView.js'
 import { initConsultasView } from './components/consultasView.js'
+import { initOrdenCargaView, loadOrdenCargaView } from './components/ordenCargaView.js'
 import { showConfirmModal, showFormModal, alertModal } from './utils/modals.js'
 
-const PAGES = ['new-quote', 'pending', 'debidos', 'parachoques', 'medidas-elmer', 'cajas', 'cospel', 'history', 'consultas', 'agencias', 'analytics', 'database', 'support']
+const PAGES = ['new-quote', 'pending', 'debidos', 'parachoques', 'medidas-elmer', 'cajas', 'cospel', 'history', 'orden-carga', 'consultas', 'agencias', 'analytics', 'database', 'support']
 let currentPage = 'new-quote'
 
 export function showToast(msg, type = 'info') {
@@ -74,6 +75,7 @@ function showPage(pageId) {
   if (pageId === 'medidas-elmer') loadMedidasElmerView()
   if (pageId === 'cajas') loadCajasView()
   if (pageId === 'cospel') loadCospelView()
+  if (pageId === 'orden-carga') loadOrdenCargaView()
 
   if (pageId === 'new-quote') {
     setTimeout(() => document.getElementById('input-largo')?.focus(), 80)
@@ -95,6 +97,7 @@ async function initApp() {
   initCajasView()
   initCospelView()
   initConsultasView()
+  initOrdenCargaView()
   initSupportView()
 
   document.getElementById('btn-refresh-history')?.addEventListener('click', () => {

@@ -303,4 +303,4 @@ function calcularPesosDebidos({ largoCm, anchoCm, altoCm, agenciaIds, bultos }) 
   })
 }
 
-module.exports = { calcularTarifas, calcularMetrosCubicos, calcularPeso, calcularPesosDebidos }
+module.exports = { calcularPrecioBultos, calcularTarifas, calcularMetrosCubicos, calcularPeso, calcularPesosDebidos }

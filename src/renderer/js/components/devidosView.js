@@ -1,5 +1,6 @@
 import { formatVolume } from '../utils/formatters.js'
 import { getSelectedAgenciaIds } from './agenciasView.js'
+import { pesoBulto, detalleBultosHtml } from '../utils/pesoBulto.js'
 
 function getDebidosBultos() {
   const largo0 = parseFloat(document.getElementById('deb-largo').value) || 0
@@ -137,7 +138,7 @@ export function initDevidosView() {
 
     try {
       const resultados = await window.api.invoke('calcular-pesos-debidos', { largoCm, anchoCm, altoCm, agenciaIds: getSelectedAgenciaIds(), bultos })
-      renderCards(resultados, cardsEl, isReca)
+      renderCards(resultados, cardsEl, isReca, bultos)
       resultsEl.classList.remove('hidden')
       emptyEl.classList.add('hidden')
     } catch (err) {
@@ -149,7 +150,7 @@ export function initDevidosView() {
   })
 }
 
-function renderCards(resultados, container, isReca = false) {
+function renderCards(resultados, container, isReca = false, bultos = []) {
   container.innerHTML = ''
 
   // RECA mode: show only DHL. Normal mode: hide DHL.
@@ -222,6 +223,8 @@ function renderCards(resultados, container, isReca = false) {
         + '<p class="text-sm font-bold">' + (r.zona?.nombre_zona || '—') + '</p>'
         + '</div>'
         + '</div>'
+        // Con 2 o más bultos: peso de cada uno con el baremo de la agencia (Débidos no usa zona)
+        + detalleBultosHtml(bultos, bultos.map(b => pesoBulto(b, r.agencia.baremo)), r.peso)
     }
 
     container.appendChild(card)
