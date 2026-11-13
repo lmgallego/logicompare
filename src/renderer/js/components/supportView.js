@@ -413,6 +413,7 @@ async function handleMergeSelect() {
       ${res.count} cotizaciones consolidadas (duplicados eliminados)
     </div>
     <div class="flex flex-wrap gap-1.5">${lines}</div>
+    ${res.aviso ? `<p id="merge-aviso" class="text-xs px-3 py-2 rounded-lg" style="color:#92400e;background:rgba(245,158,11,0.1);border:1px solid rgba(245,158,11,0.25);">${res.aviso}</p>` : ''}
   `
 
   actionsEl.classList.remove('hidden')

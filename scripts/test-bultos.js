@@ -326,6 +326,19 @@ caso('Excel consolidado: un duplicado de un Excel antiguo (sin pesos) no pierde 
   assert.equal(deduplicar([fila(), fila({ fecha: '12/11/2026, 14:46' }), fila({ precio_final: 50 })]).length, 3)
 })
 
+caso('Excel consolidado: el simplificado toma la agencia del nombre real de la hoja y avisa', () => {
+  const { parseXlsxBuffer, buildMergedXlsx, avisoConsolidado } = require('../src/main/ipcHandlers/supportHandler')
+  const fila = (agencia_nombre, extra) => ({ fecha: '12/11/2026, 14:45', medidas: '60x40x40', cp_prefix: '08', metros_cubicos: 0.096, peso: 22, agencia_nombre, precio_final: 24, precio_redondeado: 24, ...extra })
+  const filas = [fila('DSV'), fila('Transabadell', { precio_final: 9.8 }), fila('A & B <prueba>')]
+  const simple = parseXlsxBuffer(buildMergedXlsx(filas, true))
+  assert.deepEqual(simple.map(r => r.agencia_nombre).sort(), ['A & B <prueba>', 'DSV', 'Transabadell'])
+  assert.equal(simple.simplificado, true)
+  const completo = parseXlsxBuffer(buildMergedXlsx(filas, false))
+  assert.ok(!completo.simplificado)
+  assert.equal(avisoConsolidado([completo]), null)
+  assert.equal(avisoConsolidado([completo, simple]), 'Los Excel simplificados no se pueden cruzar con los completos: puede haber cotizaciones repetidas y sin peso. Para un consolidado exacto, usa solo exportaciones completas.')
+})
+
 // El renderer (ESM) tiene su gemelo de pesoBulto y el texto de la columna del informe
 async function pruebasRenderer() {
   // Node de Electron trata los .js como CommonJS: se importa como módulo data: (siempre ESM)

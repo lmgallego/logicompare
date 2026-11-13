@@ -24,6 +24,8 @@ function parseXlsxBuffer(buf) {
     const iAg    = headers.findIndex(h => h.includes('agencia'))
     const iPF    = headers.findIndex(h => h.includes('precio final') || h.includes('precio final (€)'))
     const iPR    = headers.findIndex(h => h.includes('redondeado') || h.includes('precio redondeado'))
+    // Sin columna Agencia = Excel simplificado: la agencia sale del nombre de la hoja
+    if (iAg < 0) rows.simplificado = true
 
     for (let i = 1; i < sheetRows.length; i++) {
       const r = sheetRows[i]
@@ -83,8 +85,9 @@ function decodeXmlEntities(s) {
 }
 
 // Minimal ZIP reader — find and decompress xl/worksheets/sheet*.xml entries
+// Devuelve { nombreHoja: xml }; el nombre real sale de xl/workbook.xml (+ rels), o "HojaN" si falta
 function unzipSheets(buf) {
-  const sheets = {}
+  const partes = {}
   let offset = 0
 
   while (offset < buf.length - 4) {
@@ -99,21 +102,32 @@ function unzipSheets(buf) {
     const dataStart    = offset + 30 + fnLen + extraLen
     const compData     = buf.slice(dataStart, dataStart + compSize)
 
-    if (/^xl\/worksheets\/sheet\d+\.xml$/.test(filename)) {
+    if (/^xl\/worksheets\/sheet\d+\.xml$/.test(filename) || filename === 'xl/workbook.xml' || filename === 'xl/_rels/workbook.xml.rels') {
       try {
-        const xmlBuf = compression === 8
-          ? zlib.inflateRawSync(compData)
-          : compData
-        // Extract sheet name from filename index
-        const m = filename.match(/sheet(\d+)\.xml/)
-        const sheetKey = m ? `Hoja${m[1]}` : filename
-        sheets[sheetKey] = xmlBuf.toString('utf8')
+        partes[filename] = (compression === 8 ? zlib.inflateRawSync(compData) : compData).toString('utf8')
       } catch (_) {}
     }
 
     offset = dataStart + compSize
   }
 
+  const attr = (tag, n) => (tag.match(new RegExp('\\s' + n + '="([^"]*)"')) || [])[1]
+  const destino = {}
+  for (const [tag] of (partes['xl/_rels/workbook.xml.rels'] || '').matchAll(/<Relationship\s[^>]*>/g)) {
+    const t = attr(tag, 'Target')
+    if (t) destino[attr(tag, 'Id')] = t.startsWith('/') ? t.slice(1) : 'xl/' + t
+  }
+  const nombres = {}
+  for (const [tag] of (partes['xl/workbook.xml'] || '').matchAll(/<sheet\s[^>]*>/g)) {
+    const f = destino[attr(tag, 'r:id')]
+    if (f) nombres[f] = decodeXmlEntities(attr(tag, 'name') || '')
+  }
+
+  const sheets = {}
+  for (const [f, xml] of Object.entries(partes)) {
+    const m = f.match(/^xl\/worksheets\/sheet(\d+)\.xml$/)
+    if (m) sheets[nombres[f] || `Hoja${m[1]}`] = xml
+  }
   return sheets
 }
 
@@ -149,6 +163,10 @@ function deduplicar(rows) {
   return [...vistos.values()]
 }
 
+const AVISO_SIMPLIFICADO = 'Los Excel simplificados no se pueden cruzar con los completos: puede haber cotizaciones repetidas y sin peso. Para un consolidado exacto, usa solo exportaciones completas.'
+// listas: una por fichero, tal como las devuelve parseXlsxBuffer
+const avisoConsolidado = listas => (listas.some(l => l.simplificado) ? AVISO_SIMPLIFICADO : null)
+
 // ── Register all IPC handlers (called from main.js after app.whenReady) ────────
 function init() {
   const { ipcMain, dialog } = require('electron')
@@ -163,18 +181,17 @@ function init() {
     if (result.canceled || result.filePaths.length === 0) return { ok: false }
 
     const filePaths = result.filePaths.slice(0, 3)
-    let allRows = []
+    const listas = []
 
     for (const fp of filePaths) {
       try {
-        const buf = fs.readFileSync(fp)
-        const rows = parseXlsxBuffer(buf)
-        allRows = allRows.concat(rows)
+        listas.push(parseXlsxBuffer(fs.readFileSync(fp)))
       } catch (err) {
         return { ok: false, error: `Error leyendo ${path.basename(fp)}: ${err.message}` }
       }
     }
 
+    let allRows = listas.flat()
     if (!allRows.length) return { ok: false, error: 'No se encontraron datos en los archivos.' }
 
     // Normalize agency names first
@@ -194,7 +211,7 @@ function init() {
       return (a.agencia_nombre || '').localeCompare(b.agencia_nombre || '')
     })
 
-    return { ok: true, rows: allRows, count: allRows.length }
+    return { ok: true, rows: allRows, count: allRows.length, aviso: avisoConsolidado(listas) }
   })
 
   ipcMain.removeHandler('export-merged-xlsx')
@@ -216,7 +233,7 @@ function init() {
   })
 }
 
-module.exports = { init, parseXlsxBuffer, buildMergedXlsx, deduplicar }
+module.exports = { init, parseXlsxBuffer, buildMergedXlsx, deduplicar, avisoConsolidado }
 
 function buildMergedXlsx(rows, simplificada) {
   const esc = (v) => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
